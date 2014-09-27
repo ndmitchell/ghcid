@@ -1,0 +1,38 @@
+cabal-version:      >= 1.10
+build-type:         Simple
+name:               ghcid
+version:            0.1
+license:            BSD3
+license-file:       LICENSE
+category:           Development
+author:             Neil Mitchell <ndmitchell@gmail.com>
+maintainer:         Neil Mitchell <ndmitchell@gmail.com>
+copyright:          Neil Mitchell 2014
+synopsis:           GHCi based bare bones IDE
+description:
+    Bare bones IDE.
+homepage:           https://github.com/ndmitchell/ghcid#readme
+bug-reports:        https://github.com/ndmitchell/ghcid/issues
+tested-with:        GHC==7.8.2, GHC==7.6.3, GHC==7.4.2
+extra-source-files:
+    CHANGES.txt
+    README.md
+
+source-repository head
+    type:     git
+    location: https://github.com/ndmitchell/ghcid.git
+
+executable ghcid
+    default-language: Haskell2010
+    main-is: Main.hs
+    build-depends:
+        base == 4.*,
+        filepath,
+        time,
+        directory,
+        process >= 1.1,
+        cmdargs >= 0.10
+
+    other-modules:
+        GHCi
+        Util
