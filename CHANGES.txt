@@ -1,4 +1,5 @@
 Changelog for GHCiD
 
+    Support arguments to --command
 0.1
     Initial version

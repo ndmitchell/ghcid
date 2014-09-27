@@ -22,7 +22,8 @@ import Util
 
 ghci :: String -> IO (String -> IO [String])
 ghci cmd = do
-    (inp, out, err, pid) <- runInteractiveProcess cmd [] Nothing Nothing
+    (Just inp, Just out, Just err, pid) <-
+        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe}
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
