@@ -11,15 +11,18 @@ import Control.Concurrent
 import Control.Monad
 import Data.Char
 import Data.List
+import Data.Maybe
 import System.FilePath
+import System.Console.CmdArgs.Verbosity
+import Util
 
 
 ---------------------------------------------------------------------
 -- IO INTERACTION WITH GHCI
 
-ghci :: IO (String -> IO [String])
-ghci = do
-    (inp, out, err, pid) <- runInteractiveProcess "ghci" [] Nothing Nothing
+ghci :: String -> IO (String -> IO [String])
+ghci cmd = do
+    (inp, out, err, pid) <- runInteractiveProcess cmd [] Nothing Nothing
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
@@ -27,26 +30,27 @@ ghci = do
     lock <- newMVar () -- ensure only one person talks to ghci at a time
     outs <- newMVar [] -- result that is buffering up
     errs <- newMVar []
-    flush <- newEmptyMVar -- result is moved to push once we see magic
+    flush <- newEmptyMVar -- result is moved to push once we see separate
 
-    -- me <- newMVar ()
+    let prefix = "#~GHCID-PREFIX~#"
+    let separate = "#~GHCID-SEPARATE~#"
+    hPutStrLn inp $ ":set prompt " ++ prefix
 
-    let magic = "#GHCID#"
-    forM_ [(out,outs),(err,errs)] $ \(h,buf) -> forkIO $ forever $ do
+    forM_ [(out,outs,"GHCOUT"),(err,errs,"GHCERR")] $ \(h,buf,strm) -> forkIO $ forever $ do
         s <- hGetLine h
-        --withMVar me $ const $ putStrLn $ "%OUTPUT: " ++ s
-        if s == magic then do
+        whenLoud $ outStrLn $ "%" ++ strm ++ ": " ++ s
+        if s == separate then do
             outs <- modifyMVar outs $ \s -> return ([], reverse s)
             errs <- modifyMVar errs $ \s -> return ([], reverse s)
             putMVar flush $ outs ++ errs
         else
-            modifyMVar_ buf $ return . (s:)
+            modifyMVar_ buf $ return . (fromMaybe s (stripPrefix prefix s):)
 
     return $ \s -> withMVar lock $ const $ do
-        --withMVar me $ const $ putStrLn $ "%INPUT: " ++ s
-        hPutStrLn inp $ s ++ "\nputStrLn $ \"\\n\" ++ " ++ show magic
-        takeMVar flush
-
+        whenLoud $ outStrLn $ "%GHCINP: " ++ s
+        hPutStrLn inp $ s ++ "\nputStrLn \"\\n" ++ separate ++ "\""
+        res <- takeMVar flush
+        return res
 
 
 ---------------------------------------------------------------------
@@ -96,6 +100,6 @@ parseLoad (x:xs)
     , (msg,xs) <- span (isPrefixOf " ") xs
     , rest <- dropWhile isSpace rest
     , sev <- if "Warning:" `isPrefixOf` rest then Warning else Error
-    = Message sev file (p1,p2) (dropWhile null $ rest:msg) : parseLoad xs
+    = Message sev file (p1,p2) (x:msg) : parseLoad xs
 parseLoad (x:xs) = parseLoad xs
 parseLoad [] = []

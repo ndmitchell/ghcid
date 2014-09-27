@@ -1,4 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP #-}
+
 module Main(main) where
 
 import Control.Concurrent
@@ -7,8 +8,21 @@ import System.Directory
 import Data.Time.Clock
 import Data.List
 import GHCi
+import Util
+import System.Console.CmdArgs
 
+data Options = Options
+    {command :: String
+    ,height :: Int
+    }
+    deriving (Data,Typeable,Show)
 
+options = cmdArgsMode $ Options
+    {command = "ghci" &= help "Command to run (defaults to ghci)"
+    ,height = 8 &= help "Number of lines to show"
+    } &= verbosity
+
+#if defined(mingw32_HOST_OS)
 foreign import stdcall unsafe "windows.h GetConsoleWindow"
     c_GetConsoleWindow :: IO Int
 
@@ -16,34 +30,42 @@ foreign import stdcall unsafe "windows.h SetWindowPos"
     c_SetWindowPos :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> IO Int
 
 c_HWND_TOPMOST = -1
+#endif
 
 main :: IO ()
 main = do
+    Options{..} <- cmdArgsRun options
+#if defined(mingw32_HOST_OS)
     wnd <- c_GetConsoleWindow
     c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 3
-    ghci <- ghci
+#endif
+    ghci <- ghci command
     let fire msg warnings = do
-            -- TODO: Persist file warnings that haven't changed by keeping (File,ModTime,Warnings)
-            -- only show if the file is loaded
             start <- getCurrentTime
             load <- fmap parseLoad $ ghci msg
             modsActive <- fmap (map snd . parseShowModules) $ ghci ":show modules"
             modsLoad <- return $ nub $ map loadFile load
-            load <- return $ load ++
-                [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
-            putStr $ unlines $ output $ filter isMessage load
+            whenLoud $ do
+                outStrLn $ "%ACTIVE: " ++ show modsActive
+                outStrLn $ "%LOAD: " ++ show load
+            warn <- return [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
+            let msg = prettyOutput height $ filter isMessage load ++ warn
+            outStr $ unlines $ take height $ msg ++ replicate height "" 
             awaitFiles start $ nub $ modsLoad ++ modsActive
-            fire ":reload" [m | m@Message{..} <- load, loadSeverity == Warning]
+            fire ":reload" [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
     fire "" []
 
-output :: [Load] -> [String]
-output [] = ["All good"]
-output xs = map show xs
+
+prettyOutput :: Int -> [Load] -> [String]
+prettyOutput height [] = ["All good"]
+prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
+    where (err, warn) = partition ((==) Error . loadSeverity) xs
+          msg1:msgs = map loadMessage err ++ map loadMessage warn
 
 
 awaitFiles :: UTCTime -> [FilePath] -> IO ()
 awaitFiles base files = do
-    putStrLn $ "% WAITING: " ++ unwords files
+    whenLoud $ outStrLn $ "% WAITING: " ++ unwords files
     new <- mapM getModificationTime files
     when (all (< base) new) $ recheck new
     where
