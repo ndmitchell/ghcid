@@ -1,4 +1,4 @@
-# ghcid
+# ghcid [![Hackage version](https://img.shields.io/hackage/v/ghcid.svg?style=flat)](http://hackage.haskell.org/package/ghcid) [![Build Status](http://img.shields.io/travis/ndmitchell/ghcid.svg?style=flat)](https://travis-ci.org/ndmitchell/ghcid)
 
 Either "GHCi as a daemon" or "GHC + a bit of an IDE". Unlike other Haskell development tools, `ghcid` is intended to be _incredibly simple_. In particular, it doesn't integrate with any editors, doesn't depend on GHC the library and doesn't start web servers.
 
