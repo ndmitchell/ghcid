@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Main(main) where
 
 import Control.Concurrent
@@ -22,24 +22,28 @@ main = do
     wnd <- c_GetConsoleWindow
     c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 3
     ghci <- ghci
-    let fire msg = do
+    let fire msg warnings = do
             -- TODO: Persist file warnings that haven't changed by keeping (File,ModTime,Warnings)
             -- only show if the file is loaded
             start <- getCurrentTime
             load <- fmap parseLoad $ ghci msg
-            mods <- fmap (map snd . parseShowModules) $ ghci ":show modules"
-            putStr $ unlines $ reduceMessage load
-            awaitFiles start $ nub $ mods -- ++ map loadFile result
-            fire ":reload"
-    fire ""
+            modsActive <- fmap (map snd . parseShowModules) $ ghci ":show modules"
+            modsLoad <- return $ nub $ map loadFile load
+            load <- return $ load ++
+                [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
+            putStr $ unlines $ output $ filter isMessage load
+            awaitFiles start $ nub $ modsLoad ++ modsActive
+            fire ":reload" [m | m@Message{..} <- load, loadSeverity == Warning]
+    fire "" []
 
-
-reduceMessage :: [String] -> [String]
-reduceMessage = id
+output :: [Load] -> [String]
+output [] = ["All good"]
+output xs = map show xs
 
 
 awaitFiles :: UTCTime -> [FilePath] -> IO ()
 awaitFiles base files = do
+    putStrLn $ "% WAITING: " ++ unwords files
     new <- mapM getModificationTime files
     when (all (< base) new) $ recheck new
     where
