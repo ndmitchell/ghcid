@@ -13,7 +13,7 @@ description:
     Bare bones IDE.
 homepage:           https://github.com/ndmitchell/ghcid#readme
 bug-reports:        https://github.com/ndmitchell/ghcid/issues
-tested-with:        GHC==7.8.2, GHC==7.6.3, GHC==7.4.2
+tested-with:        GHC==7.8.2, GHC==7.6.3
 extra-source-files:
     CHANGES.txt
     README.md
