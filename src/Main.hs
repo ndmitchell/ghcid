@@ -52,8 +52,8 @@ main = do
                 outStrLn $ "%ACTIVE: " ++ show modsActive
                 outStrLn $ "%LOAD: " ++ show load
             warn <- return [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
-            let msg = prettyOutput height $ filter isMessage load ++ warn
-            outStr $ unlines $ take height $ msg ++ replicate height "" 
+            let outFill msg = outStr $ unlines $ take height $ msg ++ replicate height ""
+            outFill $ prettyOutput height $ filter isMessage load ++ warn
             reason <- awaitFiles start $ nub $ modsLoad ++ modsActive
             outStr $ unlines $ "Reloading..." : ("  " ++ reason) : replicate (height - 2) ""
             fire ":reload" [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
