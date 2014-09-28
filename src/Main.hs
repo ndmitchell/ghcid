@@ -83,7 +83,3 @@ awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
                 [] -> recheck new
                 xs -> return xs
-
-
-sleep :: Double -> IO ()
-sleep x = threadDelay $ ceiling $ x * 1000000
