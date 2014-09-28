@@ -55,7 +55,7 @@ main = do
             let outFill msg = outStr $ unlines $ take height $ msg ++ replicate height ""
             outFill $ prettyOutput height $ filter isMessage load ++ warn
             reason <- awaitFiles start $ nub $ modsLoad ++ modsActive
-            outStr $ unlines $ "Reloading..." : ("  " ++ reason) : replicate (height - 2) ""
+            outFill $ "Reloading..." : map ("  " ++) reason
             fire ":reload" [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
     fire "" []
 
@@ -68,20 +68,20 @@ prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (ta
 
 
 -- return a message about why you are continuing (usually a file name)
-awaitFiles :: UTCTime -> [FilePath] -> IO String
-awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return $ show e) $ do
+awaitFiles :: UTCTime -> [FilePath] -> IO [String]
+awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
     whenLoud $ outStrLn $ "% WAITING: " ++ unwords files
     new <- mapM getModificationTime files
     case [x | (x,t) <- zip files new, t > base] of
-        x:_ -> return x
         [] -> recheck new
+        xs -> return xs
     where
         recheck old = do
             sleep 0.1
             new <- mapM getModificationTime files
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
-                x:_ -> return x
                 [] -> recheck new
+                xs -> return xs
 
 
 sleep :: Double -> IO ()
