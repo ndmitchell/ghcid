@@ -4,12 +4,13 @@ Either "GHCi as a daemon" or "GHC + a bit of an IDE". Unlike other Haskell devel
 
 **Using it**
 
-Run `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid --height=10 "--command=ghci Main.hs"`. The `height` is the number of lines you are going to resize your console window to (defaults to 8), and the `command` is how you start this project in `ghci`. Personally, I always create a `.ghci` file at the root of all my projects, which usually reads something like:
+Run `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid --height=8 "--command=ghci Main.hs"`. The `height` is the number of lines you are going to resize your console window to (defaults to 8), and the `command` is how you start your project in `ghci`. If you omit `--command` then it will default to `ghci` if you have a `.ghci` file in the current directory, otherwise it will default to `cabal repl`.
+
+Personally, I always create a `.ghci` file at the root of all my projects, which usually [reads something like](https://github.com/ndmitchell/ghcid/blob/master/.ghci):
 
     :set -fwarn-unused-binds -fwarn-unused-imports
+    :set -isrc
     :load Main
-
-If you have that, then you can pass `--command=ghci` (or nothing, since that is the default).
 
 After that, resize your console and make it so you can see it while working in your editor. On Windows the console will automatically sit on top of all other windows. On Linux, you probably want to use your window manager to make it topmost or use a [tiling window manager](http://xmonad.org/).
 
