@@ -19,7 +19,7 @@ data Options = Options
     deriving (Data,Typeable,Show)
 
 options = cmdArgsMode $ Options
-    {command = "ghci" &= help "Command to run (defaults to ghci)"
+    {command = "" &= help "Command to run (defaults to ghci or cabal repl)"
     ,height = 8 &= help "Number of lines to show"
     } &= verbosity
 
@@ -40,7 +40,9 @@ main = do
     wnd <- c_GetConsoleWindow
     c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 3
 #endif
-    ghci <- ghci command
+    dotGhci <- doesFileExist ".ghci"
+    ghci <- ghci $ if command /= "" then command
+                   else if dotGhci then "ghci" else "cabal repl"
     let fire msg warnings = do
             start <- getCurrentTime
             load <- fmap parseLoad $ ghci msg
