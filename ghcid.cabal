@@ -37,3 +37,4 @@ executable ghcid
     other-modules:
         GHCi
         Util
+        Test
