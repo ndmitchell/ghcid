@@ -3,7 +3,6 @@
 module Main(main) where
 
 import Control.Concurrent
-import Control.Monad
 import System.Directory
 import Data.Time.Clock
 import Data.List
@@ -51,7 +50,8 @@ main = do
             warn <- return [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
             let msg = prettyOutput height $ filter isMessage load ++ warn
             outStr $ unlines $ take height $ msg ++ replicate height "" 
-            awaitFiles start $ nub $ modsLoad ++ modsActive
+            reason <- awaitFiles start $ nub $ modsLoad ++ modsActive
+            outStr $ unlines $ "Reloading..." : ("  " ++ reason) : replicate (height - 2) ""
             fire ":reload" [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
     fire "" []
 
@@ -63,16 +63,21 @@ prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (ta
           msg1:msgs = map loadMessage err ++ map loadMessage warn
 
 
-awaitFiles :: UTCTime -> [FilePath] -> IO ()
+-- return a message about why you are continuing (usually a file name)
+awaitFiles :: UTCTime -> [FilePath] -> IO String
 awaitFiles base files = do
     whenLoud $ outStrLn $ "% WAITING: " ++ unwords files
     new <- mapM getModificationTime files
-    when (all (< base) new) $ recheck new
+    case [x | (x,t) <- zip files new, t > base] of
+        x:_ -> return x
+        [] -> recheck new
     where
         recheck old = do
             sleep 0.1
             new <- mapM getModificationTime files
-            when (old == new) $ recheck new
+            case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
+                x:_ -> return x
+                [] -> recheck new
 
 
 sleep :: Double -> IO ()

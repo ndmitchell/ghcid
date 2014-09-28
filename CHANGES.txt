@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    Say why you are reloading
 0.1.1
     Support arguments to --command
 0.1
