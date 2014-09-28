@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP #-}
+{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables #-}
 
 module Main(main) where
 
@@ -9,6 +9,8 @@ import Data.List
 import GHCi
 import Util
 import System.Console.CmdArgs
+import Control.Exception
+
 
 data Options = Options
     {command :: String
@@ -65,7 +67,7 @@ prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (ta
 
 -- return a message about why you are continuing (usually a file name)
 awaitFiles :: UTCTime -> [FilePath] -> IO String
-awaitFiles base files = do
+awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return $ show e) $ do
     whenLoud $ outStrLn $ "% WAITING: " ++ unwords files
     new <- mapM getModificationTime files
     case [x | (x,t) <- zip files new, t > base] of

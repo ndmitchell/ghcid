@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #1, if there is an IOError just :reload
     Say why you are reloading
 0.1.1
     Support arguments to --command
