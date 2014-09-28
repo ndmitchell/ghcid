@@ -19,9 +19,10 @@ data Options = Options
     deriving (Data,Typeable,Show)
 
 options = cmdArgsMode $ Options
-    {command = "" &= help "Command to run (defaults to ghci or cabal repl)"
+    {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,height = 8 &= help "Number of lines to show"
-    } &= verbosity
+    } &= verbosity &=
+    program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
 
 #if defined(mingw32_HOST_OS)
 foreign import stdcall unsafe "windows.h GetConsoleWindow"
