@@ -33,7 +33,7 @@ runTest True  f = do
         writeFile "Main.hs" "main = print 1"
         writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
         -- otherwise GHC warns about .ghci being accessible by others
-        try_ $ system "chmod og-w . && chmod og-w .ghci"
+        try_ $ system "chmod og-w . .ghci"
         forkIO $ handle (\(e :: SomeException) -> throwTo t e) $ do
             require requireAllGood
             testScript require
