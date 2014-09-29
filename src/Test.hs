@@ -29,9 +29,9 @@ runTest True  f = do
                 when (ys /= xs) $ error $ show ("Mismatch", res, xs)
                 putChar '.'
         t <- myThreadId
+        writeFile "Main.hs" "main = print 1"
+        writeFile ".ghci" ":load Main"
         forkIO $ handle (\(e :: SomeException) -> throwTo t e) $ do
-            writeFile "Main.hs" "main = print 1"
-            writeFile ".ghci" ":load Main"
             require ["All good"]
             putStrLn "\nSuccess"
             throwTo t ExitSuccess
