@@ -12,6 +12,7 @@ import System.FilePath
 import System.Directory
 import System.Exit
 import System.IO
+import System.Process
 
 
 runTest :: Bool -> (([String] -> IO ()) -> IO a) -> IO a
@@ -23,6 +24,7 @@ runTest True  f = do
     try_ $ removeDirectoryRecursive tdir
     createDirectoryIfMissing True tdir
     withCurrentDirectory tdir $ do
+        try_ $ system "chmod 751 ."
         ref <- newEmptyMVar
         let require pred = do
                 res <- takeMVarDelay ref 5
