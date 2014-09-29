@@ -16,16 +16,16 @@ import Control.Exception
 data Options = Options
     {command :: String
     ,height :: Int
-    ,test :: Bool
     ,topmost :: Bool
+    ,test :: Bool
     }
     deriving (Data,Typeable,Show)
 
 options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,height = 8 &= help "Number of lines to show"
+    ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,test = False &= help "Run the test suite"
-    ,topmost = False &= help "Set window topmost (Windows only)"
     } &= verbosity &=
     program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
 
