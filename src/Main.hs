@@ -55,7 +55,8 @@ main = do
                        else if dotGhci then "ghci" else "cabal repl"
         let fire msg warnings = do
                 start <- getCurrentTime
-                load <- fmap parseLoad $ ghci msg
+                -- nub, because cabal repl sometimes does two reloads at the start
+                load <- fmap (nub . parseLoad) $ ghci msg
                 modsActive <- fmap (map snd . parseShowModules) $ ghci ":show modules"
                 modsLoad <- return $ nub $ map loadFile load
                 whenLoud $ do

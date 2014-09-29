@@ -98,7 +98,7 @@ data Load
         ,loadFilePos :: (Int,Int)
         ,loadMessage :: [String]
         }
-      deriving Show
+      deriving (Show,Eq)
 
 isMessage Message{} = True; isMessage _ = False
 
