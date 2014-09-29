@@ -33,6 +33,7 @@ runTest True  f = do
         writeFile "Main.hs" "main = print 1"
         writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
         perm <- getPermissions ".ghci"
+        setPermissions ".ghci" $ setOwnerWritable False perm
         forkIO $ handle (\(e :: SomeException) -> throwTo t e) $ do
             require requireAllGood
             setPermissions ".ghci" perm
