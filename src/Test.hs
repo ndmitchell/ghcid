@@ -24,7 +24,6 @@ runTest True  f = do
     try_ $ removeDirectoryRecursive tdir
     createDirectoryIfMissing True tdir
     withCurrentDirectory tdir $ do
-        try_ $ system "chmod 751 ."
         ref <- newEmptyMVar
         let require pred = do
                 res <- takeMVarDelay ref 5
@@ -34,6 +33,8 @@ runTest True  f = do
         t <- myThreadId
         writeFile "Main.hs" "main = print 1"
         writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
+        -- otherwise GHC warns about .ghci being accessible by others
+        try_ $ system "chmod og-w . && chmod og-w .ghci"
         perm <- getPermissions ".ghci"
         setPermissions ".ghci" $ setOwnerWritable False perm
         forkIO $ handle (\(e :: SomeException) -> throwTo t e) $ do
