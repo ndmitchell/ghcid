@@ -14,7 +14,6 @@ import Control.Monad
 import Data.Char
 import Data.Function
 import Data.List
-import Data.Maybe
 import System.FilePath
 import System.Console.CmdArgs.Verbosity
 import System.Exit
@@ -51,7 +50,7 @@ ghci cmd = do
                             buf <- modifyMVar buffer $ \old -> return ([], reverse old)
                             putMVar result $ Just buf
                         else
-                            modifyMVar_ buffer $ return . (fromMaybe s (stripPrefix prefix s):)
+                            modifyMVar_ buffer $ return . (dropPrefix prefix s:)
                         rec
             return result
 
@@ -75,6 +74,9 @@ ghci cmd = do
                 modifyMVar_ firstTime $ const $ return False
                 return msg
 
+
+dropPrefix :: Eq a => [a] -> [a] -> [a]
+dropPrefix pre s = maybe s (dropPrefix pre) $ stripPrefix pre s
 
 ---------------------------------------------------------------------
 -- PARSING THE OUTPUT
