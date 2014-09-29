@@ -17,6 +17,7 @@ data Options = Options
     {command :: String
     ,height :: Int
     ,test :: Bool
+    ,topmost :: Bool
     }
     deriving (Data,Typeable,Show)
 
@@ -24,6 +25,7 @@ options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,height = 8 &= help "Number of lines to show"
     ,test = False &= help "Run the test suite"
+    ,topmost = False &= help "Set window topmost (Windows only)"
     } &= verbosity &=
     program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
 
@@ -41,7 +43,7 @@ main :: IO ()
 main = do
     Options{..} <- cmdArgsRun options
 #if defined(mingw32_HOST_OS)
-    when (not test) $ do
+    when ((not test) && topmost) $ do
         wnd <- c_GetConsoleWindow
         c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 3
         return ()
