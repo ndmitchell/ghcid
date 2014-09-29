@@ -10,6 +10,7 @@ import GHCi
 import Util
 import Test
 import System.Console.CmdArgs
+import System.IO.Error
 import Control.Exception
 
 
@@ -80,14 +81,20 @@ prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (ta
 awaitFiles :: UTCTime -> [FilePath] -> IO [String]
 awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
     whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
-    new <- mapM getModificationTime files
-    case [x | (x,t) <- zip files new, t > base] of
-        [] -> recheck new
+    new <- mapM mtime files
+    case [x | (x,Just t) <- zip files new, t > base] of
+        [] -> recheck files new
         xs -> return xs
     where
-        recheck old = do
+        recheck files old = do
             sleep 0.1
-            new <- mapM getModificationTime files
+            new <- mapM mtime files
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
-                [] -> recheck new
+                [] -> recheck files new
                 xs -> return xs
+
+mtime :: FilePath -> IO (Maybe UTCTime)
+mtime file = handleJust
+    (\e -> if isDoesNotExistError e then Just () else Nothing)
+    (\_ -> return Nothing)
+    (fmap Just $ getModificationTime file)

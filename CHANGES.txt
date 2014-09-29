@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #2, handle files that get deleted while loaded
     #3, flesh out the test suite
     #4, give a polite error if ghci does not start
     #5, add --topmost flag to make the window topmost
