@@ -2,4 +2,6 @@
 import Neil
 
 main = do
-    cmd "ghcid --test"
+    cmd "which ghc"
+    cmd "which ghci"
+    cmd "ghcid --test --verbose"
