@@ -64,6 +64,9 @@ requireAllGood got = filter (not . null) got === ["All good"]
 requireNonIndents :: [String] -> [String] -> IO ()
 requireNonIndents want got = [x | x@(c:_) <- got, not $ isSpace c] === want
 
+requirePrefix :: [String] -> [String] -> IO ()
+requirePrefix want got = take (length want) got === want
+
 
 ---------------------------------------------------------------------
 -- ACTUAL TEST SUITE
@@ -91,4 +94,12 @@ testScript require = do
     writeFile "Main.hs" "import Util\nmain = print 4"
     require $ requireNonIndents ["Util.hs:2:1: Warning: Defined but not used: `x'"]
     writeFile "Util.hs" "module Util where"
+    require requireAllGood
+
+    -- check renaming files works
+    -- note that due to GHC bug #9648 we can't save down a new file
+    renameFile "Util.hs" "Util2.hs"
+    require $ \s -> do requirePrefix ["Main.hs:1:8:","    Could not find module `Util'"] s
+                       requireNonIndents ["Main.hs:1:8:"] s
+    renameFile "Util2.hs" "Util.hs"
     require requireAllGood
