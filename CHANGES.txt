@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #5, add --topmost flag to make the window topmost
 0.1.2
     Add a very simple test suite
     Default to cabal repl if there is no .ghci file
