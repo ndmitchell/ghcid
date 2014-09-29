@@ -26,7 +26,7 @@ runTest True  f = do
         let require pred = do
                 res <- takeMVarDelay ref 5
                 pred res
-                putChar '.'
+                outStr "."
                 sleep 1
         t <- myThreadId
         writeFile "Main.hs" "main = print 1"
@@ -34,7 +34,7 @@ runTest True  f = do
         forkIO $ handle (\(e :: SomeException) -> throwTo t e) $ do
             require requireAllGood
             testScript require
-            putStrLn "\nSuccess"
+            outStrLn "\nSuccess"
             throwTo t ExitSuccess
         f $ \msg -> unless (["Reloading..."] `isPrefixOf` msg) $
             putMVarNow ref msg
