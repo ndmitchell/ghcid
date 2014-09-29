@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+0.1.3
     #2, handle files that get deleted while loaded
     #3, flesh out the test suite
     #4, give a polite error if ghci does not start
