@@ -10,7 +10,7 @@ maintainer:         Neil Mitchell <ndmitchell@gmail.com>
 copyright:          Neil Mitchell 2014
 synopsis:           GHCi based bare bones IDE
 description:
-    Either \"GHCi as a daemon\" or \"GHC + a bit of an IDE\". A very simple Haskell development tool which shows you the errors in your project and updates them whenever you save. Run @ghcid --height=10 --command=ghci@, where @--height@ is the height of the console you will use, and @--command@ is the command to start GHCi on your project.
+    Either \"GHCi as a daemon\" or \"GHC + a bit of an IDE\". A very simple Haskell development tool which shows you the errors in your project and updates them whenever you save. Run @ghcid --height=10 --topmost --command=ghci@, where @--height@ is the height of the console you will use, @--topmost@ makes the window on top of all others (Windows only) and @--command@ is the command to start GHCi on your project.
 homepage:           https://github.com/ndmitchell/ghcid#readme
 bug-reports:        https://github.com/ndmitchell/ghcid/issues
 tested-with:        GHC==7.8.2, GHC==7.6.3
