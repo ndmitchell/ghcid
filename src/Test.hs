@@ -19,6 +19,7 @@ runTest False f = f $ outStr . unlines
 runTest True  f = do
     hSetBuffering stdout NoBuffering
     tdir <- fmap (</> ".ghcid") getTemporaryDirectory
+    try_ $ setPermissions (tdir </> ".ghci") $ setOwnerWritable True emptyPermissions
     try_ $ removeDirectoryRecursive tdir
     createDirectoryIfMissing True tdir
     withCurrentDirectory tdir $ do
@@ -31,8 +32,10 @@ runTest True  f = do
         t <- myThreadId
         writeFile "Main.hs" "main = print 1"
         writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
+        perm <- getPermissions ".ghci"
         forkIO $ handle (\(e :: SomeException) -> throwTo t e) $ do
             require requireAllGood
+            setPermissions ".ghci" perm
             testScript require
             outStrLn "\nSuccess"
             throwTo t ExitSuccess
