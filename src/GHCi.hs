@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module GHCi(
     ghci,
@@ -8,12 +9,15 @@ module GHCi(
 import System.IO
 import System.Process
 import Control.Concurrent
+import Control.Exception
 import Control.Monad
 import Data.Char
+import Data.Function
 import Data.List
 import Data.Maybe
 import System.FilePath
 import System.Console.CmdArgs.Verbosity
+import System.Exit
 import Util
 
 
@@ -29,29 +33,47 @@ ghci cmd = do
     hSetBuffering inp LineBuffering
 
     lock <- newMVar () -- ensure only one person talks to ghci at a time
-    outs <- newMVar [] -- result that is buffering up
-    errs <- newMVar []
-    flush <- newEmptyMVar -- result is moved to push once we see separate
-
-    let prefix = "#~GHCID-PREFIX~#"
-    let separate = "#~GHCID-SEPARATE~#"
+    let prefix = "#~GHCID-IGNORE~#"
+    let finish = "#~GHCID-FINISH~#"
     hPutStrLn inp $ ":set prompt " ++ prefix
 
-    forM_ [(out,outs,"GHCOUT"),(err,errs,"GHCERR")] $ \(h,buf,strm) -> forkIO $ forever $ do
-        s <- hGetLine h
-        whenLoud $ outStrLn $ "%" ++ strm ++ ": " ++ s
-        if s == separate then do
-            outs <- modifyMVar outs $ \s -> return ([], reverse s)
-            errs <- modifyMVar errs $ \s -> return ([], reverse s)
-            putMVar flush $ outs ++ errs
-        else
-            modifyMVar_ buf $ return . (fromMaybe s (stripPrefix prefix s):)
+    -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
+    let consume h name = do
+            result <- newEmptyMVar -- the end result
+            buffer <- newMVar [] -- the things to go in result
+            forkIO $ fix $ \rec -> do
+                s <- try $ hGetLine h
+                case s of
+                    Left (_ :: SomeException) -> putMVar result Nothing
+                    Right s -> do
+                        whenLoud $ outStrLn $ "%" ++ name ++ ": " ++ s
+                        if finish `isInfixOf` s then do
+                            buf <- modifyMVar buffer $ \old -> return ([], reverse old)
+                            putMVar result $ Just buf
+                        else
+                            modifyMVar_ buffer $ return . (fromMaybe s (stripPrefix prefix s):)
+                        rec
+            return result
+
+    outs <- consume out "GHCOUT"
+    errs <- consume err "GHCERR"
+    firstTime <- newMVar True
 
     return $ \s -> withMVar lock $ const $ do
         whenLoud $ outStrLn $ "%GHCINP: " ++ s
-        hPutStrLn inp $ s ++ "\nputStrLn \"\\n" ++ separate ++ "\""
-        res <- takeMVar flush
-        return res
+        hPutStrLn inp $ s ++ "\nputStrLn " ++ show finish ++ "\nerror " ++ show finish
+        out <- takeMVar outs
+        err <- takeMVar errs
+        case liftM2 (++) out err of
+            Nothing -> do
+                firstTime <- readMVar firstTime
+                outStrLn $ if firstTime
+                    then "GHCi exited, did you run the right command? You ran:\n  " ++ cmd
+                    else "GHCi exited"
+                exitFailure
+            Just msg -> do
+                modifyMVar_ firstTime $ const $ return False
+                return msg
 
 
 ---------------------------------------------------------------------
