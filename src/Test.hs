@@ -23,16 +23,17 @@ runTest True  f = do
     createDirectoryIfMissing True tdir
     withCurrentDirectory tdir $ do
         ref <- newEmptyMVar
-        let require xs = do
+        let require pred = do
                 res <- takeMVarDelay ref 5
-                let ys = [x | x@(c:_) <- res, not $ isSpace c]
-                when (ys /= xs) $ error $ show ("Mismatch", res, xs)
+                pred res
                 putChar '.'
+                sleep 1
         t <- myThreadId
         writeFile "Main.hs" "main = print 1"
-        writeFile ".ghci" ":load Main"
+        writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
         forkIO $ handle (\(e :: SomeException) -> throwTo t e) $ do
-            require ["All good"]
+            require requireAllGood
+            testScript require
             putStrLn "\nSuccess"
             throwTo t ExitSuccess
         f $ \msg -> unless (["Reloading..."] `isPrefixOf` msg) $
@@ -51,3 +52,40 @@ takeMVarDelay x i = do
         Nothing -> sleep 0.1 >> takeMVarDelay x (i-0.1)
         Just v -> return v
 
+(===) :: (Eq a, Show a) => a -> a -> IO ()
+(===) a b = unless (a == b) $ error $ "Mismatch\nLHS: " ++ show a ++ "\nRHS: " ++ show b
+
+requireAllGood :: [String] -> IO ()
+requireAllGood got = filter (not . null) got === ["All good"]
+
+requireNonIndents :: [String] -> [String] -> IO ()
+requireNonIndents want got = [x | x@(c:_) <- got, not $ isSpace c] === want
+
+
+---------------------------------------------------------------------
+-- ACTUAL TEST SUITE
+
+testScript :: (([String] -> IO ()) -> IO ()) -> IO ()
+testScript require = do
+    writeFile "Main.hs" "x"
+    require $ requireNonIndents ["Main.hs:1:1: Parse error: naked expression at top level"]
+    writeFile "Util.hs" "module Util where"
+    writeFile "Main.hs" "import Util\nmain = print 1"
+    require requireAllGood
+    writeFile "Util.hs" "module Util where\nx"
+    require $ requireNonIndents ["Util.hs:2:1: Parse error: naked expression at top level"]
+    writeFile "Util.hs" "module Util() where\nx = 1"
+    require $ requireNonIndents ["Util.hs:2:1: Warning: Defined but not used: `x'"]
+
+    -- check warnings persist properly
+    writeFile "Main.hs" "import Util\nx"
+    require $ requireNonIndents ["Main.hs:2:1: Parse error: naked expression at top level"
+                                ,"Util.hs:2:1: Warning: Defined but not used: `x'"]
+    writeFile "Main.hs" "import Util\nmain = print 2"
+    require $ requireNonIndents ["Util.hs:2:1: Warning: Defined but not used: `x'"]
+    writeFile "Main.hs" "main = print 3"
+    require requireAllGood
+    writeFile "Main.hs" "import Util\nmain = print 4"
+    require $ requireNonIndents ["Util.hs:2:1: Warning: Defined but not used: `x'"]
+    writeFile "Util.hs" "module Util where"
+    require requireAllGood
