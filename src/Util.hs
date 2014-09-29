@@ -2,7 +2,9 @@
 module Util(
     outStrLn, outStr,
     withTempDirectory, withCurrentDirectory,
-    sleep
+    sleep,
+    partitionM,
+    try_
     ) where
 
 import Control.Concurrent
@@ -40,3 +42,14 @@ withCurrentDirectory dir act =
 
 sleep :: Double -> IO ()
 sleep x = threadDelay $ ceiling $ x * 1000000
+
+
+partitionM :: Monad m => (a -> m Bool) -> [a] -> m ([a], [a])
+partitionM f [] = return ([], [])
+partitionM f (x:xs) = do
+    t <- f x
+    (a,b) <- partitionM f xs
+    return $ if t then (x:a,b) else (a,x:b)
+
+try_ :: IO a -> IO (Either SomeException a)
+try_ = try

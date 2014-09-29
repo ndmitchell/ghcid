@@ -19,7 +19,7 @@ runTest False f = f $ outStr . unlines
 runTest True  f = do
     hSetBuffering stdout NoBuffering
     tdir <- fmap (</> ".ghcid") getTemporaryDirectory
-    try $ removeDirectoryRecursive tdir :: IO (Either SomeException ())
+    try_ $ removeDirectoryRecursive tdir
     createDirectoryIfMissing True tdir
     withCurrentDirectory tdir $ do
         ref <- newEmptyMVar
