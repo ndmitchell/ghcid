@@ -1,34 +1,20 @@
 {-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables #-}
-
+-- | The application entry point
 module Main(main) where
 
 import Control.Monad
 import System.Directory
 import Data.Time.Clock
 import Data.List
-import GHCi
-import Util
-import Test
 import System.Console.CmdArgs
 import System.IO.Error
 import Control.Exception
 
+import Language.Haskell.GhcidProgram
+import Language.Haskell.Ghcid.Types
+import Language.Haskell.Ghcid.Util
 
-data Options = Options
-    {command :: String
-    ,height :: Int
-    ,topmost :: Bool
-    ,test :: Bool
-    }
-    deriving (Data,Typeable,Show)
 
-options = cmdArgsMode $ Options
-    {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
-    ,height = 8 &= help "Number of lines to show"
-    ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
-    ,test = False &= help "Run the test suite"
-    } &= verbosity &=
-    program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
 
 #if defined(mingw32_HOST_OS)
 foreign import stdcall unsafe "windows.h GetConsoleWindow"
@@ -44,58 +30,11 @@ main :: IO ()
 main = do
     Options{..} <- cmdArgsRun options
 #if defined(mingw32_HOST_OS)
-    when ((not test) && topmost) $ do
+    when topmost $ do
         wnd <- c_GetConsoleWindow
         c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 3
         return ()
 #endif
-    runTest test $ \output -> do
-        dotGhci <- doesFileExist ".ghci"
-        ghci <- ghci $ if command /= "" then command
-                       else if dotGhci then "ghci" else "cabal repl"
-        let fire msg warnings = do
-                start <- getCurrentTime
-                -- nub, because cabal repl sometimes does two reloads at the start
-                load <- fmap (nub . parseLoad) $ ghci msg
-                modsActive <- fmap (map snd . parseShowModules) $ ghci ":show modules"
-                modsLoad <- return $ nub $ map loadFile load
-                whenLoud $ do
-                    outStrLn $ "%ACTIVE: " ++ show modsActive
-                    outStrLn $ "%LOAD: " ++ show load
-                warn <- return [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
-                let outFill msg = output $ take height $ msg ++ replicate height ""
-                outFill $ prettyOutput height $ filter isMessage load ++ warn
-                reason <- awaitFiles start $ nub $ modsLoad ++ modsActive
-                outFill $ "Reloading..." : map ("  " ++) reason
-                fire ":reload" [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
-        fire "" []
+    runGhcid command height (outStr . unlines)
 
 
-prettyOutput :: Int -> [Load] -> [String]
-prettyOutput height [] = ["All good"]
-prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
-    where (err, warn) = partition ((==) Error . loadSeverity) xs
-          msg1:msgs = map loadMessage err ++ map loadMessage warn
-
-
--- return a message about why you are continuing (usually a file name)
-awaitFiles :: UTCTime -> [FilePath] -> IO [String]
-awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
-    whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
-    new <- mapM mtime files
-    case [x | (x,Just t) <- zip files new, t > base] of
-        [] -> recheck files new
-        xs -> return xs
-    where
-        recheck files old = do
-            sleep 0.1
-            new <- mapM mtime files
-            case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
-                [] -> recheck files new
-                xs -> return xs
-
-mtime :: FilePath -> IO (Maybe UTCTime)
-mtime file = handleJust
-    (\e -> if isDoesNotExistError e then Just () else Nothing)
-    (\_ -> return Nothing)
-    (fmap Just $ getModificationTime file)
