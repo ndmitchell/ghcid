@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+0.2
     #6, rewrite as a library
     Remove duplicate error messages from cabal repl
 0.1.3
