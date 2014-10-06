@@ -5,7 +5,7 @@ version:            0.1.3
 license:            BSD3
 license-file:       LICENSE
 category:           Development
-author:             Neil Mitchell <ndmitchell@gmail.com>
+author:             Neil Mitchell <ndmitchell@gmail.com>, jpmoresmau
 maintainer:         Neil Mitchell <ndmitchell@gmail.com>
 copyright:          Neil Mitchell 2014
 synopsis:           GHCi based bare bones IDE
