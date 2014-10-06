@@ -3,15 +3,8 @@
 module Main(main) where
 
 import Control.Monad
-import System.Directory
-import Data.Time.Clock
-import Data.List
 import System.Console.CmdArgs
-import System.IO.Error
-import Control.Exception
-
 import Language.Haskell.GhcidProgram
-import Language.Haskell.Ghcid.Types
 import Language.Haskell.Ghcid.Util
 
 
