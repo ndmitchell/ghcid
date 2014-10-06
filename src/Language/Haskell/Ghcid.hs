@@ -2,13 +2,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 -- | The entry point of the library
 module Language.Haskell.Ghcid
- ( T.GhciExec
+ ( T.Ghci
  , T.GhciError (..)
  , T.Severity (..)
  , T.Load (..)
  , startGhci
  , showModules
  , reload
+ , exec
  , stopGhci
  )
 where
@@ -28,7 +29,7 @@ import Language.Haskell.Ghcid.Types as T
 import Language.Haskell.Ghcid.Util
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading
-startGhci :: String -> Maybe FilePath -> IO (GhciExec, [Load])
+startGhci :: String -> Maybe FilePath -> IO (Ghci, [Load])
 startGhci cmd directory = do
     (Just inp, Just out, Just err, _) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd = directory}
@@ -72,17 +73,21 @@ startGhci cmd directory = do
                     Nothing  -> throwIO $ UnexpectedExit cmd s 
                     Just msg -> return  msg
     r <- fmap parseLoad $ f ""
-    return (f,r)
+    return (Ghci f,r)
 
 
 -- | Show modules
-showModules :: GhciExec -> IO [(String,FilePath)]
-showModules exec= fmap parseShowModules $ exec ":show modules"
+showModules :: Ghci -> IO [(String,FilePath)]
+showModules ghci = fmap parseShowModules $ exec ghci ":show modules"
 
 -- | reload modules
-reload :: GhciExec -> IO [Load]
-reload exec= fmap parseLoad $ exec ":reload"
+reload :: Ghci -> IO [Load]
+reload ghci = fmap parseLoad $ exec ghci ":reload"
 
 -- | Stop GHCi
-stopGhci :: GhciExec -> IO ()
-stopGhci exec = handle (\UnexpectedExit {} -> return ()) $ void $ exec ":quit"
+stopGhci :: Ghci -> IO ()
+stopGhci ghci = handle (\UnexpectedExit {} -> return ()) $ void $ exec ghci ":quit"
+
+-- | Send a command, get lines of result
+exec :: Ghci -> String -> IO [String]
+exec (Ghci x) = x

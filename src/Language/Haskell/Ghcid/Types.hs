@@ -6,8 +6,8 @@ module Language.Haskell.Ghcid.Types where
 import Data.Typeable
 import Control.Exception.Base (Exception)
 
--- | Send a command, get lines of result
-type GhciExec = String -> IO [String]
+-- | A GHCi session. Created with 'startGhci'.
+newtype Ghci = Ghci (String -> IO [String])
 
 -- | GHCi shut down
 data GhciError = UnexpectedExit String String
