@@ -2,7 +2,7 @@
 
 Either "GHCi as a daemon" or "GHC + a bit of an IDE". To a first approximation, it opens `ghci` and runs `:reload` whenever your source code changes, formatting the output to fit a fixed height console. Unlike other Haskell development tools, `ghcid` is intended to be _incredibly simple_. In particular, it doesn't integrate with any editors, doesn't depend on GHC the library and doesn't start web servers.
 
-/Acknowledgements:/ This project incorporates significant work from @JPMoresmau, who is listed as a co-author.
+_Acknowledgements:_ This project incorporates significant work from [JPMoresmau](https://github.com/JPMoresmau), who is listed as a co-author.
 
 **Using it**
 
