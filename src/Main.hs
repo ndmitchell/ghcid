@@ -36,5 +36,3 @@ main = do
         return ()
 #endif
     runGhcid command height (outStr . unlines)
-
-

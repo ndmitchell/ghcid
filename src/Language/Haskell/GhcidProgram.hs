@@ -86,4 +86,3 @@ mtime file = handleJust
     (\e -> if isDoesNotExistError e then Just () else Nothing)
     (\_ -> return Nothing)
     (fmap Just $ getModificationTime file)
-      
