@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 -- | The entry point of the library
--- Copyright Neil Mitchell 2014.
 module Language.Haskell.Ghcid
  ( T.GhciExec
  , T.GhciError (..)
