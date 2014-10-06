@@ -53,14 +53,18 @@ runGhcid command height output = do
               fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
       fire initLoad []
       
+-- | The message to show when no errors have been reported
+allGoodMessage :: String      
+allGoodMessage = "All Good"      
+      
 prettyOutput :: Int -> [Load] -> [String]
-prettyOutput _ [] = ["All good"]
+prettyOutput _ [] = [allGoodMessage]
 prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map loadMessage err ++ map loadMessage warn
 
 
--- return a message about why you are continuing (usually a file name)
+-- | return a message about why you are continuing (usually a file name)
 awaitFiles :: UTCTime -> [FilePath] -> IO [String]
 awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
     whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
