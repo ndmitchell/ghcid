@@ -78,5 +78,5 @@ test-suite ghcid_test
                    Language.Haskell.Ghcid.ParserTest,
                    Language.Haskell.Ghcid.HighLevelTests,
                    Language.Haskell.Ghcid.UtilTest,
-                   Language.Haskell.Ghcid.ScriptedTest,
-                   Language.Haskell.GhcidProgram
+                   Language.Haskell.GhcidProgram,
+                   Language.Haskell.Ghcid.PollingTest

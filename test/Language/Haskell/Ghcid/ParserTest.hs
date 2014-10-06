@@ -1,3 +1,4 @@
+-- | Test the message parser
 module Language.Haskell.Ghcid.ParserTest 
   ( parserTests
   )where

@@ -1,3 +1,4 @@
+-- | Test utility functions
 module Language.Haskell.Ghcid.UtilTest 
   ( utilsTests
   ) where

@@ -1,5 +1,5 @@
 -- | Utility functions
--- Copyright Neil Mitchell 2014. See <https://github.com/ndmitchell/ghcid>
+-- Copyright Neil Mitchell 2014.
 module Language.Haskell.Ghcid.Util
   ( dropPrefix
   , outStrLn

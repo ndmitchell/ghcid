@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
-module Language.Haskell.Ghcid.ScriptedTest (scriptedTest) where
+-- | Test behavior of the executable, polling files for changes
+module Language.Haskell.Ghcid.PollingTest (pollingTest) where
 
 import Control.Concurrent
 import Control.Exception
@@ -20,8 +20,8 @@ import Test.Tasty.HUnit
 import Language.Haskell.GhcidProgram
 import Language.Haskell.Ghcid.Util
 
-scriptedTest :: TestTree
-scriptedTest  = testCase "Scripted Test" $ do
+pollingTest :: TestTree
+pollingTest  = testCase "Scripted Test" $ do
     setVerbosity Loud
     hSetBuffering stdout NoBuffering
     tdir <- fmap (</> ".ghcid") getTemporaryDirectory
@@ -117,6 +117,6 @@ testScript require = do
     -- check renaming files works
     -- note that due to GHC bug #9648 we can't save down a new file
     renameFile "Util.hs" "Util2.hs"
-    require $ requireSimilar ["Main.hs:1:8:","Could not find module `Util'toto"]
+    require $ requireSimilar ["Main.hs:1:8:","Could not find module `Util'"]
     renameFile "Util2.hs" "Util.hs"
     require requireAllGood

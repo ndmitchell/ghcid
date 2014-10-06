@@ -32,6 +32,7 @@ options = cmdArgsMode $ Options
     program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
     
 
+-- | Run the polling of files and dump reload message via output function
 runGhcid :: forall b a. String -> Int -> ([String] -> IO a) -> IO b
 runGhcid command height output = do
       dotGhci <- doesFileExist ".ghci"
