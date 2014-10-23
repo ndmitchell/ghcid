@@ -15,8 +15,8 @@ utilsTests=testGroup "Utility tests"
   
 dropPrefixTests :: TestTree
 dropPrefixTests = testGroup "dropPrefix"
-  [ testCase "Prefix not found" $ dropPrefix "prefix" "string"  @?= "string"
-  , testCase "Empty prefix" $ dropPrefix "" "string" @?= "string"
-  , testCase "Prefix found once" $ dropPrefix "str" "string" @?= "ing"
-  , testCase "Prefix found twice" $ dropPrefix "str" "strstring" @?= "ing"
+  [ testCase "Prefix not found" $ dropPrefixRepeatedly "prefix" "string"  @?= "string"
+  , testCase "Empty prefix" $ dropPrefixRepeatedly "" "string" @?= "string"
+  , testCase "Prefix found once" $ dropPrefixRepeatedly "str" "string" @?= "ing"
+  , testCase "Prefix found twice" $ dropPrefixRepeatedly "str" "strstring" @?= "ing"
   ]
