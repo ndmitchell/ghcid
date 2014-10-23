@@ -2,7 +2,6 @@
 -- | The application entry point
 module Main(main) where
 
-import Control.Monad
 import System.Console.CmdArgs
 import Language.Haskell.GhcidProgram
 import Language.Haskell.Ghcid.Util
