@@ -31,11 +31,13 @@ library
         time,
         directory,
         process >= 1.1,
-        cmdargs >= 0.10
+        cmdargs >= 0.10,
+        terminal-size >= 0.2.1
   ghc-options:     -Wall
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
+                   Language.Haskell.Ghcid.Platform,
                    Language.Haskell.Ghcid.Util
   exposed-modules: Language.Haskell.Ghcid
 
@@ -49,10 +51,12 @@ executable ghcid
       time,
       directory,
       process >= 1.1,
-      cmdargs >= 0.10
+      cmdargs >= 0.10,
+      terminal-size >= 0.2.1
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
+                   Language.Haskell.Ghcid.Platform,
                    Language.Haskell.Ghcid.Util,
                    Language.Haskell.Ghcid,
                    Language.Haskell.GhcidProgram
@@ -68,6 +72,7 @@ test-suite ghcid_test
     directory,
     process,
     cmdargs,
+    terminal-size >= 0.2.1,
     tasty,
     tasty-hunit
   hs-source-dirs:  test, src
