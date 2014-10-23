@@ -8,6 +8,7 @@ import Control.Exception.Extra
 import Control.Monad
 import Data.Char
 import Data.List
+import Data.Maybe
 import System.FilePath
 import System.Directory.Extra
 import System.IO
@@ -42,14 +43,15 @@ pollingTest  = testCase "Scripted Test" $ do
         try_ $ system "chmod og-w . .ghci"
 
         bracket (
-          forkIO $ runGhcid "ghci" (return 50) $ \msg -> unless (["Reloading..."] `isPrefixOf` msg) $
-              putMVarNow ref msg
+          forkIO $ runGhcid "ghci" (return 50) $ \msg ->
+            unless (isLoading msg) $ putMVarNow ref msg
           ) killThread $ \_ -> do    
             require requireAllGood
             testScript require
             outStrLn "\nSuccess"
         
-        
+isLoading :: [String] -> Bool
+isLoading xs = listToMaybe xs `elem` [Just "Reloading...",Just "Loading..."]
 
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do
