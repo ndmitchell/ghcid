@@ -2,7 +2,7 @@ Changelog for GHCiD
 
     #8, display Loading... when starting
     Require the extra library
-    #14, figure out the terminal height automatically (Unix)
+    #14, figure out the terminal height automatically
 0.2
     #6, rewrite as a library
     Remove duplicate error messages from cabal repl
