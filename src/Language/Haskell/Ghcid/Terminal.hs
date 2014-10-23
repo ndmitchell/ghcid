@@ -34,7 +34,11 @@ terminalSize = do
 
 -- | Raise the current terminal on top of all other screens, if you can.
 terminalTopmost :: IO ()
+#if defined(mingw32_HOST_OS)
 terminalTopmost = do
     wnd <- c_GetConsoleWindow
     c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 3
     return ()
+#else
+terminalTopmost = return ()
+#endif
