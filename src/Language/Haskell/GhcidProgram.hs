@@ -19,7 +19,7 @@ import Language.Haskell.Ghcid.Types
 import Language.Haskell.Ghcid.Util
 
 -- | Run the polling of files and dump reload message via output function
-runGhcid :: forall b a. String -> Int -> ([String] -> IO a) -> IO b
+runGhcid :: String -> Int -> ([String] -> IO ()) -> IO ()
 runGhcid command optHeight output = do
       let getHeight = if optHeight == 0
                       then maybe 8 (pred . snd) <$> terminalSize
