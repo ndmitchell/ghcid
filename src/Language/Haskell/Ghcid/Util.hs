@@ -4,6 +4,7 @@ module Language.Haskell.Ghcid.Util
   ( dropPrefixRepeatedly
   , outStrLn
   , outStr
+  , allGoodMessage
   ) where
 
 import Control.Concurrent.Extra
@@ -25,3 +26,9 @@ outStr = withLock lock . putStr
 
 outStrLn :: String -> IO ()
 outStrLn s = outStr $ s ++ "\n"
+
+
+-- | The message to show when no errors have been reported
+allGoodMessage :: String      
+allGoodMessage = "All good"
+

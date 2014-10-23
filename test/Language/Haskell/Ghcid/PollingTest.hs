@@ -18,7 +18,7 @@ import System.Time.Extra
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Language.Haskell.GhcidProgram
+import Ghcid
 import Language.Haskell.Ghcid.Util
 
 pollingTest :: TestTree

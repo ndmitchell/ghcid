@@ -46,8 +46,8 @@ library
 executable ghcid
   hs-source-dirs: src
   default-language: Haskell2010
-  options-ghc: -main-is Test.main
-  main-is: Test.hs
+  options-ghc: -main-is Ghcid.main
+  main-is: Ghcid.hs
   build-depends:
       base == 4.*,
       filepath,
@@ -63,12 +63,11 @@ executable ghcid
                    Language.Haskell.Ghcid.Parser,
                    Language.Haskell.Ghcid.Terminal,
                    Language.Haskell.Ghcid.Util,
-                   Language.Haskell.Ghcid,
-                   Language.Haskell.GhcidProgram
+                   Language.Haskell.Ghcid
 
 test-suite ghcid_test
   type:            exitcode-stdio-1.0
-  ghc-options:     -Wall -rtsopts
+  ghc-options:     -Wall -rtsopts -main-is Test.main
   default-language: Haskell2010  
   build-depends:   
     base >= 4,
@@ -83,7 +82,7 @@ test-suite ghcid_test
   if !os(windows)
     build-depends: terminal-size >= 0.2.1
   hs-source-dirs:  test, src
-  main-is:         ghcid_test.hs
+  main-is:         Test.hs
   other-modules:   
                    Language.Haskell.Ghcid.ParserTest,
                    Language.Haskell.Ghcid.HighLevelTests,

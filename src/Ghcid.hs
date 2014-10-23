@@ -1,33 +1,56 @@
-{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
-{-# LANGUAGE RecordWildCards, DeriveDataTypeable, ScopedTypeVariables #-}
--- | This is the meat of the executable. It's not in Main so it can be called by the test suite.
-module Language.Haskell.GhcidProgram where
+{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables #-}
+-- | The application entry point
+module Ghcid(main, runGhcid) where
 
+import Control.Applicative
+import Control.Exception
+import Control.Monad
 import Data.List
 import Data.Time.Clock
-import System.Time.Extra
-
-import System.Directory
 import System.Console.CmdArgs
+import System.Directory
 import System.IO.Error
-import Control.Exception
-import Control.Applicative
+import System.Time.Extra
 
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Types
 import Language.Haskell.Ghcid.Util
 
--- | Run the polling of files and dump reload message via output function
+
+-- | Command line options
+data Options = Options
+    {command :: String
+    ,height :: Int
+    ,topmost :: Bool
+    }
+    deriving (Data,Typeable,Show)
+
+options :: Mode (CmdArgs Options)
+options = cmdArgsMode $ Options
+    {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
+    ,height = 8 &= help "Number of lines to show"
+    ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
+    } &= verbosity &=
+    program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
+
+
+main :: IO ()
+main = do
+    opts@Options{..} <- cmdArgsRun options
+    when topmost terminalTopmost
+    runGhcid command height (outStr . unlines)
+
+
 runGhcid :: String -> Int -> ([String] -> IO ()) -> IO ()
-runGhcid command optHeight output = do
-      let getHeight = if optHeight == 0
-                      then maybe 8 (pred . snd) <$> terminalSize
-                      else return optHeight
-      dotGhci <- doesFileExist ".ghci"
-      (ghci,initLoad) <- startGhci (if command /= "" then command
+runGhcid command height output = do
+    let getHeight = if height == 0
+                     then maybe 8 (pred . snd) <$> terminalSize
+                      else return height
+    dotGhci <- doesFileExist ".ghci"
+    (ghci,initLoad) <- startGhci (if command /= "" then command
                      else if dotGhci then "ghci" else "cabal repl") Nothing
-      let fire load warnings = do
+    let fire load warnings = do
               height <- getHeight
               start <- getCurrentTime
               modsActive <- fmap (map snd) $ showModules ghci
@@ -42,12 +65,9 @@ runGhcid command optHeight output = do
               outFill $ "Reloading..." : map ("  " ++) reason
               load2 <- reload ghci
               fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
-      fire initLoad []
+    fire initLoad []
       
--- | The message to show when no errors have been reported
-allGoodMessage :: String      
-allGoodMessage = "All Good"      
-      
+
 prettyOutput :: Int -> [Load] -> [String]
 prettyOutput _ [] = [allGoodMessage]
 prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
