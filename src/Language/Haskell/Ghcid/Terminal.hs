@@ -16,6 +16,7 @@ foreign import stdcall unsafe "windows.h GetConsoleWindow"
 foreign import stdcall unsafe "windows.h SetWindowPos"
     c_SetWindowPos :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> IO Int
 
+c_HWND_TOPMOST :: Int
 c_HWND_TOPMOST = -1
 #endif
 
