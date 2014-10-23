@@ -30,6 +30,7 @@ library
         filepath,
         time,
         directory,
+        extra >= 0.4,
         process >= 1.1,
         cmdargs >= 0.10
   if !os(windows)
@@ -51,6 +52,7 @@ executable ghcid
       filepath,
       time,
       directory,
+      extra >= 0.4,
       process >= 1.1,
       cmdargs >= 0.10
   if !os(windows)
@@ -73,6 +75,7 @@ test-suite ghcid_test
     time,
     directory,
     process,
+    extra >= 0.4,
     cmdargs,
     tasty,
     tasty-hunit
