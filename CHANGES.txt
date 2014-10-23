@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #13, fix version printing
     #8, display Loading... when starting
     Require the extra library
     #14, figure out the terminal height automatically

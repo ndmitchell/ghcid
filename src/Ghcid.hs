@@ -7,12 +7,14 @@ import Control.Exception
 import Control.Monad.Extra
 import Data.List
 import Data.Time.Clock
+import Data.Version
 import System.Console.CmdArgs
 import System.Directory
 import System.IO
 import System.IO.Error
 import System.Time.Extra
 
+import Paths_ghcid
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Types
@@ -33,7 +35,7 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     } &= verbosity &=
-    program "ghcid" &= summary "Auto reloading GHCi daemon"
+    program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
 
 main :: IO ()

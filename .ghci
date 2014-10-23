@@ -1,6 +1,6 @@
 :set -fwarn-unused-binds -fwarn-unused-imports
 :set -isrc -itest
-:load Ghcid Test
+:load Ghcid src\Paths.hs Test
 :def docs_ const $ return $ unlines [":!cabal haddock"]
 :def docs const $ return $ unlines [":docs_",":!start dist\\doc\\html\\ghcid\\Language-Haskell-Ghcid.html"]
 :def test const $ return $ unlines ["Test.main"]
