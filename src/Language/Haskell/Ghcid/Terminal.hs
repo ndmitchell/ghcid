@@ -6,6 +6,7 @@ module Language.Haskell.Ghcid.Terminal(
 #if !defined(mingw32_HOST_OS)
 import qualified System.Console.Terminal.Size as Terminal
 import System.IO (stdout)
+import Data.Tuple.Extra
 #endif
 
 #if defined(mingw32_HOST_OS)
@@ -26,9 +27,7 @@ terminalSize = return Nothing
 #else
 terminalSize = do
     s <- Terminal.hSize stdout
-    return $ case s of
-        Just w -> return $ Just (Terminal.width w, Terminal.height w)
-        Nothing -> return Nothing
+    return $ fmap (Terminal.width &&& Terminal.height) s
 #endif
 
 
