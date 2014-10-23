@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
-module Language.Haskell.Ghcid.Platform(
+module Language.Haskell.Ghcid.Terminal(
     terminalSize, terminalTopmost,
     ) where
 

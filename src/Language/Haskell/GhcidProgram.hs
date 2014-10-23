@@ -13,7 +13,7 @@ import Control.Exception
 import Control.Applicative
 
 import Language.Haskell.Ghcid
-import Language.Haskell.Ghcid.Platform
+import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Types
 import Language.Haskell.Ghcid.Util
 

@@ -5,7 +5,7 @@ module Main(main) where
 import System.Console.CmdArgs
 import Control.Monad
 import Language.Haskell.GhcidProgram
-import Language.Haskell.Ghcid.Platform
+import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
 
 

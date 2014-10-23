@@ -39,7 +39,7 @@ library
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
-                   Language.Haskell.Ghcid.Platform,
+                   Language.Haskell.Ghcid.Terminal,
                    Language.Haskell.Ghcid.Util
   exposed-modules: Language.Haskell.Ghcid
 
@@ -60,7 +60,7 @@ executable ghcid
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
-                   Language.Haskell.Ghcid.Platform,
+                   Language.Haskell.Ghcid.Terminal,
                    Language.Haskell.Ghcid.Util,
                    Language.Haskell.Ghcid,
                    Language.Haskell.GhcidProgram
