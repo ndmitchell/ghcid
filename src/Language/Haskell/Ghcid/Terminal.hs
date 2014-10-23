@@ -10,6 +10,9 @@ import Data.Tuple.Extra
 #endif
 
 #if defined(mingw32_HOST_OS)
+import Data.Word
+c_SWP_NOSIZE = 1 :: Word32
+c_SWP_NOMOVE = 2 :: Word32
 foreign import stdcall unsafe "windows.h GetConsoleWindow"
     c_GetConsoleWindow :: IO Int
 
@@ -37,7 +40,7 @@ terminalTopmost :: IO ()
 #if defined(mingw32_HOST_OS)
 terminalTopmost = do
     wnd <- c_GetConsoleWindow
-    c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 3
+    c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 (c_SWP_NOMOVE .|. c_SWP_NOSIZE)
     return ()
 #else
 terminalTopmost = return ()
