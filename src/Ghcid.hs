@@ -4,7 +4,7 @@ module Ghcid(main, runGhcid) where
 
 import Control.Applicative
 import Control.Exception
-import Control.Monad
+import Control.Monad.Extra
 import Data.List
 import Data.Time.Clock
 import System.Console.CmdArgs
@@ -42,14 +42,14 @@ main = do
     height <- return $ case height of
         Nothing -> maybe 8 (pred . snd) <$> terminalSize
         Just h -> return h
+    command <- if command /= "" then return command else
+               ifM (doesFileExist ".ghci") (return "ghci") (return "cabal repl")
     runGhcid command height (outStr . unlines)
 
 
 runGhcid :: String -> IO Int -> ([String] -> IO ()) -> IO ()
 runGhcid command height output = do
-    dotGhci <- doesFileExist ".ghci"
-    (ghci,initLoad) <- startGhci (if command /= "" then command
-                     else if dotGhci then "ghci" else "cabal repl") Nothing
+    (ghci,initLoad) <- startGhci command Nothing
     let fire load warnings = do
         height <- height
         start <- getCurrentTime
