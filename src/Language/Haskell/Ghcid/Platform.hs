@@ -8,18 +8,18 @@ import qualified System.Console.Terminal.Size as Terminal
 import System.IO (stdout)
 #endif
 
-terminalSize :: IO (Int, Int)
+terminalSize :: IO (Maybe (Int, Int))
 
 #if defined(mingw32_HOST_OS)
 
-terminalSize = error "Couldn't determine terminal window size"
+terminalSize = return Nothing
 
 #else
 
 terminalSize = do
     s <- Terminal.hSize stdout
-    case s of
-        Just w -> return (Terminal.width w, Terminal.height w)
-        Nothing -> error "Couldn't determine terminal window size"
+    return $ case s of
+        Just w -> return $ Just (Terminal.width w, Terminal.height w)
+        Nothing -> return Nothing
 
 #endif

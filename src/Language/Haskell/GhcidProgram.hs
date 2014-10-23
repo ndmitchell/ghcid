@@ -10,6 +10,7 @@ import System.Directory
 import System.Console.CmdArgs
 import System.IO.Error
 import Control.Exception
+import Control.Applicative
 
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Platform
@@ -36,7 +37,7 @@ options = cmdArgsMode $ Options
 runGhcid :: forall b a. String -> Int -> ([String] -> IO a) -> IO b
 runGhcid command optHeight output = do
       let getHeight = if optHeight == 0
-                      then terminalSize >>= \(_, h) -> return (h-1)
+                      then maybe 8 (pred . snd) <$> terminalSize
                       else return optHeight
       dotGhci <- doesFileExist ".ghci"
       (ghci,initLoad) <- startGhci (if command /= "" then command
