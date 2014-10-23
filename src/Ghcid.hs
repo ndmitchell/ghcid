@@ -1,4 +1,6 @@
 {-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables #-}
+{-# OPTIONS_GHC -O2 #-} -- only here to test ticket #11
+
 -- | The application entry point
 module Ghcid(main, runGhcid) where
 
@@ -57,6 +59,7 @@ runGhcid command height output = do
     do height <- height; output $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
     let fire load warnings = do
+            load <- return $ filter (not . whitelist) load
             height <- height
             start <- getCurrentTime
             modsActive <- fmap (map snd) $ showModules ghci
@@ -72,7 +75,13 @@ runGhcid command height output = do
             load2 <- reload ghci
             fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
     fire initLoad []
-      
+
+
+whitelist :: Load -> Bool
+whitelist Message{loadSeverity=Warning, loadMessage=[_,x]}
+    = x `elem` ["    -O conflicts with --interactive; -O ignored."]
+whitelist _ = False
+
 
 prettyOutput :: Int -> [Load] -> [String]
 prettyOutput _ [] = [allGoodMessage]

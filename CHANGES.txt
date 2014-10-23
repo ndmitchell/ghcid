@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #11, ignore certain GHCi-only warnings
     #13, fix version printing
     #8, display Loading... when starting
     Require the extra library
