@@ -5,6 +5,7 @@ module Language.Haskell.GhcidProgram where
 
 import Data.List
 import Data.Time.Clock
+import System.Time.Extra
 
 import System.Directory
 import System.Console.CmdArgs

@@ -1,18 +1,19 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Test behavior of the executable, polling files for changes
 module Language.Haskell.Ghcid.PollingTest (pollingTest) where
 
 import Control.Concurrent
-import Control.Exception
+import Control.Exception.Extra
 import Control.Monad
 import Data.Char
 import Data.List
 import System.FilePath
-import System.Directory
+import System.Directory.Extra
 import System.IO
 import System.Process
 import System.Console.CmdArgs
+import System.Time.Extra
 
 import Test.Tasty
 import Test.Tasty.HUnit
