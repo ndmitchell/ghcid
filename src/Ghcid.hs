@@ -51,20 +51,20 @@ runGhcid command height output = do
     (ghci,initLoad) <- startGhci (if command /= "" then command
                      else if dotGhci then "ghci" else "cabal repl") Nothing
     let fire load warnings = do
-              height <- height
-              start <- getCurrentTime
-              modsActive <- fmap (map snd) $ showModules ghci
-              let modsLoad = nub $ map loadFile load
-              whenLoud $ do
-                  outStrLn $ "%ACTIVE: " ++ show modsActive
-                  outStrLn $ "%LOAD: " ++ show load
-              let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
-              let outFill msg = output $ take height $ msg ++ replicate height ""
-              outFill $ prettyOutput height $ filter isMessage load ++ warn
-              reason <- awaitFiles start $ nub $ modsLoad ++ modsActive
-              outFill $ "Reloading..." : map ("  " ++) reason
-              load2 <- reload ghci
-              fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
+        height <- height
+        start <- getCurrentTime
+        modsActive <- fmap (map snd) $ showModules ghci
+        let modsLoad = nub $ map loadFile load
+        whenLoud $ do
+            outStrLn $ "%ACTIVE: " ++ show modsActive
+            outStrLn $ "%LOAD: " ++ show load
+        let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
+        let outFill msg = output $ take height $ msg ++ replicate height ""
+        outFill $ prettyOutput height $ filter isMessage load ++ warn
+        reason <- awaitFiles start $ nub $ modsLoad ++ modsActive
+        outFill $ "Reloading..." : map ("  " ++) reason
+        load2 <- reload ghci
+        fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
     fire initLoad []
       
 
