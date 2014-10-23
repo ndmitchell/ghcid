@@ -26,8 +26,8 @@ testStartRepl = testCase "Start cabal repl" $
     root <- createTestProject
     (ghci,load) <- startGhci "cabal repl" (Just root)
     stopGhci ghci
-    load @?=  [ Loading "B.C" "src/B/C.hs"
-              , Loading "A" "src/A.hs"
+    load @?=  [ Loading "B.C" (normalise "src/B/C.hs")
+              , Loading "A" (normalise "src/A.hs")
               ]
 
 testShowModules :: TestTree
@@ -37,7 +37,7 @@ testShowModules = testCase "Show Modules" $
     (ghci,_) <- startGhci "cabal repl" (Just root)
     mods <- showModules ghci
     stopGhci ghci
-    mods @?= [("A","src/A.hs"),("B.C","src/B/C.hs")] 
+    mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")] 
 
 testProjectName :: String
 testProjectName="BWTest"   
