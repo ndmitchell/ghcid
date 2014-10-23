@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #8, display Loading... when starting
     Require the extra library
     #14, figure out the terminal height automatically (Unix)
 0.2

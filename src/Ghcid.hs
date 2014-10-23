@@ -50,6 +50,7 @@ main = do
 runGhcid :: String -> IO Int -> ([String] -> IO ()) -> IO ()
 runGhcid command height output = do
     (ghci,initLoad) <- startGhci command Nothing
+    do height <- height; output $ "Loading..." : replicate (height - 1) ""
     let fire load warnings = do
             height <- height
             start <- getCurrentTime
