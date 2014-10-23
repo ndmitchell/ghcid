@@ -39,19 +39,20 @@ main :: IO ()
 main = do
     opts@Options{..} <- cmdArgsRun options
     when topmost terminalTopmost
+    height <- return $
+        if height == 0
+        then maybe 8 (pred . snd) <$> terminalSize
+        else return height
     runGhcid command height (outStr . unlines)
 
 
-runGhcid :: String -> Int -> ([String] -> IO ()) -> IO ()
+runGhcid :: String -> IO Int -> ([String] -> IO ()) -> IO ()
 runGhcid command height output = do
-    let getHeight = if height == 0
-                     then maybe 8 (pred . snd) <$> terminalSize
-                      else return height
     dotGhci <- doesFileExist ".ghci"
     (ghci,initLoad) <- startGhci (if command /= "" then command
                      else if dotGhci then "ghci" else "cabal repl") Nothing
     let fire load warnings = do
-              height <- getHeight
+              height <- height
               start <- getCurrentTime
               modsActive <- fmap (map snd) $ showModules ghci
               let modsLoad = nub $ map loadFile load

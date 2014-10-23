@@ -42,7 +42,7 @@ pollingTest  = testCase "Scripted Test" $ do
         try_ $ system "chmod og-w . .ghci"
 
         bracket (
-          forkIO $ runGhcid "ghci" 50 $ \msg -> unless (["Reloading..."] `isPrefixOf` msg) $
+          forkIO $ runGhcid "ghci" (return 50) $ \msg -> unless (["Reloading..."] `isPrefixOf` msg) $
               putMVarNow ref msg
           ) killThread $ \_ -> do    
             require requireAllGood
