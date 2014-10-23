@@ -3,6 +3,7 @@
 module Main(main) where
 
 import System.Console.CmdArgs
+import Control.Monad
 import Language.Haskell.GhcidProgram
 import Language.Haskell.Ghcid.Util
 
