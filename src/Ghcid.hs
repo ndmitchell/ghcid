@@ -9,6 +9,7 @@ import Data.List
 import Data.Time.Clock
 import System.Console.CmdArgs
 import System.Directory
+import System.IO
 import System.IO.Error
 import System.Time.Extra
 
@@ -40,11 +41,13 @@ main = do
     opts@Options{..} <- cmdArgsRun options
     when topmost terminalTopmost
     height <- return $ case height of
-        Nothing -> maybe 8 (pred . snd) <$> terminalSize
+        Nothing -> maybe 8 snd <$> terminalSize
         Just h -> return h
     command <- if command /= "" then return command else
                ifM (doesFileExist ".ghci") (return "ghci") (return "cabal repl")
-    runGhcid command height (outStr . unlines)
+    runGhcid command height $ \xs -> do
+        outStr $ concatMap ('\n':) xs
+        hFlush stdout -- must flush, since we don't finish with a newline
 
 
 runGhcid :: String -> IO Int -> ([String] -> IO ()) -> IO ()
