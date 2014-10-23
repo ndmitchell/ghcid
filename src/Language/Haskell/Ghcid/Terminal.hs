@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 module Language.Haskell.Ghcid.Terminal(
-    terminalSize, terminalTopmost,
+    terminalSize, terminalTopmost
     ) where
 
 #if !defined(mingw32_HOST_OS)
