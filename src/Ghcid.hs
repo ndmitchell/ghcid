@@ -21,7 +21,7 @@ import Language.Haskell.Ghcid.Util
 -- | Command line options
 data Options = Options
     {command :: String
-    ,height :: Int
+    ,height :: Maybe Int
     ,topmost :: Bool
     }
     deriving (Data,Typeable,Show)
@@ -29,7 +29,7 @@ data Options = Options
 options :: Mode (CmdArgs Options)
 options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
-    ,height = 8 &= help "Number of lines to show"
+    ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     } &= verbosity &=
     program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
@@ -39,10 +39,9 @@ main :: IO ()
 main = do
     opts@Options{..} <- cmdArgsRun options
     when topmost terminalTopmost
-    height <- return $
-        if height == 0
-        then maybe 8 (pred . snd) <$> terminalSize
-        else return height
+    height <- return $ case height of
+        Nothing -> maybe 8 (pred . snd) <$> terminalSize
+        Just h -> return h
     runGhcid command height (outStr . unlines)
 
 
