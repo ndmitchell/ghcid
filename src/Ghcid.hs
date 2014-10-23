@@ -33,7 +33,7 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     } &= verbosity &=
-    program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
+    program "ghcid" &= summary "Auto reloading GHCi daemon"
 
 
 main :: IO ()
