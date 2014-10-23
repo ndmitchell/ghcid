@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #14, figure out the terminal height automatically (Unix)
 0.2
     #6, rewrite as a library
     Remove duplicate error messages from cabal repl
