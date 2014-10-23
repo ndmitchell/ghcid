@@ -31,8 +31,9 @@ library
         time,
         directory,
         process >= 1.1,
-        cmdargs >= 0.10,
-        terminal-size >= 0.2.1
+        cmdargs >= 0.10
+  if !os(windows)
+    build-depends: terminal-size >= 0.2.1
   ghc-options:     -Wall
   other-modules:   
                    Language.Haskell.Ghcid.Types,
@@ -51,8 +52,9 @@ executable ghcid
       time,
       directory,
       process >= 1.1,
-      cmdargs >= 0.10,
-      terminal-size >= 0.2.1
+      cmdargs >= 0.10
+  if !os(windows)
+    build-depends: terminal-size >= 0.2.1
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
@@ -72,9 +74,10 @@ test-suite ghcid_test
     directory,
     process,
     cmdargs,
-    terminal-size >= 0.2.1,
     tasty,
     tasty-hunit
+  if !os(windows)
+    build-depends: terminal-size >= 0.2.1
   hs-source-dirs:  test, src
   main-is:         ghcid_test.hs
   other-modules:   
