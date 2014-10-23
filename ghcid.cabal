@@ -35,7 +35,6 @@ library
         cmdargs >= 0.10
   if !os(windows)
     build-depends: terminal-size >= 0.2.1
-  ghc-options:     -Wall
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
@@ -67,7 +66,7 @@ executable ghcid
 
 test-suite ghcid_test
   type:            exitcode-stdio-1.0
-  ghc-options:     -Wall -rtsopts -main-is Test.main
+  ghc-options:     -rtsopts -main-is Test.main
   default-language: Haskell2010  
   build-depends:   
     base >= 4,
