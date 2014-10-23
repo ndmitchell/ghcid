@@ -46,7 +46,8 @@ library
 executable ghcid
   hs-source-dirs: src
   default-language: Haskell2010
-  main-is: Main.hs
+  options-ghc: -main-is Test.main
+  main-is: Test.hs
   build-depends:
       base == 4.*,
       filepath,
