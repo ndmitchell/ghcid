@@ -17,22 +17,6 @@ import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Types
 import Language.Haskell.Ghcid.Util
 
--- | Command line options
-data Options = Options
-    {command :: String
-    ,height :: Int
-    ,topmost :: Bool
-    }
-    deriving (Data,Typeable,Show)
-
-options :: Mode (CmdArgs Options)
-options = cmdArgsMode $ Options
-    {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
-    ,height = 8 &= help "Number of lines to show"
-    ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
-    } &= verbosity &=
-    program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
-
 -- | Run the polling of files and dump reload message via output function
 runGhcid :: forall b a. String -> Int -> ([String] -> IO a) -> IO b
 runGhcid command optHeight output = do
