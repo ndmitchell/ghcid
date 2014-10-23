@@ -12,6 +12,7 @@ import System.IO.Error
 import Control.Exception
 
 import Language.Haskell.Ghcid
+import Language.Haskell.Ghcid.Platform
 import Language.Haskell.Ghcid.Types
 import Language.Haskell.Ghcid.Util
 
@@ -30,15 +31,18 @@ options = cmdArgsMode $ Options
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     } &= verbosity &=
     program "ghcid" &= summary "Auto :reload'ing GHCi daemon"
-    
 
 -- | Run the polling of files and dump reload message via output function
 runGhcid :: forall b a. String -> Int -> ([String] -> IO a) -> IO b
-runGhcid command height output = do
+runGhcid command optHeight output = do
+      let getHeight = if optHeight == 0
+                      then terminalSize >>= \(_, h) -> return (h-1)
+                      else return optHeight
       dotGhci <- doesFileExist ".ghci"
       (ghci,initLoad) <- startGhci (if command /= "" then command
                      else if dotGhci then "ghci" else "cabal repl") Nothing
       let fire load warnings = do
+              height <- getHeight
               start <- getCurrentTime
               modsActive <- fmap (map snd) $ showModules ghci
               let modsLoad = nub $ map loadFile load
