@@ -57,7 +57,7 @@ startGhci cmd directory = do
                             buf <- modifyMVar buffer $ \old -> return ([], reverse old)
                             putMVar result $ Just buf
                           else
-                            modifyMVar_ buffer $ return . (dropPrefix prefix l:)
+                            modifyMVar_ buffer $ return . (dropPrefixRepeatedly prefix l:)
                         rec
             return result
 

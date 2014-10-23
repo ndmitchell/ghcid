@@ -1,7 +1,7 @@
 -- | Utility functions
 -- Copyright Neil Mitchell 2014.
 module Language.Haskell.Ghcid.Util
-  ( dropPrefix
+  ( dropPrefixRepeatedly
   , outStrLn
   , outStr
   , withTempDirectory
@@ -19,9 +19,9 @@ import System.FilePath
 import Data.List (stripPrefix)
 
 -- | Drop a prefix from a list, no matter how many times that prefix is present
-dropPrefix :: Eq a => [a] -> [a] -> [a]
-dropPrefix []  s = s
-dropPrefix pre s = maybe s (dropPrefix pre) $ stripPrefix pre s
+dropPrefixRepeatedly :: Eq a => [a] -> [a] -> [a]
+dropPrefixRepeatedly []  s = s
+dropPrefixRepeatedly pre s = maybe s (dropPrefixRepeatedly pre) $ stripPrefix pre s
 
 
 
