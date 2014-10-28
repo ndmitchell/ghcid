@@ -85,7 +85,7 @@ whitelist _ = False
 
 prettyOutput :: Int -> [Load] -> [String]
 prettyOutput _ [] = [allGoodMessage]
-prettyOutput height xs = take (height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
+prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map loadMessage err ++ map loadMessage warn
 

@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    Ensure if there are lots of warnings, the first error gets shown
 0.3
     #11, ignore certain GHCi-only warnings
     #13, fix version printing
