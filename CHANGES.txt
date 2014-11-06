@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+0.3.2
     #18, reformat excessively long lines, add a --width flag
 0.3.1
     Ensure if there are lots of warnings, the first error gets shown
