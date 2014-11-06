@@ -43,7 +43,7 @@ pollingTest  = testCase "Scripted Test" $ do
         try_ $ system "chmod og-w . .ghci"
 
         bracket (
-          forkIO $ runGhcid "ghci" (return 50) $ \msg ->
+          forkIO $ runGhcid "ghci" (return (100, 50)) $ \msg ->
             unless (isLoading msg) $ putMVarNow ref msg
           ) killThread $ \_ -> do    
             require requireAllGood
