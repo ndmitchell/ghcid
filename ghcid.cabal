@@ -55,9 +55,8 @@ executable ghcid
       directory,
       extra >= 0.4,
       process >= 1.1,
-      cmdargs >= 0.10
-  if !os(windows)
-    build-depends: terminal-size >= 0.2.1
+      cmdargs >= 0.10,
+      terminal-size >= 0.3
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,

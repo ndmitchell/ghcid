@@ -9,7 +9,9 @@ import Control.Monad.Extra
 import Data.List.Extra
 import Data.Maybe
 import Data.Time.Clock
+import Data.Tuple.Extra
 import Data.Version
+import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
 import System.Directory
 import System.IO
@@ -48,7 +50,7 @@ main = do
     height <- return $ case (width, height) of
         (Just w, Just h) -> return (w,h)
         _ -> do
-            term <- terminalSize
+            term <- fmap (fmap $ Term.width &&& Term.height) Term.size
             let f user def sel = fromMaybe (maybe def sel term) user
             -- if we write to the end of the window then it wraps automatically
             -- so putStrLn width 'x' uses up two lines
