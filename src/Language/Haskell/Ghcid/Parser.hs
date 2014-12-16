@@ -11,9 +11,9 @@ import System.FilePath
 import Data.Char
 import Data.List
 
-import qualified Data.Set as Set
-
 import Language.Haskell.Ghcid.Types
+import Language.Haskell.Ghcid.Util
+
 
 -- | Parse messages from show modules command
 parseShowModules :: [String] -> [(String, FilePath)]
@@ -43,14 +43,3 @@ parseLoad' (x:xs)
     = Message sev file (p1,p2) (x:msg) : parseLoad las
 parseLoad' (_:xs) = parseLoad xs
 parseLoad' [] = []
-
--- ordNub function from <https://github.com/nh2/haskell-ordnub>
--- this *really* ought to be in the standard library, but isn't
-ordNub :: (Ord a) => [a] -> [a]
-ordNub l = go Set.empty l
-  where
-    go _ [] = []
-    go s (x:xs) =
-      if x `Set.member` s
-        then go s xs
-        else x : go (Set.insert x s) xs
