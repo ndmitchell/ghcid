@@ -11,6 +11,8 @@ import System.FilePath
 import Data.Char
 import Data.List
 
+import qualified Data.Set as Set
+
 import Language.Haskell.Ghcid.Types
 
 -- | Parse messages from show modules command
@@ -22,7 +24,7 @@ parseShowModules xs =
 -- | Parse messages given on reload
 -- nub, because cabal repl sometimes does two reloads at the start
 parseLoad :: [String] -> [Load]
-parseLoad  = nub . parseLoad'            
+parseLoad  = ordNub . parseLoad'            
 
 -- | Parse messages given on reload
 parseLoad' :: [String] -> [Load]
@@ -41,3 +43,14 @@ parseLoad' (x:xs)
     = Message sev file (p1,p2) (x:msg) : parseLoad las
 parseLoad' (_:xs) = parseLoad xs
 parseLoad' [] = []
+
+-- ordNub function from <https://github.com/nh2/haskell-ordnub>
+-- this *really* ought to be in the standard library, but isn't
+ordNub :: (Ord a) => [a] -> [a]
+ordNub l = go Set.empty l
+  where
+    go _ [] = []
+    go s (x:xs) =
+      if x `Set.member` s
+        then go s xs
+        else x : go (Set.insert x s) xs

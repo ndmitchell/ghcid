@@ -29,7 +29,7 @@ data Load
         ,loadFilePos :: (Int,Int)
         ,loadMessage :: [String]
         }
-      deriving (Show,Eq)
+      deriving (Show, Eq, Ord)
       
 -- | Is a Load a message with severity?
 isMessage :: Load -> Bool
