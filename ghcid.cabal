@@ -32,7 +32,8 @@ library
         directory,
         extra >= 0.4,
         process >= 1.1,
-        cmdargs >= 0.10
+        cmdargs >= 0.10,
+        containers >= 0.5
   if !os(windows)
     build-depends: terminal-size >= 0.2.1
   other-modules:   
