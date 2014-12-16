@@ -53,6 +53,7 @@ executable ghcid
       base == 4.*,
       filepath,
       time,
+      containers,
       directory,
       extra >= 0.4,
       process >= 1.1,
