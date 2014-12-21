@@ -41,5 +41,8 @@ parseLoad' (x:xs)
     , rest3 <- trimStart rest2
     , sev <- if "Warning:" `isPrefixOf` rest3 then Warning else Error
     = Message sev file (p1,p2) (x:msg) : parseLoad las
+parseLoad' (x:xs)
+    | Just file <- stripPrefix "<no location info>: can't find file: " x
+    = Message Error file (0,0) [file ++ ": Can't find file"] : parseLoad xs
 parseLoad' (_:xs) = parseLoad xs
 parseLoad' [] = []

@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #21, if the root file is missing, report an error
     #20, avoid an O(n^2) nub
 0.3.2
     #18, reformat excessively long lines, add a --width flag
