@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+0.3.3
     #21, if the root file is missing, report an error
     #20, avoid an O(n^2) nub
 0.3.2
