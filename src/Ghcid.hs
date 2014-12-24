@@ -14,6 +14,7 @@ import Data.Version
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
 import System.Directory
+import System.Exit
 import System.IO
 import System.IO.Error
 import System.Time.Extra
@@ -79,7 +80,11 @@ runGhcid command size output = do
             let outFill msg = output $ take height $ msg ++ replicate height ""
             outFill $ prettyOutput height
                 [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
-            reason <- awaitFiles start $ nub $ modsLoad ++ modsActive
+            let wait = nub $ modsLoad ++ modsActive
+            when (null wait) $ do
+                putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
+                exitFailure
+            reason <- awaitFiles start wait
             outFill $ "Reloading..." : map ("  " ++) reason
             load2 <- reload ghci
             fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
