@@ -13,7 +13,7 @@ utilsTests=testGroup "Utility tests"
   [ dropPrefixTests
   , chunksOfWordTests
   ]
-  
+
 dropPrefixTests :: TestTree
 dropPrefixTests = testGroup "dropPrefix"
   [ testCase "Prefix not found" $ dropPrefixRepeatedly "prefix" "string"  @?= "string"
