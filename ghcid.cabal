@@ -76,6 +76,7 @@ test-suite ghcid_test
     directory,
     process,
     extra >= 1.1,
+    ansi-terminal,
     cmdargs,
     tasty,
     tasty-hunit
