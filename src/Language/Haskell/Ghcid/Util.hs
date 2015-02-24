@@ -3,6 +3,7 @@
 module Language.Haskell.Ghcid.Util
   ( dropPrefixRepeatedly
   , chunksOfWord
+  , outWith
   , outStrLn
   , outStr
   , allGoodMessage
@@ -24,8 +25,11 @@ dropPrefixRepeatedly pre s = maybe s (dropPrefixRepeatedly pre) $ stripPrefix pr
 lock :: Lock
 lock = unsafePerformIO newLock
 
+outWith :: IO a -> IO a
+outWith = withLock lock
+
 outStr :: String -> IO ()
-outStr = withLock lock . putStr
+outStr = outWith . putStr
 
 outStrLn :: String -> IO ()
 outStrLn s = outStr $ s ++ "\n"

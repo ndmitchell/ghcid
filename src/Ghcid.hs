@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables, TupleSections #-}
 {-# OPTIONS_GHC -O2 #-} -- only here to test ticket #11
 
 -- | The application entry point
@@ -72,14 +72,17 @@ main = do
             -- so putStrLn width 'x' uses up two lines
             return (f width 80 (pred . fst), f height 8 snd)
     runGhcid restart command height $ \xs -> do
-        outStr $ concatMap ('\n':) xs
+        outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
+            when b $ setSGR [SetConsoleIntensity BoldIntensity]
+            putStr $ concatMap ((:) '\n' . snd) x
+            when b $ setSGR []
         hFlush stdout -- must flush, since we don't finish with a newline
 
 
 runGhcid :: [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
 runGhcid restart command size output = do
     restartTimes <- mapM mtime restart
-    do (_,height) <- size; output $ "Loading..." : replicate (height - 1) ""
+    do (_,height) <- size; output $ map (False,) $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
     curdir <- getCurrentDirectory
     let fire load warnings = do
@@ -92,7 +95,7 @@ runGhcid restart command size output = do
                 outStrLn $ "%ACTIVE: " ++ show modsActive
                 outStrLn $ "%LOAD: " ++ show load
             let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
-            let outFill msg = output $ take height $ msg ++ replicate height ""
+            let outFill msg = output $ take height $ msg ++ map (False,) (replicate height "")
             outFill $ prettyOutput height
                 [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
             setTitle $
@@ -105,8 +108,8 @@ runGhcid restart command size output = do
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
-            outFill $ "Reloading..." : map ("  " ++) reason
             reason <- awaitFiles start $ restart ++ wait
+            outFill $ map (False,) $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM mtime restart
             if restartTimes == restartTimes2 then do
                 load2 <- reload ghci
@@ -123,11 +126,11 @@ whitelist Message{loadSeverity=Warning, loadMessage=[_,x]}
 whitelist _ = False
 
 
-prettyOutput :: Int -> [Load] -> [String]
-prettyOutput _ [] = [allGoodMessage]
+prettyOutput :: Int -> [Load] -> [(Bool,String)]
+prettyOutput _ [] = [(False,allGoodMessage)]
 prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
-          msg1:msgs = map loadMessage err ++ map loadMessage warn
+          msg1:msgs = map (map (True,) . loadMessage) err ++ map (map (False,) . loadMessage) warn
 
 
 -- | return a message about why you are continuing (usually a file name)

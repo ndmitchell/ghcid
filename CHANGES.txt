@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #19, put errors in bold
     #9, display interesting information in the title bar
     #7, reload if the .ghci or .cabal file changes
     Use nubOrd

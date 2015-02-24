@@ -44,6 +44,7 @@ pollingTest  = testCase "Scripted Test" $ do
 
         bracket (
           forkIO $ runGhcid [] "ghci" (return (100, 50)) $ \msg ->
+            unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
           ) killThread $ \_ -> do    
             require requireAllGood
             testScript require
