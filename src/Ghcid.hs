@@ -72,7 +72,7 @@ runGhcid command size output = do
             (width, height) <- size
             start <- getCurrentTime
             modsActive <- fmap (map snd) $ showModules ghci
-            let modsLoad = nub $ map loadFile load
+            let modsLoad = nubOrd $ map loadFile load
             whenLoud $ do
                 outStrLn $ "%ACTIVE: " ++ show modsActive
                 outStrLn $ "%LOAD: " ++ show load
@@ -80,7 +80,7 @@ runGhcid command size output = do
             let outFill msg = output $ take height $ msg ++ replicate height ""
             outFill $ prettyOutput height
                 [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
-            let wait = nub $ modsLoad ++ modsActive
+            let wait = nubOrd $ modsLoad ++ modsActive
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure

@@ -12,7 +12,6 @@ import Data.Char
 import Data.List.Extra
 
 import Language.Haskell.Ghcid.Types
-import Language.Haskell.Ghcid.Util
 
 
 -- | Parse messages from show modules command
@@ -24,7 +23,7 @@ parseShowModules xs =
 -- | Parse messages given on reload
 -- nub, because cabal repl sometimes does two reloads at the start
 parseLoad :: [String] -> [Load]
-parseLoad  = ordNub . parseLoad'            
+parseLoad  = nubOrd . parseLoad'
 
 -- | Parse messages given on reload
 parseLoad' :: [String] -> [Load]

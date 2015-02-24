@@ -30,8 +30,7 @@ library
         filepath,
         time,
         directory,
-        containers,
-        extra >= 0.4,
+        extra >= 1.1,
         process >= 1.1,
         cmdargs >= 0.10
   if !os(windows)
@@ -53,9 +52,8 @@ executable ghcid
       base == 4.*,
       filepath,
       time,
-      containers,
       directory,
-      extra >= 0.4,
+      extra >= 1.1,
       process >= 1.1,
       cmdargs >= 0.10,
       terminal-size >= 0.3
@@ -75,9 +73,8 @@ test-suite ghcid_test
     filepath,
     time,
     directory,
-    containers,
     process,
-    extra >= 0.4,
+    extra >= 1.1,
     cmdargs,
     tasty,
     tasty-hunit

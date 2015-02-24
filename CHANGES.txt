@@ -1,5 +1,7 @@
 Changelog for GHCiD
 
+    Use nubOrd
+    Require extra-1.1
 0.3.4
     #21, if you aren't waiting for any files, exit
 0.3.3
