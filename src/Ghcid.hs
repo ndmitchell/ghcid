@@ -15,6 +15,7 @@ import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
 import System.Directory
 import System.Exit
+import System.FilePath
 import System.IO
 import System.IO.Error
 import System.Time.Extra
@@ -31,6 +32,7 @@ data Options = Options
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
+    ,restart :: [FilePath]
     }
     deriving (Data,Typeable,Show)
 
@@ -40,13 +42,25 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,width = Nothing &= help "Number of columns to show (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
+    ,restart = [] &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
 
+autoOptions :: Options -> IO Options
+autoOptions o
+    | command o /= "" = return o
+    | otherwise = do
+        files <- getDirectoryContents "."
+        let cabal = filter ((==) ".cabal" . takeExtension) files
+        if null cabal || ".ghci" `elem` files
+            then return o{command="ghci", restart=[".ghci"]}
+            else return o{command="cabal repl", restart=cabal}
+
+
 main :: IO ()
 main = do
-    opts@Options{..} <- cmdArgsRun options
+    opts@Options{..} <- autoOptions =<< cmdArgsRun options
     when topmost terminalTopmost
     height <- return $ case (width, height) of
         (Just w, Just h) -> return (w,h)
@@ -56,15 +70,14 @@ main = do
             -- if we write to the end of the window then it wraps automatically
             -- so putStrLn width 'x' uses up two lines
             return (f width 80 (pred . fst), f height 8 snd)
-    command <- if command /= "" then return command else
-               ifM (doesFileExist ".ghci") (return "ghci") (return "cabal repl")
-    runGhcid command height $ \xs -> do
+    runGhcid restart command height $ \xs -> do
         outStr $ concatMap ('\n':) xs
         hFlush stdout -- must flush, since we don't finish with a newline
 
 
-runGhcid :: String -> IO (Int,Int) -> ([String] -> IO ()) -> IO ()
-runGhcid command size output = do
+runGhcid :: [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
+runGhcid restart command size output = do
+    restartTimes <- mapM mtime restart
     do (_,height) <- size; output $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
     let fire load warnings = do
@@ -84,10 +97,15 @@ runGhcid command size output = do
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
-            reason <- awaitFiles start wait
             outFill $ "Reloading..." : map ("  " ++) reason
-            load2 <- reload ghci
-            fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
+            reason <- awaitFiles start $ restart ++ wait
+            restartTimes2 <- mapM mtime restart
+            if restartTimes == restartTimes2 then do
+                load2 <- reload ghci
+                fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
+             else do
+                stopGhci ghci
+                runGhcid restart command size output
     fire initLoad []
 
 
