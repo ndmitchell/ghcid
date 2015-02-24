@@ -56,6 +56,7 @@ executable ghcid
       extra >= 1.1,
       process >= 1.1,
       cmdargs >= 0.10,
+      ansi-terminal,
       terminal-size >= 0.3
   other-modules:   
                    Language.Haskell.Ghcid.Types,

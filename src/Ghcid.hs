@@ -13,6 +13,7 @@ import Data.Tuple.Extra
 import Data.Version
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
+import System.Console.ANSI
 import System.Directory
 import System.Exit
 import System.FilePath
@@ -80,6 +81,7 @@ runGhcid restart command size output = do
     restartTimes <- mapM mtime restart
     do (_,height) <- size; output $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
+    curdir <- getCurrentDirectory
     let fire load warnings = do
             load <- return $ filter (not . whitelist) load
             (width, height) <- size
@@ -93,6 +95,12 @@ runGhcid restart command size output = do
             let outFill msg = output $ take height $ msg ++ replicate height ""
             outFill $ prettyOutput height
                 [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
+            setTitle $
+                let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- load ++ warn]
+                    f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
+                in (if errs == 0 && warns == 0 then " No issues" else f errs "error" ++
+                    (if errs > 0 && warns > 0 then ", " else "") ++ f warns "warning") ++
+                   " - ghcid " ++ takeFileName curdir
             let wait = nubOrd $ modsLoad ++ modsActive
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
