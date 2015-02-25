@@ -101,9 +101,9 @@ runGhcid restart command size output = do
             setTitle $
                 let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- load ++ warn]
                     f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
-                in (if errs == 0 && warns == 0 then " No issues" else f errs "error" ++
+                in (if errs == 0 && warns == 0 then "All good" else f errs "error" ++
                     (if errs > 0 && warns > 0 then ", " else "") ++ f warns "warning") ++
-                   " - ghcid " ++ takeFileName curdir
+                   " - " ++ takeFileName curdir
             let wait = nubOrd $ modsLoad ++ modsActive
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
