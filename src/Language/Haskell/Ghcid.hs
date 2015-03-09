@@ -65,7 +65,7 @@ startGhci cmd directory = do
 
     let f s = withMVar lock $ const $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
-                hPutStrLn inp $ s ++ "\nputStrLn " ++ show finish ++ "\nerror " ++ show finish
+                hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
                 outC <- takeMVar outs
                 errC <- takeMVar errs
                 case liftM2 (++) outC errC of
