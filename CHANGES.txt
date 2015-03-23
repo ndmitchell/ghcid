@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #25, detect console size just before using it
 0.3.6
     #24, don't error out if error/putStrLn are not imported
 0.3.5
