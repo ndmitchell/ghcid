@@ -67,6 +67,8 @@ main = do
         (Just w, Just h) -> return (w,h)
         _ -> do
             term <- fmap (fmap $ Term.width &&& Term.height) Term.size
+            whenLoud $ do
+                outStrLn $ "%CONSOLE: width = " ++ maybe "?" (show . fst) term ++ ", height = " ++ maybe "?" (show . snd) term
             let f user def sel = fromMaybe (maybe def sel term) user
             -- if we write to the end of the window then it wraps automatically
             -- so putStrLn width 'x' uses up two lines
