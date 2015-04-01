@@ -2,3 +2,5 @@
 /.dist-buildwrapper
 /.project
 /cabal.sandbox.config
+/tags
+/.cabal-sandbox
