@@ -70,23 +70,24 @@ main = do
             -- if we write to the end of the window then it wraps automatically
             -- so putStrLn width 'x' uses up two lines
             return (f width 80 (pred . fst), f height 8 snd)
-    runGhcid restart command height $ \xs -> do
-        outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
-            when b $ setSGR [SetConsoleIntensity BoldIntensity]
-            putStr $ concatMap ((:) '\n' . snd) x
-            when b $ setSGR []
-        hFlush stdout -- must flush, since we don't finish with a newline
+    withWaiterPoll $ \waiter ->
+        runGhcid waiter restart command height $ \xs -> do
+            outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
+                when b $ setSGR [SetConsoleIntensity BoldIntensity]
+                putStr $ concatMap ((:) '\n' . snd) x
+                when b $ setSGR []
+            hFlush stdout -- must flush, since we don't finish with a newline
 
 
-runGhcid :: [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
-runGhcid restart command size output = do
+runGhcid :: Waiter -> [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
+runGhcid waiter restart command size output = do
     restartTimes <- mapM getModTime restart
     do (_,height) <- size; output $ map (False,) $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
     curdir <- getCurrentDirectory
     let fire load warnings = do
             load <- return $ filter (not . whitelist) load
-            waitFiles <- waitFiles
+            waitFiles <- waitFiles waiter
             modsActive <- fmap (map snd) $ showModules ghci
             let modsLoad = nubOrd $ map loadFile load
             whenLoud $ do
@@ -115,7 +116,7 @@ runGhcid restart command size output = do
                 fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
              else do
                 stopGhci ghci
-                runGhcid restart command size output
+                runGhcid waiter restart command size output
     fire initLoad []
 
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables, TupleSections #-}
 
-module Wait(waitFiles) where
+module Wait(Waiter, withWaiterPoll, waitFiles) where
 
 import Control.Exception
 import Data.Time.Clock
@@ -10,11 +10,16 @@ import System.Time.Extra
 import Language.Haskell.Ghcid.Util
 
 
+data Waiter = WaiterPoll
+
+withWaiterPoll :: (Waiter -> IO a) -> IO a
+withWaiterPoll f = f WaiterPoll
+
 
 -- | Return a message about why you are continuing (usually a file name).
 --   Reports any changes between the first
-waitFiles :: IO ([FilePath] -> IO [String])
-waitFiles = do
+waitFiles :: Waiter -> IO ([FilePath] -> IO [String])
+waitFiles WaiterPoll = do
     base <- getCurrentTime
     return $ \files -> handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords files

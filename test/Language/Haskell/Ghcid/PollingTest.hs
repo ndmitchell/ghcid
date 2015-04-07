@@ -20,6 +20,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Ghcid
+import Wait
 import Language.Haskell.Ghcid.Util
 
 pollingTest :: TestTree
@@ -42,8 +43,8 @@ pollingTest  = testCase "Scripted Test" $ do
         -- otherwise GHC warns about .ghci being accessible by others
         try_ $ system "chmod og-w . .ghci"
 
-        bracket (
-          forkIO $ runGhcid [] "ghci" (return (100, 50)) $ \msg ->
+        withWaiterPoll $ \waiter -> bracket (
+          forkIO $ runGhcid waiter [] "ghci" (return (100, 50)) $ \msg ->
             unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
           ) killThread $ \_ -> do    
             require requireAllGood
