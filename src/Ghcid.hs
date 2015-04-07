@@ -83,7 +83,7 @@ main = do
 
 runGhcid :: [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
 runGhcid restart command size output = do
-    restartTimes <- mapM mtime restart
+    restartTimes <- mapM getModTime restart
     do (_,height) <- size; output $ map (False,) $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
     curdir <- getCurrentDirectory
@@ -112,7 +112,7 @@ runGhcid restart command size output = do
                 exitFailure
             reason <- awaitFiles start $ restart ++ wait
             outFill $ map (False,) $ "Reloading..." : map ("  " ++) reason
-            restartTimes2 <- mapM mtime restart
+            restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 load2 <- reload ghci
                 fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
@@ -139,20 +139,20 @@ prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ conca
 awaitFiles :: UTCTime -> [FilePath] -> IO [String]
 awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
     whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
-    new <- mapM mtime files
+    new <- mapM getModTime files
     case [x | (x,Just t) <- zip files new, t > base] of
         [] -> recheck files new
         xs -> return xs
     where
         recheck files' old = do
             sleep 0.1
-            new <- mapM mtime files'
+            new <- mapM getModTime files'
             case [x | (x,t1,t2) <- zip3 files' old new, t1 /= t2] of
                 [] -> recheck files' new
                 xs -> return xs
 
-mtime :: FilePath -> IO (Maybe UTCTime)
-mtime file = handleJust
+getModTime :: FilePath -> IO (Maybe UTCTime)
+getModTime file = handleJust
     (\e -> if isDoesNotExistError e then Just () else Nothing)
     (\_ -> return Nothing)
     (fmap Just $ getModificationTime file)
