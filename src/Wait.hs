@@ -11,14 +11,17 @@ import Language.Haskell.Ghcid.Util
 
 
 
--- | return a message about why you are continuing (usually a file name)
-waitFiles :: UTCTime -> [FilePath] -> IO [String]
-waitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
-    whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
-    new <- mapM getModTime files
-    case [x | (x,Just t) <- zip files new, t > base] of
-        [] -> recheck files new
-        xs -> return xs
+-- | Return a message about why you are continuing (usually a file name).
+--   Reports any changes between the first
+waitFiles :: IO ([FilePath] -> IO [String])
+waitFiles = do
+    base <- getCurrentTime
+    return $ \files -> handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
+        whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
+        new <- mapM getModTime files
+        case [x | (x,Just t) <- zip files new, t > base] of
+            [] -> recheck files new
+            xs -> return xs
     where
         recheck files' old = do
             sleep 0.1

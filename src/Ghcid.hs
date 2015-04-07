@@ -7,7 +7,6 @@ module Ghcid(main, runGhcid) where
 import Control.Monad.Extra
 import Data.List.Extra
 import Data.Maybe
-import Data.Time.Clock
 import Data.Tuple.Extra
 import Data.Version
 import qualified System.Console.Terminal.Size as Term
@@ -87,7 +86,7 @@ runGhcid restart command size output = do
     curdir <- getCurrentDirectory
     let fire load warnings = do
             load <- return $ filter (not . whitelist) load
-            start <- getCurrentTime
+            waitFiles <- waitFiles
             modsActive <- fmap (map snd) $ showModules ghci
             let modsLoad = nubOrd $ map loadFile load
             whenLoud $ do
@@ -108,7 +107,7 @@ runGhcid restart command size output = do
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
-            reason <- waitFiles start $ restart ++ wait
+            reason <- waitFiles $ restart ++ wait
             outFill $ map (False,) $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
