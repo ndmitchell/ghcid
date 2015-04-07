@@ -67,6 +67,8 @@ main = do
         (Just w, Just h) -> return (w,h)
         _ -> do
             term <- fmap (fmap $ Term.width &&& Term.height) Term.size
+            whenLoud $ do
+                outStrLn $ "%CONSOLE: width = " ++ maybe "?" (show . fst) term ++ ", height = " ++ maybe "?" (show . snd) term
             let f user def sel = fromMaybe (maybe def sel term) user
             -- if we write to the end of the window then it wraps automatically
             -- so putStrLn width 'x' uses up two lines
@@ -87,7 +89,6 @@ runGhcid restart command size output = do
     curdir <- getCurrentDirectory
     let fire load warnings = do
             load <- return $ filter (not . whitelist) load
-            (width, height) <- size
             start <- getCurrentTime
             modsActive <- fmap (map snd) $ showModules ghci
             let modsLoad = nubOrd $ map loadFile load
@@ -95,6 +96,7 @@ runGhcid restart command size output = do
                 outStrLn $ "%ACTIVE: " ++ show modsActive
                 outStrLn $ "%LOAD: " ++ show load
             let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
+            (width, height) <- size
             let outFill msg = output $ take height $ msg ++ map (False,) (replicate height "")
             outFill $ prettyOutput height
                 [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
