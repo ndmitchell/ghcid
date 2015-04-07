@@ -6,7 +6,6 @@ import Control.Exception
 import Data.Time.Clock
 import System.Console.CmdArgs
 import System.Time.Extra
-
 import Language.Haskell.Ghcid.Util
 
 
