@@ -109,7 +109,7 @@ runGhcid restart command size output = do
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
-            reason <- awaitFiles start $ restart ++ wait
+            reason <- waitFiles start $ restart ++ wait
             outFill $ map (False,) $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
@@ -135,8 +135,8 @@ prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ conca
 
 
 -- | return a message about why you are continuing (usually a file name)
-awaitFiles :: UTCTime -> [FilePath] -> IO [String]
-awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
+waitFiles :: UTCTime -> [FilePath] -> IO [String]
+waitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
     whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
     new <- mapM getModTime files
     case [x | (x,Just t) <- zip files new, t > base] of
