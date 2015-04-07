@@ -4,6 +4,7 @@
 -- | The application entry point
 module Ghcid(main, runGhcid) where
 
+import Control.Concurrent
 import Control.Exception
 import Control.Monad.Extra
 import Data.List.Extra
@@ -17,6 +18,7 @@ import System.Console.ANSI
 import System.Directory
 import System.Exit
 import System.FilePath
+import System.INotify
 import System.IO
 import System.IO.Error
 import System.Time.Extra
@@ -110,7 +112,7 @@ runGhcid restart command size output = do
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
-            reason <- awaitFiles start $ restart ++ wait
+            reason <- awaitFiles1 start $ restart ++ wait
             outFill $ map (False,) $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM mtime restart
             if restartTimes == restartTimes2 then do
@@ -134,6 +136,35 @@ prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ conca
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (True,) . loadMessage) err ++ map (map (False,) . loadMessage) warn
 
+--
+-- Really, this program should `initINofity` once at startup, and then pass
+-- the INotify object through.
+--
+awaitFiles1 :: UTCTime -> [FilePath] -> IO [String]
+awaitFiles1 _ files = do
+    wait <- newEmptyMVar
+    whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
+    forkIO $ withINotify $ \notify -> do
+        forM_ files $ \file -> do
+            putStrLn $ "Watching " ++ file
+            addWatch notify [CloseWrite,Modify,DeleteSelf] file (action wait file)
+        threadDelay maxBound
+
+    reason <- readMVar wait
+    return [reason]
+  where
+    action :: MVar String -> FilePath -> Event -> IO ()
+    action wait file event = do
+        putStrLn $ "Event: " ++ show event
+        case event of
+            Modified False (Just path) -> do
+                putMVar wait file
+            DeletedSelf  -> do
+                putMVar wait file
+            Closed _ (Just path) True  -> do
+                putMVar wait file
+            _                          -> do
+                return ()
 
 -- | return a message about why you are continuing (usually a file name)
 awaitFiles :: UTCTime -> [FilePath] -> IO [String]
