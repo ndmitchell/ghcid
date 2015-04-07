@@ -57,6 +57,7 @@ executable ghcid
       process >= 1.1,
       cmdargs >= 0.10,
       ansi-terminal,
+      hinotify,
       terminal-size >= 0.3
   other-modules:   
                    Language.Haskell.Ghcid.Types,
