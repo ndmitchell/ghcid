@@ -63,7 +63,8 @@ executable ghcid
                    Language.Haskell.Ghcid.Parser,
                    Language.Haskell.Ghcid.Terminal,
                    Language.Haskell.Ghcid.Util,
-                   Language.Haskell.Ghcid
+                   Language.Haskell.Ghcid,
+                   Wait
 
 test-suite ghcid_test
   type:            exitcode-stdio-1.0
