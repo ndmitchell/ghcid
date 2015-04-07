@@ -9,16 +9,16 @@ import System.Time.Extra
 import Language.Haskell.Ghcid.Util
 
 
-data Waiter = WaiterPoll
-
-withWaiterPoll :: (Waiter -> IO a) -> IO a
-withWaiterPoll f = f WaiterPoll
-
+data Waiter = Waiter (IO ([FilePath] -> IO [String]))
 
 -- | Return a message about why you are continuing (usually a file name).
 --   Reports any changes between the first
 waitFiles :: Waiter -> IO ([FilePath] -> IO [String])
-waitFiles WaiterPoll = do
+waitFiles (Waiter x) = x
+
+
+withWaiterPoll :: (Waiter -> IO a) -> IO a
+withWaiterPoll f = f $ Waiter $ do
     base <- getCurrentTime
     return $ \files -> handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
