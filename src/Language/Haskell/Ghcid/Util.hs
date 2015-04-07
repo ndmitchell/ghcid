@@ -7,12 +7,17 @@ module Language.Haskell.Ghcid.Util
   , outStrLn
   , outStr
   , allGoodMessage
+  , getModTime
   ) where
 
 import Control.Concurrent.Extra
 import System.IO.Unsafe
 import Data.List.Extra
 import Data.Char
+import Data.Time.Clock
+import System.IO.Error
+import System.Directory
+import Control.Exception
 
 
 -- | Drop a prefix from a list, no matter how many times that prefix is present
@@ -47,3 +52,10 @@ chunksOfWord mx gap = repeatedly $ \x ->
     if null b then (a, []) else
         let (a1,a2) = breakEnd isSpace a in
         if length a2 <= gap then (a1, a2 ++ b) else (a, dropWhile isSpace b)
+
+-- | Given a 'FilePath' return either 'Nothing' (file does not exist) or 'Just' (the modification time)
+getModTime :: FilePath -> IO (Maybe UTCTime)
+getModTime file = handleJust
+    (\e -> if isDoesNotExistError e then Just () else Nothing)
+    (\_ -> return Nothing)
+    (fmap Just $ getModificationTime file)

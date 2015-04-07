@@ -18,7 +18,6 @@ import System.Directory
 import System.Exit
 import System.FilePath
 import System.IO
-import System.IO.Error
 import System.Time.Extra
 
 import Paths_ghcid
@@ -150,9 +149,3 @@ awaitFiles base files = handle (\(e :: IOError) -> do sleep 0.1; return [show e]
             case [x | (x,t1,t2) <- zip3 files' old new, t1 /= t2] of
                 [] -> recheck files' new
                 xs -> return xs
-
-getModTime :: FilePath -> IO (Maybe UTCTime)
-getModTime file = handleJust
-    (\e -> if isDoesNotExistError e then Just () else Nothing)
-    (\_ -> return Nothing)
-    (fmap Just $ getModificationTime file)
