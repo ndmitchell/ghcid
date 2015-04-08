@@ -70,7 +70,7 @@ main = do
             -- if we write to the end of the window then it wraps automatically
             -- so putStrLn width 'x' uses up two lines
             return (f width 80 (pred . fst), f height 8 snd)
-    withWaiterPoll $ \waiter ->
+    withWaiterNotify $ \waiter ->
         runGhcid waiter restart command height $ \xs -> do
             outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
                 when b $ setSGR [SetConsoleIntensity BoldIntensity]
