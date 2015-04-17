@@ -75,7 +75,7 @@ waitFiles waiter = do
                         -- if someone is deleting a needed file, give them some space to put the file back
                         -- typically caused by VIM
                         whenLoud $ outStrLn "%WAITING: Extra wait due to file removal"
-                        sleep 0.25
+                        sleep 1
                     return xs
 
 
