@@ -7,7 +7,7 @@ import Control.Concurrent
 import Control.Exception.Extra
 import Control.Monad
 import Data.Char
-import Data.List
+import Data.List.Extra
 import Data.Maybe
 import System.FilePath
 import System.Directory.Extra
@@ -88,7 +88,7 @@ requireSimilar want got = let
 
 -- | Spacing and quotes tend to be different on different GHCi versions
 ignoreSpacesAndWeird :: String -> String
-ignoreSpacesAndWeird  = filter (\x->isLetter x || isDigit x || x==':')
+ignoreSpacesAndWeird = lower . filter (\x -> isLetter x || isDigit x || x == ':')
 
 ---------------------------------------------------------------------
 -- ACTUAL TEST SUITE
