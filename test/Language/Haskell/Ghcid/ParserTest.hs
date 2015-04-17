@@ -30,6 +30,7 @@ testParseLoad = testGroup "Load Parsing"
     , Message {loadSeverity = Error, loadFile = "GHCi.hs", loadFilePos = (70,1), loadMessage = ["GHCi.hs:70:1: Parse error: naked expression at top level"]}
     , Message {loadSeverity = Error, loadFile = "GHCi.hs", loadFilePos = (72,13), loadMessage = ["GHCi.hs:72:13:","    No instance for (Num ([String] -> [String]))","      arising from the literal `1'","    Possible fix:","      add an instance declaration for (Num ([String] -> [String]))","    In the expression: 1","    In an equation for `parseLoad': parseLoad = 1"]}
     , Message {loadSeverity = Warning, loadFile = "GHCi.hs", loadFilePos = (81,1), loadMessage = ["GHCi.hs:81:1: Warning: Defined but not used: `foo'"]}
+    , Message {loadSeverity = Warning, loadFile = "GHCi.hs", loadFilePos = (82,1), loadMessage = ["GHCi.hs:81:1: warning: Defined but not used: \8216foo\8217"]}
     ]
   ]
 
@@ -45,4 +46,5 @@ output1=
   , "    In the expression: 1"
   , "    In an equation for `parseLoad': parseLoad = 1"
   , "GHCi.hs:81:1: Warning: Defined but not used: `foo'"
+  , "GHCi.hs:82:1: warning: Defined but not used: \8216foo\8217" -- GHC 7.12 uses lowercase
   ]
