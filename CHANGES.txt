@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    Add a --directory flag to change directory first
     #26, use fs-notify to avoid excessive wakeups
     #25, detect console size just before using it
 0.3.6

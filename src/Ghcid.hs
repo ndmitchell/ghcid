@@ -12,7 +12,7 @@ import Data.Version
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
 import System.Console.ANSI
-import System.Directory
+import System.Directory.Extra
 import System.Exit
 import System.FilePath
 import System.IO
@@ -31,6 +31,7 @@ data Options = Options
     ,width :: Maybe Int
     ,topmost :: Bool
     ,restart :: [FilePath]
+    ,directory :: FilePath
     }
     deriving (Data,Typeable,Show)
 
@@ -40,7 +41,8 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,width = Nothing &= help "Number of columns to show (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
-    ,restart = [] &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
+    ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
+    ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -58,25 +60,27 @@ autoOptions o
 
 main :: IO ()
 main = do
-    opts@Options{..} <- autoOptions =<< cmdArgsRun options
-    when topmost terminalTopmost
-    height <- return $ case (width, height) of
-        (Just w, Just h) -> return (w,h)
-        _ -> do
-            term <- fmap (fmap $ Term.width &&& Term.height) Term.size
-            whenLoud $ do
-                outStrLn $ "%CONSOLE: width = " ++ maybe "?" (show . fst) term ++ ", height = " ++ maybe "?" (show . snd) term
-            let f user def sel = fromMaybe (maybe def sel term) user
-            -- if we write to the end of the window then it wraps automatically
-            -- so putStrLn width 'x' uses up two lines
-            return (f width 80 (pred . fst), f height 8 snd)
-    withWaiterNotify $ \waiter ->
-        runGhcid waiter restart command height $ \xs -> do
-            outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
-                when b $ setSGR [SetConsoleIntensity BoldIntensity]
-                putStr $ concatMap ((:) '\n' . snd) x
-                when b $ setSGR []
-            hFlush stdout -- must flush, since we don't finish with a newline
+    opts <- cmdArgsRun options
+    withCurrentDirectory (directory opts) $ do
+        opts@Options{..} <- autoOptions opts
+        when topmost terminalTopmost
+        height <- return $ case (width, height) of
+            (Just w, Just h) -> return (w,h)
+            _ -> do
+                term <- fmap (fmap $ Term.width &&& Term.height) Term.size
+                whenLoud $ do
+                    outStrLn $ "%CONSOLE: width = " ++ maybe "?" (show . fst) term ++ ", height = " ++ maybe "?" (show . snd) term
+                let f user def sel = fromMaybe (maybe def sel term) user
+                -- if we write to the end of the window then it wraps automatically
+                -- so putStrLn width 'x' uses up two lines
+                return (f width 80 (pred . fst), f height 8 snd)
+        withWaiterNotify $ \waiter ->
+            runGhcid waiter restart command height $ \xs -> do
+                outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
+                    when b $ setSGR [SetConsoleIntensity BoldIntensity]
+                    putStr $ concatMap ((:) '\n' . snd) x
+                    when b $ setSGR []
+                hFlush stdout -- must flush, since we don't finish with a newline
 
 
 runGhcid :: Waiter -> [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
