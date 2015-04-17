@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #26, use fs-notify to avoid excessive wakeups
     #25, detect console size just before using it
 0.3.6
     #24, don't error out if error/putStrLn are not imported
