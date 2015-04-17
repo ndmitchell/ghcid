@@ -12,6 +12,7 @@ import Control.Exception.Extra
 import System.Directory
 import Data.Time.Clock
 import Data.String
+import Data.Maybe
 import System.Console.CmdArgs
 import System.Time.Extra
 import System.FSNotify
@@ -69,7 +70,13 @@ waitFiles waiter = do
             new <- mapM getModTime files
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
                 [] -> recheck files new
-                xs -> return xs
+                xs -> do
+                    when (or $ zipWith (\o n -> isJust o && isNothing n) old new) $ do
+                        -- if someone is deleting a needed file, give them some space to put the file back
+                        -- typically caused by VIM
+                        whenLoud $ outStrLn "%WAITING: Extra wait due to file removal"
+                        sleep 0.25
+                    return xs
 
 
 canonicalizePathSafe :: FilePath -> IO FilePath
