@@ -38,7 +38,7 @@ parseLoad' (x:xs)
     , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos 
     , (msg,las) <- span (isPrefixOf " ") xs
     , rest3 <- trimStart rest2
-    , sev <- if "Warning:" `isPrefixOf` rest3 then Warning else Error
+    , sev <- if "warning:" `isPrefixOf` lower rest3 then Warning else Error
     = Message sev file (p1,p2) (x:msg) : parseLoad las
 parseLoad' (x:xs)
     | Just file <- stripPrefix "<no location info>: can't find file: " x
