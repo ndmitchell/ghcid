@@ -46,7 +46,9 @@ waitFiles waiter = do
                     let (keep,del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
                     sequence_ $ Map.elems del
                     new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
-                        can <- watchDir manager (fromString dir) (const True) $ \event -> void $ tryPutMVar kick ()
+                        can <- watchDir manager (fromString dir) (const True) $ \event -> do
+                            whenLoud $ outStrLn $ "%NOTIFY: " ++ show event
+                            void $ tryPutMVar kick ()
                         return (dir, can)
                     let mp2 = keep `Map.union` Map.fromList new
                     whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
