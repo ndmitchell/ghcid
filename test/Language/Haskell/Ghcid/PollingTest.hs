@@ -44,13 +44,13 @@ pollingTest  = testCase "Scripted Test" $ do
         try_ $ system "chmod og-w . .ghci"
 
         withWaiterPoll $ \waiter -> bracket (
-          forkIO $ runGhcid waiter [] "ghci" (return (100, 50)) $ \msg ->
+          forkIO $ runGhcid waiter [] "ghci" Nothing (return (100, 50)) $ \msg ->
             unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
-          ) killThread $ \_ -> do    
+          ) killThread $ \_ -> do
             require requireAllGood
             testScript require
             outStrLn "\nSuccess"
-        
+
 isLoading :: [String] -> Bool
 isLoading xs = listToMaybe xs `elem` [Just "Reloading...",Just "Loading..."]
 

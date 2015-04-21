@@ -27,6 +27,7 @@ import Wait
 -- | Command line options
 data Options = Options
     {command :: String
+    ,testcommand :: Maybe String
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
@@ -38,6 +39,7 @@ data Options = Options
 options :: Mode (CmdArgs Options)
 options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
+    ,testcommand = Nothing &= typ "TESTCOMMAND" &= help "Test command to run after successful typecheck (defaults to not running tests)"
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,width = Nothing &= help "Number of columns to show (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
@@ -75,7 +77,7 @@ main = do
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
-            runGhcid waiter restart command height $ \xs -> do
+            runGhcid waiter restart command testcommand height $ \xs -> do
                 outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
                     when b $ setSGR [SetConsoleIntensity BoldIntensity]
                     putStr $ concatMap ((:) '\n' . snd) x
@@ -83,8 +85,8 @@ main = do
                 hFlush stdout -- must flush, since we don't finish with a newline
 
 
-runGhcid :: Waiter -> [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
-runGhcid waiter restart command size output = do
+runGhcid :: Waiter -> [FilePath] -> String -> Maybe String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
+runGhcid waiter restart command testcommand size output = do
     restartTimes <- mapM getModTime restart
     do (_,height) <- size; output $ map (False,) $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
@@ -100,12 +102,21 @@ runGhcid waiter restart command size output = do
             let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
             (width, height) <- size
             let outFill msg = output $ take height $ msg ++ map (False,) (replicate height "")
+            let errorsListing = [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
             outFill $ prettyOutput height
                 [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
+
+            case testcommand of
+              Just cmd -> do
+                if length errorsListing == 0
+                then runTests cmd ghci >>= putStrLn . unlines
+                else return ()
+              Nothing -> return ()
+
             setTitle $
                 let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- load ++ warn]
                     f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
-                in (if errs == 0 && warns == 0 then "All good" else f errs "error" ++
+                in (if errs == 0 && warns == 0 then allGoodMessage else f errs "error" ++
                     (if errs > 0 && warns > 0 then ", " else "") ++ f warns "warning") ++
                    " - " ++ takeFileName curdir
             let wait = nubOrd $ modsLoad ++ modsActive
@@ -118,9 +129,9 @@ runGhcid waiter restart command size output = do
             if restartTimes == restartTimes2 then do
                 load2 <- reload ghci
                 fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
-             else do
+            else do
                 stopGhci ghci
-                runGhcid waiter restart command size output
+                runGhcid waiter restart command testcommand size output
     fire initLoad []
 
 

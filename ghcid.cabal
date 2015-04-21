@@ -94,3 +94,30 @@ test-suite ghcid_test
                    Language.Haskell.Ghcid.HighLevelTests,
                    Language.Haskell.Ghcid.UtilTest,
                    Language.Haskell.Ghcid.PollingTest
+
+test-suite ghcid_fasttest
+  type:            exitcode-stdio-1.0
+  ghc-options:     -rtsopts -main-is Test.main -threaded
+  default-language: Haskell2010  
+  build-depends:   
+    base >= 4,
+    filepath,
+    time,
+    directory,
+    process,
+    containers,
+    fsnotify,
+    extra >= 1.1,
+    ansi-terminal,
+    cmdargs,
+    tasty,
+    tasty-hunit
+  if !os(windows)
+    build-depends: terminal-size >= 0.2.1
+  hs-source-dirs:  test, src
+  main-is:         FastTest.hs
+  other-modules:
+                    Language.Haskell.Ghcid.ParserTest,
+                    Language.Haskell.Ghcid.HighLevelTests,
+                    Language.Haskell.Ghcid.UtilTest,
+                    Language.Haskell.Ghcid.PollingTest
