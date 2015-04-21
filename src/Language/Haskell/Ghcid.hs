@@ -8,6 +8,7 @@ module Language.Haskell.Ghcid
  , startGhci
  , showModules
  , reload
+ , runTests
  , exec
  , stopGhci
  )
@@ -82,6 +83,10 @@ showModules ghci = fmap parseShowModules $ exec ghci ":show modules"
 -- | reload modules
 reload :: Ghci -> IO [Load]
 reload ghci = fmap parseLoad $ exec ghci ":reload"
+
+-- | run the test command
+runTests :: String -> Ghci -> IO [String]
+runTests cmd ghci = exec ghci cmd
 
 -- | Stop GHCi
 stopGhci :: Ghci -> IO ()
