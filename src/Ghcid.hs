@@ -133,7 +133,7 @@ whitelist _ = False
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
 prettyOutput :: Int -> [Load] -> [(Bool,String)]
-prettyOutput _ [] = [(False,allGoodMessage)]
+prettyOutput height [] = [(False,allGoodMessage)]
 prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (True,) . loadMessage) err ++ map (map (False,) . loadMessage) warn
