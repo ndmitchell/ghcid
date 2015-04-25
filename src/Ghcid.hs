@@ -87,7 +87,7 @@ runGhcid :: Waiter -> [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -
 runGhcid waiter restart command size output = do
     restartTimes <- mapM getModTime restart
     do (_,height) <- size; output $ map (False,) $ "Loading..." : replicate (height - 1) ""
-    (ghci,initLoad) <- startGhci command Nothing
+    (ghci,messages) <- startGhci command Nothing
     curdir <- getCurrentDirectory
     let fire messages warnings = do
             messages <- return $ filter (not . whitelist) messages
@@ -121,7 +121,7 @@ runGhcid waiter restart command size output = do
             else do
                 stopGhci ghci
                 runGhcid waiter restart command size output
-    fire initLoad []
+    fire messages []
 
 
 -- | Ignore messages that GHC shouldn't really generate.
