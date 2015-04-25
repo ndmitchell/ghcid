@@ -85,8 +85,17 @@ main = do
 
 runGhcid :: Waiter -> [FilePath] -> String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
 runGhcid waiter restart command size output = do
+    let outputFill :: Maybe [Load] -> [String] -> IO ()
+        outputFill load msg = do
+            (width, height) <- size
+            let n = height - length msg
+            load <- return $ take (if isJust load then n else 0) $ prettyOutput n
+                [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
+                | m@Message{} <- fromMaybe [] load]
+            output $ load ++ map (False,) msg ++ replicate (height - (length load + length msg)) (False,"")
+
     restartTimes <- mapM getModTime restart
-    do (_,height) <- size; output $ map (False,) $ "Loading..." : replicate (height - 1) ""
+    outputFill Nothing ["Loading..."]
     (ghci,messages) <- startGhci command Nothing
     curdir <- getCurrentDirectory
     let fire messages warnings = do
@@ -99,9 +108,7 @@ runGhcid waiter restart command size output = do
                 outStrLn $ "%LOAD: " ++ show messages
             let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
             (width, height) <- size
-            let outFill msg = output $ take height $ msg ++ map (False,) (replicate height "")
-            outFill $ prettyOutput height
-                [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- messages ++ warn]
+            outputFill (Just $ messages ++ warn) []
             setTitle $
                 let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages ++ warn]
                     f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
@@ -113,7 +120,7 @@ runGhcid waiter restart command size output = do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
             reason <- waitFiles $ restart ++ wait
-            outFill $ map (False,) $ "Reloading..." : map ("  " ++) reason
+            outputFill Nothing $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 load2 <- reload ghci
