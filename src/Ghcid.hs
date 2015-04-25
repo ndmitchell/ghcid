@@ -89,21 +89,21 @@ runGhcid waiter restart command size output = do
     do (_,height) <- size; output $ map (False,) $ "Loading..." : replicate (height - 1) ""
     (ghci,initLoad) <- startGhci command Nothing
     curdir <- getCurrentDirectory
-    let fire load warnings = do
-            load <- return $ filter (not . whitelist) load
+    let fire messages warnings = do
+            messages <- return $ filter (not . whitelist) messages
             waitFiles <- waitFiles waiter
             modsActive <- fmap (map snd) $ showModules ghci
-            let modsLoad = nubOrd $ map loadFile load
+            let modsLoad = nubOrd $ map loadFile messages
             whenLoud $ do
                 outStrLn $ "%ACTIVE: " ++ show modsActive
-                outStrLn $ "%LOAD: " ++ show load
+                outStrLn $ "%LOAD: " ++ show messages
             let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
             (width, height) <- size
             let outFill msg = output $ take height $ msg ++ map (False,) (replicate height "")
             outFill $ prettyOutput height
-                [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- load ++ warn]
+                [m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m} | m@Message{} <- messages ++ warn]
             setTitle $
-                let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- load ++ warn]
+                let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages ++ warn]
                     f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                 in (if errs == 0 && warns == 0 then "All good" else f errs "error" ++
                     (if errs > 0 && warns > 0 then ", " else "") ++ f warns "warning") ++
@@ -117,7 +117,7 @@ runGhcid waiter restart command size output = do
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 load2 <- reload ghci
-                fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
+                fire load2 [m | m@Message{..} <- warn ++ messages, loadSeverity == Warning]
             else do
                 stopGhci ghci
                 runGhcid waiter restart command size output
