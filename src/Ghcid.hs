@@ -114,13 +114,13 @@ runGhcid waiter restart command size output = do
             -- only keep old warnings from files that are still loaded, but did not reload
             let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
             messages <- return $ filter validWarn warnings ++ messages
+            let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
 
             outputFill (Just messages) []
             setTitle $
-                let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
-                    f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
-                in (if errs == 0 && warns == 0 then "All good" else f errs "error" ++
-                    (if errs > 0 && warns > 0 then ", " else "") ++ f warns "warning") ++
+                let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
+                in (if countErrors == 0 && countWarnings == 0 then "All good" else f countErrors "error" ++
+                    (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
                    " - " ++ takeFileName curdir
             let wait = nubOrd $ loaded ++ reloaded
             when (null wait) $ do
