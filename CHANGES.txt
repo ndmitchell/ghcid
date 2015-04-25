@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #28, fix issues on VIM file saves
     #29, support running a quick test on each save
     Add a --directory flag to change directory first
     #26, use fs-notify to avoid excessive wakeups
