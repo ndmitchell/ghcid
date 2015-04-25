@@ -109,7 +109,6 @@ runGhcid waiter restart command size output = do
                 outStrLn $ "%ACTIVE: " ++ show modsActive
                 outStrLn $ "%LOAD: " ++ show messages
             let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
-            (width, height) <- size
             outputFill (Just $ warn ++ messages) []
             setTitle $
                 let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages ++ warn]
