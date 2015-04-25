@@ -41,7 +41,7 @@ outStrLn s = outStr $ s ++ "\n"
 
 
 -- | The message to show when no errors have been reported
-allGoodMessage :: String      
+allGoodMessage :: String
 allGoodMessage = "All good"
 
 -- | Like chunksOf, but deal with words up to some gap.
