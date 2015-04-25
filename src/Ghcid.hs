@@ -96,11 +96,13 @@ runGhcid waiter restart command size output = do
 
     restartTimes <- mapM getModTime restart
     outputFill Nothing ["Loading..."]
+    nextWait <- waitFiles waiter
     (ghci,messages) <- startGhci command Nothing
     curdir <- getCurrentDirectory
-    let fire messages warnings = do
+
+    -- fire, given a waiter, the messages, and the warnings from last time
+    let fire nextWait messages warnings = do
             messages <- return $ filter (not . whitelist) messages
-            waitFiles <- waitFiles waiter
             modsActive <- fmap (map snd) $ showModules ghci
             let modsLoad = nubOrd $ map loadFile messages
             whenLoud $ do
@@ -119,16 +121,17 @@ runGhcid waiter restart command size output = do
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
-            reason <- waitFiles $ restart ++ wait
+            reason <- nextWait $ restart ++ wait
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
+                nextWait <- waitFiles waiter
                 load2 <- reload ghci
-                fire load2 [m | m@Message{..} <- warn ++ messages, loadSeverity == Warning]
+                fire nextWait load2 [m | m@Message{..} <- warn ++ messages, loadSeverity == Warning]
             else do
                 stopGhci ghci
                 runGhcid waiter restart command size output
-    fire messages []
+    fire nextWait messages []
 
 
 -- | Ignore messages that GHC shouldn't really generate.
