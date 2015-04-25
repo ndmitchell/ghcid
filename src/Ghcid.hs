@@ -103,20 +103,27 @@ runGhcid waiter restart command size output = do
     -- fire, given a waiter, the messages, and the warnings from last time
     let fire nextWait messages warnings = do
             messages <- return $ filter (not . whitelist) messages
-            modsActive <- fmap (map snd) $ showModules ghci
-            let modsLoad = nubOrd $ map loadFile messages
+
+            loaded <- fmap (map snd) $ showModules ghci
+            let reloaded = nubOrd $ map loadFile messages
+            -- some may have reloaded, but caused an error, and thus not be in the loaded set
             whenLoud $ do
-                outStrLn $ "%ACTIVE: " ++ show modsActive
-                outStrLn $ "%LOAD: " ++ show messages
-            let warn = [w | w <- warnings, loadFile w `elem` modsActive, loadFile w `notElem` modsLoad]
-            outputFill (Just $ warn ++ messages) []
+                outStrLn $ "%MESSAGES: " ++ show messages
+                outStrLn $ "%LOADED: " ++ show loaded
+
+            -- only keep old warnings from files that are still loaded, but did not reload
+            let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
+            messages <- return $ filter validWarn warnings ++ messages
+
+            outputFill (Just messages) []
             setTitle $
-                let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages ++ warn]
+                let (errs, warns) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
                     f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                 in (if errs == 0 && warns == 0 then "All good" else f errs "error" ++
                     (if errs > 0 && warns > 0 then ", " else "") ++ f warns "warning") ++
                    " - " ++ takeFileName curdir
-            let wait = nubOrd $ modsLoad ++ modsActive
+            let wait = nubOrd $ loaded ++ reloaded
+
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
@@ -125,8 +132,9 @@ runGhcid waiter restart command size output = do
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
-                load2 <- reload ghci
-                fire nextWait load2 [m | m@Message{..} <- warn ++ messages, loadSeverity == Warning]
+                let warnings = [m | m@Message{..} <- messages, loadSeverity == Warning]
+                messages <- reload ghci
+                fire nextWait messages warnings
             else do
                 stopGhci ghci
                 runGhcid waiter restart command size output
