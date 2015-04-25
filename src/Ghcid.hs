@@ -123,7 +123,6 @@ runGhcid waiter restart command size output = do
                     (if errs > 0 && warns > 0 then ", " else "") ++ f warns "warning") ++
                    " - " ++ takeFileName curdir
             let wait = nubOrd $ loaded ++ reloaded
-
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
