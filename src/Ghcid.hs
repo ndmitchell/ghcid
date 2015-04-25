@@ -78,14 +78,17 @@ main = do
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
             runGhcid waiter restart command test height $ \xs -> do
-                outWith $ forM_ (groupOn fst xs) $ \x@((b,_):_) -> do
-                    when b $ setSGR [SetConsoleIntensity BoldIntensity]
+                outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
+                    when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                     putStr $ concatMap ((:) '\n' . snd) x
-                    when b $ setSGR []
+                    when (s == Bold) $ setSGR []
                 hFlush stdout -- must flush, since we don't finish with a newline
 
 
-runGhcid :: Waiter -> [FilePath] -> String -> Maybe String -> IO (Int,Int) -> ([(Bool,String)] -> IO ()) -> IO ()
+data Style = Plain | Bold deriving Eq
+
+
+runGhcid :: Waiter -> [FilePath] -> String -> Maybe String -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
 runGhcid waiter restart command test size output = do
     let outputFill :: Maybe [Load] -> [String] -> IO ()
         outputFill load msg = do
@@ -94,7 +97,7 @@ runGhcid waiter restart command test size output = do
             load <- return $ take (if isJust load then n else 0) $ prettyOutput n
                 [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
                 | m@Message{} <- fromMaybe [] load]
-            output $ load ++ map (False,) msg ++ replicate (height - (length load + length msg)) (False,"")
+            output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
     restartTimes <- mapM getModTime restart
     outputFill Nothing ["Loading..."]
@@ -159,8 +162,8 @@ whitelist _ = False
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Int -> [Load] -> [(Bool,String)]
-prettyOutput height [] = [(False,allGoodMessage)]
+prettyOutput :: Int -> [Load] -> [(Style,String)]
+prettyOutput height [] = [(Plain,allGoodMessage)]
 prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
-          msg1:msgs = map (map (True,) . loadMessage) err ++ map (map (False,) . loadMessage) warn
+          msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
