@@ -118,7 +118,7 @@ runGhcid waiter restart command size output = do
             if restartTimes == restartTimes2 then do
                 load2 <- reload ghci
                 fire load2 [m | m@Message{..} <- warn ++ load, loadSeverity == Warning]
-             else do
+            else do
                 stopGhci ghci
                 runGhcid waiter restart command size output
     fire initLoad []
