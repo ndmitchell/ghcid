@@ -112,7 +112,7 @@ runGhcid waiter restart command outputfiles test size output = do
     let fire nextWait messages warnings = do
             messages <- return $ filter (not . whitelist) messages
 
-            loaded <- fmap (map snd) $ showModules ghci
+            loaded <- map snd <$> showModules ghci
             let reloaded = nubOrd $ map loadFile messages
             -- some may have reloaded, but caused an error, and thus not be in the loaded set
             whenLoud $ do
