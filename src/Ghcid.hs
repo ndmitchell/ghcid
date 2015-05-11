@@ -21,6 +21,7 @@ import Paths_ghcid
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
+import Language.Haskell.Ghcid.Types
 import Wait
 
 
@@ -33,6 +34,7 @@ data Options = Options
     ,topmost :: Bool
     ,restart :: [FilePath]
     ,directory :: FilePath
+    ,outputfile :: [FilePath]
     }
     deriving (Data,Typeable,Show)
 
@@ -45,6 +47,7 @@ options = cmdArgsMode $ Options
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
+    ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -77,7 +80,7 @@ main = do
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
-            runGhcid waiter restart command test height $ \xs -> do
+            runGhcid waiter restart command outputfile test height $ \xs -> do
                 outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                     when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                     putStr $ concatMap ((:) '\n' . snd) x
@@ -88,8 +91,8 @@ main = do
 data Style = Plain | Bold deriving Eq
 
 
-runGhcid :: Waiter -> [FilePath] -> String -> Maybe String -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid waiter restart command test size output = do
+runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
+runGhcid waiter restart command outputfiles test size output = do
     let outputFill :: Maybe [Load] -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -131,6 +134,8 @@ runGhcid waiter restart command test size output = do
 
             updateTitle $ if isJust test then "(running test) " else ""
             outputFill (Just messages) ["Running test..." | isJust test]
+            forM_ outputfiles $ \file ->
+                writeFile file $ unlines $ map snd $ prettyOutput 1000000 $ filter isMessage messages
             whenJust test $ \test -> do
                 res <- exec ghci test
                 outputFill (Just messages) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
@@ -150,7 +155,7 @@ runGhcid waiter restart command test size output = do
                 fire nextWait messages warnings
             else do
                 stopGhci ghci
-                runGhcid waiter restart command test size output
+                runGhcid waiter restart command outputfiles test size output
 
     fire nextWait messages []
 

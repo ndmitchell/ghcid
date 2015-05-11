@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #31, add an outputfile feature
     #32, make newer warnings first (save a file, view its warnings)
     #28, fix issues on VIM file saves
     #29, support running a quick test on each save
