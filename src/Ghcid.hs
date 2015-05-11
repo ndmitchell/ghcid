@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables, TupleSections #-}
-{-# OPTIONS_GHC -O2 #-} -- only here to test ticket #11
+{-# OPTIONS_GHC -O2 -fno-cse #-} -- only here to test ticket #11
 
 -- | The application entry point
 module Ghcid(main, runGhcid) where
