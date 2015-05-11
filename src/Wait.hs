@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables, TupleSections #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Wait(Waiter, withWaiterPoll, withWaiterNotify, waitFiles) where
 
