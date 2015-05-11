@@ -9,7 +9,7 @@ import Control.Exception.Base (Exception)
 -- | A GHCi session. Created with 'startGhci'.
 newtype Ghci = Ghci (String -> IO [String])
 
--- | GHCi shut down
+-- | GHCi shut down
 data GhciError = UnexpectedExit String String
   deriving (Show,Eq,Ord,Typeable)
 
