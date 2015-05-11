@@ -14,9 +14,10 @@ module Language.Haskell.Ghcid
 where
 
 import System.IO
+import System.IO.Error
 import System.Process
 import Control.Concurrent
-import Control.Exception
+import Control.Exception.Extra
 import Control.Monad
 import Data.Function
 import Data.List
@@ -46,9 +47,9 @@ startGhci cmd directory = do
             result <- newEmptyMVar -- the end result
             buffer <- newMVar [] -- the things to go in result
             forkIO $ fix $ \rec -> do
-                el <- try $ hGetLine h
+                el <- tryBool isEOFError $ hGetLine h
                 case el of
-                    Left (_ :: SomeException) -> putMVar result Nothing
+                    Left _ -> putMVar result Nothing
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ name ++ ": " ++ l
                         if finish `isInfixOf` l
