@@ -32,9 +32,8 @@ library
         directory,
         extra >= 1.1,
         process >= 1.1,
-        cmdargs >= 0.10
-  if !os(windows)
-    build-depends: terminal-size >= 0.2.1
+        cmdargs >= 0.10,
+        terminal-size >= 0.3
   other-modules:   
                    Paths_ghcid,
                    Language.Haskell.Ghcid.Types,
@@ -82,11 +81,10 @@ test-suite ghcid_test
     fsnotify,
     extra >= 1.1,
     ansi-terminal,
+    terminal-size >= 0.3
     cmdargs,
     tasty,
     tasty-hunit
-  if !os(windows)
-    build-depends: terminal-size >= 0.2.1
   hs-source-dirs:  test, src
   main-is:         Test.hs
   other-modules:   
