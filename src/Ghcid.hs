@@ -5,6 +5,8 @@
 module Ghcid(main, runGhcid) where
 
 import Control.Monad.Extra
+import Control.Concurrent.Extra
+import Control.Exception
 import Data.List.Extra
 import Data.Maybe
 import Data.Tuple.Extra
@@ -63,8 +65,15 @@ autoOptions o
             else return o{command="cabal repl", restart=cabal}
 
 
+ctrlC :: IO () -> IO ()
+ctrlC act = do
+    bar <- newBarrier
+    forkFinally act $ signalBarrier bar
+    either throwIO return =<< waitBarrier bar
+
+
 main :: IO ()
-main = do
+main = ctrlC $ do
     opts <- cmdArgsRun options
     withCurrentDirectory (directory opts) $ do
         opts@Options{..} <- autoOptions opts
