@@ -1,5 +1,5 @@
 -- | Test the message parser
-module Language.Haskell.Ghcid.ParserTest 
+module Test.Parser 
   ( parserTests
   )where
 

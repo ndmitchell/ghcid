@@ -85,10 +85,10 @@ test-suite ghcid_test
     cmdargs,
     tasty,
     tasty-hunit
-  hs-source-dirs:  test, src
+  hs-source-dirs:  src
   main-is:         Test.hs
   other-modules:   
-                   Language.Haskell.Ghcid.ParserTest,
-                   Language.Haskell.Ghcid.HighLevelTests,
-                   Language.Haskell.Ghcid.UtilTest,
-                   Language.Haskell.Ghcid.PollingTest
+                   Test.Parser,
+                   Test.HighLevel,
+                   Test.Util,
+                   Test.Polling

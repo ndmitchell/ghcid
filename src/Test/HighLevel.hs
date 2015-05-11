@@ -1,5 +1,5 @@
 -- | Test the high level library API
-module Language.Haskell.Ghcid.HighLevelTests 
+module Test.HighLevel 
   (
     highLevelTests
   ) where

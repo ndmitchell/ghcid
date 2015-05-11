@@ -1,5 +1,5 @@
 -- | Test utility functions
-module Language.Haskell.Ghcid.UtilTest 
+module Test.Util
   ( utilsTests
   ) where
 
