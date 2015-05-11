@@ -81,7 +81,7 @@ test-suite ghcid_test
     fsnotify,
     extra >= 1.1,
     ansi-terminal,
-    terminal-size >= 0.3
+    terminal-size >= 0.3,
     cmdargs,
     tasty,
     tasty-hunit
