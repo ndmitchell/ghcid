@@ -69,23 +69,23 @@ startGhci cmd directory = do
                 outC <- takeMVar outs
                 errC <- takeMVar errs
                 case liftM2 (++) outC errC of
-                    Nothing  -> throwIO $ UnexpectedExit cmd s 
+                    Nothing  -> throwIO $ UnexpectedExit cmd s
                     Just msg -> return  msg
-    r <- fmap parseLoad $ f ""
+    r <- parseLoad <$> f ""
     return (Ghci f,r)
 
 
 -- | Show modules
 showModules :: Ghci -> IO [(String,FilePath)]
-showModules ghci = fmap parseShowModules $ exec ghci ":show modules"
+showModules ghci = parseShowModules <$> exec ghci ":show modules"
 
 -- | reload modules
 reload :: Ghci -> IO [Load]
-reload ghci = fmap parseLoad $ exec ghci ":reload"
+reload ghci = parseLoad <$> exec ghci ":reload"
 
 -- | Stop GHCi
 stopGhci :: Ghci -> IO ()
-stopGhci ghci = handle (\UnexpectedExit {} -> return ()) $ void $ exec ghci ":quit"
+stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
