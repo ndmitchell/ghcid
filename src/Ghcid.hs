@@ -118,7 +118,8 @@ runGhcid waiter restart command test size output = do
 
             -- only keep old warnings from files that are still loaded, but did not reload
             let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
-            messages <- return $ filter validWarn warnings ++ messages
+            -- newest warnings always go first, so the file you hit save on most recently has warnings first
+            messages <- return $ messages ++ filter validWarn warnings
             let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
             test <- return $ if countErrors == 0 then test else Nothing
 

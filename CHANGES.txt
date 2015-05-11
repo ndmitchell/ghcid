@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #32, make newer warnings first (save a file, view its warnings)
     #28, fix issues on VIM file saves
     #29, support running a quick test on each save
     Add a --directory flag to change directory first
