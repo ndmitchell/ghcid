@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, ScopedTypeVariables, TupleSections #-}
+{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, TupleSections #-}
 {-# OPTIONS_GHC -O2 -fno-cse #-} -- only here to test ticket #11
 
 -- | The application entry point

@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | The entry point of the library
 module Language.Haskell.Ghcid
  ( T.Ghci
