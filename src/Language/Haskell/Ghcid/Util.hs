@@ -18,6 +18,8 @@ import Data.Time.Clock
 import System.IO.Error
 import System.Directory
 import Control.Exception
+import Control.Applicative
+import Prelude
 
 
 -- | Drop a prefix from a list, no matter how many times that prefix is present
