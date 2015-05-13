@@ -21,12 +21,14 @@ import Control.Exception.Extra
 import Control.Monad
 import Data.Function
 import Data.List
+import Control.Applicative
 
 import System.Console.CmdArgs.Verbosity
 
 import Language.Haskell.Ghcid.Parser
 import Language.Haskell.Ghcid.Types as T
 import Language.Haskell.Ghcid.Util
+import Prelude
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading
 startGhci :: String -> Maybe FilePath -> IO (Ghci, [Load])
