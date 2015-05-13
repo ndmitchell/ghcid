@@ -4,6 +4,7 @@
 -- | The application entry point
 module Ghcid(main, runGhcid) where
 
+import Control.Applicative
 import Control.Monad.Extra
 import Control.Concurrent.Extra
 import Control.Exception
@@ -25,6 +26,7 @@ import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Wait
+import Prelude
 
 
 -- | Command line options
