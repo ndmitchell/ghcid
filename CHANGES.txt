@@ -1,6 +1,7 @@
 Changelog for GHCiD
 
     Require extra-1.2
+0.4
     #33, make Ctrl-C more robust
     #31, add an outputfile feature
     #32, make newer warnings first (save a file, view its warnings)
