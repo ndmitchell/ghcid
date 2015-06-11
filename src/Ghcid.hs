@@ -35,6 +35,7 @@ data Options = Options
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
+    ,notitle :: Bool
     ,restart :: [FilePath]
     ,directory :: FilePath
     ,outputfile :: [FilePath]
@@ -48,6 +49,7 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,width = Nothing &= help "Number of columns to show (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
+    ,notitle = False &= help "Don't update the shell title"
     ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
@@ -87,8 +89,11 @@ main = ctrlC $ do
                 -- if we write to the end of the window then it wraps automatically
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
+        let titler = if notitle
+                        then (const (return ()))
+                        else setTitle
         withWaiterNotify $ \waiter ->
-            runGhcid waiter restart command outputfile test height $ \xs -> do
+            runGhcid waiter restart command outputfile test height titler $ \xs -> do
                 outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                     when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                     putStr $ concatMap ((:) '\n' . snd) x
@@ -99,8 +104,8 @@ main = ctrlC $ do
 data Style = Plain | Bold deriving Eq
 
 
-runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid waiter restart command outputfiles test size output = do
+runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> (String -> IO ()) -> ([(Style,String)] -> IO ()) -> IO ()
+runGhcid waiter restart command outputfiles test size titler output = do
     let outputFill :: Maybe [Load] -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -134,7 +139,7 @@ runGhcid waiter restart command outputfiles test size output = do
             let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
             test <- return $ if countErrors == 0 then test else Nothing
 
-            let updateTitle extra = setTitle $
+            let updateTitle extra = titler $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
@@ -163,7 +168,7 @@ runGhcid waiter restart command outputfiles test size output = do
                 fire nextWait messages warnings
             else do
                 stopGhci ghci
-                runGhcid waiter restart command outputfiles test size output
+                runGhcid waiter restart command outputfiles test size titler output
 
     fire nextWait messages []
 
