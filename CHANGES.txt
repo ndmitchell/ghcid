@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+0.4.1
     #37, add a --notitle flag
     Require extra-1.2
 0.4
