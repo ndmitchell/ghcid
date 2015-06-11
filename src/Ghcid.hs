@@ -63,9 +63,14 @@ autoOptions o
     | otherwise = do
         files <- getDirectoryContents "."
         let cabal = filter ((==) ".cabal" . takeExtension) files
-        if null cabal || ".ghci" `elem` files
-            then return o{command="ghci", restart=[".ghci"]}
-            else return o{command="cabal repl", restart=cabal}
+        let useGhci = o{command="ghci", restart=[".ghci"]}
+        let useCabal = o{command="cabal repl", restart=cabal}
+        let useStack = o{command="stack ghci", restart=cabal ++ ["stack.yaml"]}
+        return $ case () of
+            _ | ".ghci" `elem` files -> useGhci
+              | "stack.yaml" `elem` files, False -> useStack -- see #130
+              | cabal /= [] -> useCabal
+              | otherwise -> useGhci
 
 
 -- ensure the action runs off the main thread
