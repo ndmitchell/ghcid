@@ -8,7 +8,6 @@ import Control.Exception.Extra
 import Control.Monad
 import Data.Char
 import Data.List.Extra
-import Data.Maybe
 import System.FilePath
 import System.Directory.Extra
 import System.IO
