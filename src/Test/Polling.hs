@@ -52,7 +52,9 @@ pollingTest  = testCase "Scripted Test" $ do
             outStrLn "\nSuccess"
 
 isLoading :: [String] -> Bool
-isLoading xs = listToMaybe xs `elem` [Just "Reloading...",Just "Loading..."]
+isLoading ("Reloading...":_) = True
+isLoading (x:_) | "Loading" `isPrefixOf` x && "..." `isSuffixOf` x = True
+isLoading _ = False
 
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do
