@@ -89,11 +89,8 @@ main = ctrlC $ do
                 -- if we write to the end of the window then it wraps automatically
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
-        let titler = if notitle
-                        then (const (return ()))
-                        else setTitle
         withWaiterNotify $ \waiter ->
-            runGhcid waiter restart command outputfile test height titler $ \xs -> do
+            runGhcid waiter restart command outputfile test height (not notitle) $ \xs -> do
                 outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                     when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                     putStr $ concatMap ((:) '\n' . snd) x
@@ -104,8 +101,8 @@ main = ctrlC $ do
 data Style = Plain | Bold deriving Eq
 
 
-runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> (String -> IO ()) -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid waiter restart command outputfiles test size titler output = do
+runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
+runGhcid waiter restart command outputfiles test size titles output = do
     let outputFill :: Maybe [Load] -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -139,7 +136,7 @@ runGhcid waiter restart command outputfiles test size titler output = do
             let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
             test <- return $ if countErrors == 0 then test else Nothing
 
-            let updateTitle extra = titler $
+            let updateTitle extra = when titles $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
@@ -168,7 +165,7 @@ runGhcid waiter restart command outputfiles test size titler output = do
                 fire nextWait messages warnings
             else do
                 stopGhci ghci
-                runGhcid waiter restart command outputfiles test size titler output
+                runGhcid waiter restart command outputfiles test size titles output
 
     fire nextWait messages []
 
