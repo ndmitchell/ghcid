@@ -33,7 +33,8 @@ library
         extra >= 1.2,
         process >= 1.1,
         cmdargs >= 0.10,
-        terminal-size >= 0.3
+        terminal-size >= 0.3,
+        Win32
   other-modules:   
                    Paths_ghcid,
                    Language.Haskell.Ghcid.Types,
@@ -58,7 +59,8 @@ executable ghcid
       process >= 1.1,
       cmdargs >= 0.10,
       ansi-terminal,
-      terminal-size >= 0.3
+      terminal-size >= 0.3,
+      Win32
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
