@@ -8,7 +8,6 @@ import Control.Exception.Extra
 import Control.Monad
 import Data.Char
 import Data.List.Extra
-import Data.Maybe
 import System.FilePath
 import System.Directory.Extra
 import System.IO
@@ -44,7 +43,7 @@ pollingTest  = testCase "Scripted Test" $ do
         try_ $ system "chmod og-w . .ghci"
 
         withWaiterPoll $ \waiter -> bracket (
-          forkIO $ runGhcid waiter [] "ghci" [] Nothing (return (100, 50)) $ \msg ->
+          forkIO $ runGhcid waiter [] "ghci" [] Nothing (return (100, 50)) False $ \msg ->
             unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
           ) killThread $ \_ -> do
             require requireAllGood
@@ -52,7 +51,9 @@ pollingTest  = testCase "Scripted Test" $ do
             outStrLn "\nSuccess"
 
 isLoading :: [String] -> Bool
-isLoading xs = listToMaybe xs `elem` [Just "Reloading...",Just "Loading..."]
+isLoading ("Reloading...":_) = True
+isLoading (x:_) | "Loading" `isPrefixOf` x && "..." `isSuffixOf` x = True
+isLoading _ = False
 
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do

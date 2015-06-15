@@ -35,6 +35,7 @@ data Options = Options
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
+    ,notitle :: Bool
     ,restart :: [FilePath]
     ,directory :: FilePath
     ,outputfile :: [FilePath]
@@ -48,6 +49,7 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,width = Nothing &= help "Number of columns to show (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
+    ,notitle = False &= help "Don't update the shell title"
     ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
@@ -61,9 +63,14 @@ autoOptions o
     | otherwise = do
         files <- getDirectoryContents "."
         let cabal = filter ((==) ".cabal" . takeExtension) files
-        if null cabal || ".ghci" `elem` files
-            then return o{command="ghci", restart=[".ghci"]}
-            else return o{command="cabal repl", restart=cabal}
+        let useGhci = o{command="ghci", restart=[".ghci"]}
+        let useCabal = o{command="cabal repl", restart=cabal}
+        let useStack = o{command="stack ghci", restart=cabal ++ ["stack.yaml"]}
+        return $ case () of
+            _ | ".ghci" `elem` files -> useGhci
+              | "stack.yaml" `elem` files, False -> useStack -- see #130
+              | cabal /= [] -> useCabal
+              | otherwise -> useGhci
 
 
 -- ensure the action runs off the main thread
@@ -88,7 +95,7 @@ main = ctrlC $ do
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
-            runGhcid waiter restart command outputfile test height $ \xs -> do
+            runGhcid waiter restart command outputfile test height (not notitle) $ \xs -> do
                 outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                     when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                     putStr $ concatMap ((:) '\n' . snd) x
@@ -99,8 +106,8 @@ main = ctrlC $ do
 data Style = Plain | Bold deriving Eq
 
 
-runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid waiter restart command outputfiles test size output = do
+runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
+runGhcid waiter restart command outputfiles test size titles output = do
     let outputFill :: Maybe [Load] -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -111,7 +118,7 @@ runGhcid waiter restart command outputfiles test size output = do
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
     restartTimes <- mapM getModTime restart
-    outputFill Nothing ["Loading..."]
+    outputFill Nothing ["Loading " ++ command ++ "..."]
     nextWait <- waitFiles waiter
     (ghci,messages) <- startGhci command Nothing
     curdir <- getCurrentDirectory
@@ -136,7 +143,7 @@ runGhcid waiter restart command outputfiles test size output = do
             
             changeWindowIcon countWarnings countErrors --defined in src\Language\Haskell\Ghcid\terminal.hs. Like setTitle, but updates the 
 
-            let updateTitle extra = setTitle $
+            let updateTitle extra = when titles $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
@@ -165,7 +172,7 @@ runGhcid waiter restart command outputfiles test size output = do
                 fire nextWait messages warnings
             else do
                 stopGhci ghci
-                runGhcid waiter restart command outputfiles test size output
+                runGhcid waiter restart command outputfiles test size titles output
 
     fire nextWait messages []
 

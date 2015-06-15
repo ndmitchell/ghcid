@@ -1,5 +1,9 @@
 Changelog for GHCiD
 
+0.4.2
+    Fix a GHC 7.6 warning
+0.4.1
+    #37, add a --notitle flag
     Require extra-1.2
 0.4
     #33, make Ctrl-C more robust
