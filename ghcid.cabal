@@ -84,7 +84,8 @@ test-suite ghcid_test
     terminal-size >= 0.3,
     cmdargs,
     tasty,
-    tasty-hunit
+    tasty-hunit,
+    Win32
   hs-source-dirs:  src
   main-is:         Test.hs
   other-modules:   
