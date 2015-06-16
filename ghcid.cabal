@@ -34,6 +34,8 @@ library
         process >= 1.1,
         cmdargs >= 0.10,
         terminal-size >= 0.3
+  if os(windows)
+    build-depends: Win32
   other-modules:   
                    Paths_ghcid,
                    Language.Haskell.Ghcid.Types,
@@ -59,6 +61,8 @@ executable ghcid
       cmdargs >= 0.10,
       ansi-terminal,
       terminal-size >= 0.3
+  if os(windows)
+    build-depends: Win32
   other-modules:   
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
@@ -85,6 +89,8 @@ test-suite ghcid_test
     cmdargs,
     tasty,
     tasty-hunit
+  if os(windows)
+    build-depends: Win32
   hs-source-dirs:  src
   main-is:         Test.hs
   other-modules:   

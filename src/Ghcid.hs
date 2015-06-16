@@ -140,13 +140,15 @@ runGhcid waiter restart command outputfiles test size titles output = do
             messages <- return $ messages ++ filter validWarn warnings
             let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
             test <- return $ if countErrors == 0 then test else Nothing
+            
+            changeWindowIcon countWarnings countErrors --defined in src\Language\Haskell\Ghcid\terminal.hs. Like setTitle, but updates the 
 
             let updateTitle extra = when titles $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
                        " " ++ extra ++ "- " ++ takeFileName curdir
-
+        
             updateTitle $ if isJust test then "(running test) " else ""
             outputFill (Just messages) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->
