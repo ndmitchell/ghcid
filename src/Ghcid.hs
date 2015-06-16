@@ -49,7 +49,7 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to show (defaults to console height)"
     ,width = Nothing &= help "Number of columns to show (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
-    ,notitle = False &= help "Don't update the shell title"
+    ,notitle = False &= help "Don't update the shell title/icon"
     ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
@@ -140,8 +140,8 @@ runGhcid waiter restart command outputfiles test size titles output = do
             messages <- return $ messages ++ filter validWarn warnings
             let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
             test <- return $ if countErrors == 0 then test else Nothing
-            
-            changeWindowIcon countWarnings countErrors --defined in src\Language\Haskell\Ghcid\terminal.hs. Like setTitle, but updates the 
+
+            when titles $ changeWindowIcon countWarnings countErrors
 
             let updateTitle extra = when titles $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
