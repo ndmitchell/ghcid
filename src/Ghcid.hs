@@ -141,7 +141,8 @@ runGhcid waiter restart command outputfiles test size titles output = do
             let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
             test <- return $ if countErrors == 0 then test else Nothing
 
-            when titles $ changeWindowIcon countWarnings countErrors
+            when titles $ changeWindowIcon $
+                if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
 
             let updateTitle extra = when titles $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
