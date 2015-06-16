@@ -52,8 +52,8 @@ changeWindowIcon numWarnings numErrors
             icon <- loadIcon Nothing ico
             wnd <- getConsoleWindow
             -- SMALL is the system tray, BIG is the taskbar and Alt-Tab screen
-            sendMessage wnd wM_SETICON iCON_SMALL (fromIntegral $ castPtrToUINTPtr icon)
-            sendMessage wnd wM_SETICON iCON_BIG (fromIntegral $ castPtrToUINTPtr icon)
+            sendMessage wnd wM_SETICON iCON_SMALL $ fromIntegral $ castPtrToUINTPtr icon
+            sendMessage wnd wM_SETICON iCON_BIG $ fromIntegral $ castPtrToUINTPtr icon
             return ()
 #else
 changeWindowIcon _ _ = return ()
