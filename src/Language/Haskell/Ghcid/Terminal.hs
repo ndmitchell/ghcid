@@ -14,6 +14,11 @@ import Graphics.Win32.Message
 import Graphics.Win32.GDI.Types
 import Unsafe.Coerce
 
+wM_SETICON = 0x0080 :: WindowMessage
+iCON_BIG = 1
+iCON_SMALL = 0
+
+
 foreign import stdcall unsafe "windows.h GetConsoleWindow"
     getConsoleWindow :: IO HWND
 
@@ -38,27 +43,16 @@ terminalTopmost = return ()
 changeWindowIcon :: (Ord a, Num a) => a -> a -> IO ()
 #if defined(mingw32_HOST_OS)
 changeWindowIcon numWarnings numErrors
-    | numErrors   > 0   = getIcon iDI_HAND          >>= setIcon
-    | numWarnings > 0   = getIcon iDI_EXCLAMATION   >>= setIcon
-    | otherwise         = getIcon iDI_ASTERISK      >>= setIcon
-
-    
-wM_SETICON :: WindowMessage
-wM_SETICON = 0x0080
-
--- | Wrapper around loadIcon from the win32 library.
-getIcon :: Icon -> IO HICON
-getIcon = loadIcon Nothing
-
--- | Sets the icon of the invoking (console) window to the supplied HICON.
-setIcon :: HICON -> IO ()
-setIcon icon = do
-    wnd <- getConsoleWindow
-    sendMessage wnd wM_SETICON 0 (unsafeCoerce icon) --the 0 indicates the icon in the screen. unsafeCoerce is used to unwrap several newtype layers (HICON -> HANDLE -> DWORD -> LONG)
-    sendMessage wnd wM_SETICON 1 (unsafeCoerce icon) --the 1 indicates the icon in the taskbar and the alt-tab screen
-    return () --discard the result of the sendMessage calls
-    --only works if the application is not pinned to the taskbar (unlikely for ghcid?)
-    
+    | numErrors   > 0   = f iDI_HAND
+    | numWarnings > 0   = f iDI_EXCLAMATION
+    | otherwise         = f iDI_ASTERISK
+    where
+        f ico = do
+            icon <- loadIcon Nothing ico
+            wnd <- getConsoleWindow
+            sendMessage wnd wM_SETICON iCON_SMALL (unsafeCoerce icon) --the 0 indicates the icon in the screen. unsafeCoerce is used to unwrap several newtype layers (HICON -> HANDLE -> DWORD -> LONG)
+            sendMessage wnd wM_SETICON iCON_BIG (unsafeCoerce icon) --the 1 indicates the icon in the taskbar and the alt-tab screen
+            return ()
 #else
 changeWindowIcon _ _ = return ()
 #endif
