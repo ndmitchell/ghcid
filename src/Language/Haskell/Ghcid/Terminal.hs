@@ -1,12 +1,13 @@
 {-# LANGUAGE CPP #-}
 module Language.Haskell.Ghcid.Terminal(
     terminalTopmost,
-    changeWindowIcon
+    changeWindowIcon, withWindowIcon
     ) where
 
 #if defined(mingw32_HOST_OS)
 import Data.Word
 import Data.Bits
+import Control.Exception
 
 import Graphics.Win32.Misc
 import Graphics.Win32.Window 
@@ -16,6 +17,8 @@ import System.Win32.Types
 
 
 wM_SETICON = 0x0080 :: WindowMessage
+wM_GETICON = 0x007F :: WindowMessage
+
 iCON_BIG = 1
 iCON_SMALL = 0
 
@@ -57,4 +60,18 @@ changeWindowIcon numWarnings numErrors
             return ()
 #else
 changeWindowIcon _ _ = return ()
+#endif
+
+withWindowIcon :: IO a -> IO a
+#if defined(mingw32_HOST_OS)
+withWindowIcon act = do
+    wnd <- getConsoleWindow
+    icoBig <- sendMessage wnd wM_GETICON iCON_BIG 0
+    icoSmall <- sendMessage wnd wM_GETICON iCON_SMALL 0
+    act `finally` do
+        sendMessage wnd wM_SETICON iCON_BIG icoBig
+        sendMessage wnd wM_SETICON iCON_SMALL icoSmall
+        return ()
+#else
+withWindowIcon act = act
 #endif

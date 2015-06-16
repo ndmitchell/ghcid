@@ -79,7 +79,7 @@ ctrlC = join . onceFork
 
 
 main :: IO ()
-main = ctrlC $ do
+main = withWindowIcon $ ctrlC $ do
     opts <- cmdArgsRun options
     withCurrentDirectory (directory opts) $ do
         opts@Options{..} <- autoOptions opts
