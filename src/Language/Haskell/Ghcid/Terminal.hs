@@ -12,7 +12,8 @@ import Graphics.Win32.Misc
 import Graphics.Win32.Window 
 import Graphics.Win32.Message
 import Graphics.Win32.GDI.Types
-import Unsafe.Coerce
+import System.Win32.Types
+
 
 wM_SETICON = 0x0080 :: WindowMessage
 iCON_BIG = 1
@@ -50,8 +51,9 @@ changeWindowIcon numWarnings numErrors
         f ico = do
             icon <- loadIcon Nothing ico
             wnd <- getConsoleWindow
-            sendMessage wnd wM_SETICON iCON_SMALL (unsafeCoerce icon) --the 0 indicates the icon in the screen. unsafeCoerce is used to unwrap several newtype layers (HICON -> HANDLE -> DWORD -> LONG)
-            sendMessage wnd wM_SETICON iCON_BIG (unsafeCoerce icon) --the 1 indicates the icon in the taskbar and the alt-tab screen
+            -- SMALL is the system tray, BIG is the taskbar and Alt-Tab screen
+            sendMessage wnd wM_SETICON iCON_SMALL (fromIntegral $ castPtrToUINTPtr icon)
+            sendMessage wnd wM_SETICON iCON_BIG (fromIntegral $ castPtrToUINTPtr icon)
             return ()
 #else
 changeWindowIcon _ _ = return ()
