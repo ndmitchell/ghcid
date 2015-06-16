@@ -7,25 +7,18 @@ module Language.Haskell.Ghcid.Terminal(
 #if defined(mingw32_HOST_OS)
 import Data.Word
 import Data.Bits
-import Foreign.Ptr
 
 import Graphics.Win32.Misc
 import Graphics.Win32.Window 
 import Graphics.Win32.Message
-import Graphics.Win32.GDI.Types hiding (HWND)
+import Graphics.Win32.GDI.Types
 import Unsafe.Coerce
 
-type HWND = Ptr ()
-
-c_SWP_NOSIZE = 1 :: Word32
-c_SWP_NOMOVE = 2 :: Word32
-c_HWND_TOPMOST = -1 :: Int
-
 foreign import stdcall unsafe "windows.h GetConsoleWindow"
-    c_GetConsoleWindow :: IO HWND
+    getConsoleWindow :: IO HWND
 
 foreign import stdcall unsafe "windows.h SetWindowPos"
-    c_SetWindowPos :: HWND -> Int -> Int -> Int -> Int -> Int -> Word32 -> IO Bool
+    setWindowPos :: HWND -> HWND -> Int -> Int -> Int -> Int -> Word32 -> IO Bool
 #endif
 
 
@@ -33,8 +26,8 @@ foreign import stdcall unsafe "windows.h SetWindowPos"
 terminalTopmost :: IO ()
 #if defined(mingw32_HOST_OS)
 terminalTopmost = do
-    wnd <- c_GetConsoleWindow
-    c_SetWindowPos wnd c_HWND_TOPMOST 0 0 0 0 (c_SWP_NOMOVE .|. c_SWP_NOSIZE)
+    wnd <- getConsoleWindow
+    setWindowPos wnd hWND_TOPMOST 0 0 0 0 (sWP_NOMOVE .|. sWP_NOSIZE)
     return ()
 #else
 terminalTopmost = return ()
@@ -60,7 +53,7 @@ getIcon = loadIcon Nothing
 -- | Sets the icon of the invoking (console) window to the supplied HICON.
 setIcon :: HICON -> IO ()
 setIcon icon = do
-    wnd <- c_GetConsoleWindow
+    wnd <- getConsoleWindow
     sendMessage wnd wM_SETICON 0 (unsafeCoerce icon) --the 0 indicates the icon in the screen. unsafeCoerce is used to unwrap several newtype layers (HICON -> HANDLE -> DWORD -> LONG)
     sendMessage wnd wM_SETICON 1 (unsafeCoerce icon) --the 1 indicates the icon in the taskbar and the alt-tab screen
     return () --discard the result of the sendMessage calls
