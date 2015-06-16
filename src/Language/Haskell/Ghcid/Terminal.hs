@@ -13,7 +13,6 @@ import Graphics.Win32.Misc
 import Graphics.Win32.Window 
 import Graphics.Win32.Message
 import Graphics.Win32.GDI.Types hiding (HWND)
-import System.Win32.Types
 import Unsafe.Coerce
 
 type HWND = Ptr ()
