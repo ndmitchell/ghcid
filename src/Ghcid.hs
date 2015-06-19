@@ -95,7 +95,7 @@ main = withWindowIcon $ ctrlC $ do
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
-            runGhcid waiter restart command outputfile test height (not notitle) $ \xs -> do
+            runGhcid waiter (nubOrd restart) command outputfile test height (not notitle) $ \xs -> do
                 outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                     when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                     putStr $ concatMap ((:) '\n' . snd) x
