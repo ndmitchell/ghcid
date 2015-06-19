@@ -46,8 +46,8 @@ options :: Mode (CmdArgs Options)
 options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,test = Nothing &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
-    ,height = Nothing &= help "Number of lines to show (defaults to console height)"
-    ,width = Nothing &= help "Number of columns to show (defaults to console width)"
+    ,height = Nothing &= help "Number of lines to use (defaults to console height)"
+    ,width = Nothing &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,notitle = False &= help "Don't update the shell title/icon"
     ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
