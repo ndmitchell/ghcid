@@ -31,6 +31,7 @@ import Prelude
 -- | Command line options
 data Options = Options
     {command :: String
+    ,arguments :: [String]
     ,test :: Maybe String
     ,height :: Maybe Int
     ,width :: Maybe Int
@@ -45,6 +46,7 @@ data Options = Options
 options :: Mode (CmdArgs Options)
 options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
+    ,arguments = [] &= args &= typ "MODULE"
     ,test = Nothing &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= help "Number of columns to use (defaults to console width)"
@@ -81,19 +83,22 @@ Warnings:
 As a result, we prefer to give users full control with a .ghci file, if available
 -}
 autoOptions :: Options -> IO Options
-autoOptions o
-    | command o /= "" = return o
+autoOptions o@Options{..}
+    | command /= "" = return $ f command []
     | otherwise = do
         files <- getDirectoryContents "."
         let cabal = filter ((==) ".cabal" . takeExtension) files
-        let useGhci = o{command="ghci", restart=[".ghci"]}
-        let useCabal = o{command="cabal repl", restart=cabal}
-        let useStack = o{command="stack ghci", restart=cabal ++ ["stack.yaml"]}
         return $ case () of
-            _ | ".ghci" `elem` files -> useGhci
-              | "stack.yaml" `elem` files, False -> useStack -- see #130
-              | cabal /= [] -> useCabal
-              | otherwise -> useGhci
+            _ | ".ghci" `elem` files -> f "ghci" [".ghci"]
+              | "stack.yaml" `elem` files, False -> f "stack ghci" ["stack.yaml"] -- see #130
+              | cabal /= [] -> f (if arguments == [] then "cabal repl" else "cabal exec ghci") cabal
+              | otherwise -> f "ghci" []
+    where
+        f c r = o{command = unwords $ c : map escape arguments, arguments = [], restart = restart ++ r}
+
+        -- in practice we're not expecting many arguments to have anything funky in them
+        escape x | ' ' `elem` x = "\"" ++ x ++ "\""
+                 | otherwise = x
 
 
 -- ensure the action runs off the main thread

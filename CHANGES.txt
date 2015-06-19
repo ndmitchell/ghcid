@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #23, add arguments and change what commands get invoked
     #35, change the titlebar icon on Windows
 0.4.2
     Fix a GHC 7.6 warning
