@@ -30,7 +30,7 @@ import Language.Haskell.Ghcid.Types as T
 import Language.Haskell.Ghcid.Util
 import Prelude
 
--- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading
+-- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 startGhci :: String -> Maybe FilePath -> IO (Ghci, [Load])
 startGhci cmd directory = do
     (Just inp, Just out, Just err, _) <-
