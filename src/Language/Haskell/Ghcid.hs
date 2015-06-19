@@ -18,9 +18,10 @@ import System.IO.Error
 import System.Process
 import Control.Concurrent
 import Control.Exception.Extra
-import Control.Monad
+import Control.Monad.Extra
 import Data.Function
 import Data.List
+import Data.IORef
 import Control.Applicative
 
 import System.Console.CmdArgs.Verbosity
@@ -31,8 +32,10 @@ import Language.Haskell.Ghcid.Util
 import Prelude
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
-startGhci :: String -> Maybe FilePath -> IO (Ghci, [Load])
-startGhci cmd directory = do
+--   Pass True to write out messages produced while loading, useful if invoking something like "cabal repl"
+--   which might compile dependent packages before really loading.
+startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
+startGhci cmd directory echo = do
     (Just inp, Just out, Just err, _) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd = directory}
     hSetBuffering out LineBuffering
@@ -43,6 +46,7 @@ startGhci cmd directory = do
     let prefix = "#~GHCID-START~#"
     let finish = "#~GHCID-FINISH~#"
     hPutStrLn inp $ ":set prompt " ++ prefix
+    echo <- newIORef echo
 
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
     let consume h name = do
@@ -54,6 +58,8 @@ startGhci cmd directory = do
                     Left _ -> putMVar result Nothing
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ name ++ ": " ++ l
+                        whenM (readIORef echo) $
+                            unless (any (`isInfixOf` l) [prefix, finish]) $ outStrLn l
                         if finish `isInfixOf` l
                           then do
                             buf <- modifyMVar buffer $ \old -> return ([], reverse old)
@@ -75,6 +81,7 @@ startGhci cmd directory = do
                     Nothing  -> throwIO $ UnexpectedExit cmd s
                     Just msg -> return  msg
     r <- parseLoad <$> f ""
+    writeIORef echo False
     return (Ghci f,r)
 
 
