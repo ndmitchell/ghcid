@@ -57,6 +57,23 @@ options = cmdArgsMode $ Options
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
 
+{-
+What happens on various command lines:
+
+Hlint with no .ghci file:
+- cabal repl - prompt with Language.Haskell.HLint loaded
+- cabal exec ghci Sample.hs - prompt with Sample.hs loaded
+- ghci - prompt with nothing loaded
+- ghci Sample.hs - prompt with Sample.hs loaded
+- stack ... - never anything loaded
+
+Hlint with a .ghci file:
+- cabal repl - loads everything twice, prompt with Language.Haskell.HLint loaded
+- cabal exec ghci Sample.hs - loads everything first, then prompt with Sample.hs loaded
+- ghci - prompt with everything
+- ghci Sample.hs - loads everything first, then prompt with Sample.hs loaded
+- stack ... - never anything loaded
+-}
 autoOptions :: Options -> IO Options
 autoOptions o
     | command o /= "" = return o
