@@ -73,7 +73,7 @@ takeMVarDelay x i = do
 
 -- | The all good message
 requireAllGood :: [String] -> IO ()
-requireAllGood got = filter (not . null) got @?= [allGoodMessage]
+requireAllGood got = map (take (length allGoodMessage)) (filter (not . null) got) @?= [allGoodMessage]
 
 --requireNonIndents :: [String] -> [String] -> IO ()
 --requireNonIndents want got = [x | x@(c:_) <- got, not $ isSpace c] @?= want

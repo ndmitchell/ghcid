@@ -136,13 +136,13 @@ data Style = Plain | Bold deriving Eq
 
 runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
 runGhcid waiter restart command outputfiles test size titles output = do
-    let outputFill :: Maybe [Load] -> [String] -> IO ()
+    let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
             let n = height - length msg
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput n
+            load <- return $ take (if isJust load then n else 0) $ prettyOutput n (maybe 0 fst load)
                 [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
-                | m@Message{} <- fromMaybe [] load]
+                | m@Message{} <- maybe [] snd load]
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
     restartTimes <- mapM getModTime restart
@@ -156,6 +156,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
             messages <- return $ filter (not . whitelist) messages
 
             loaded <- map snd <$> showModules ghci
+            let loadedCount = length loaded
             let reloaded = nubOrd $ map loadFile messages
             -- some may have reloaded, but caused an error, and thus not be in the loaded set
             whenLoud $ do
@@ -179,12 +180,12 @@ runGhcid waiter restart command outputfiles test size titles output = do
                        " " ++ extra ++ "- " ++ takeFileName curdir
         
             updateTitle $ if isJust test then "(running test) " else ""
-            outputFill (Just messages) ["Running test..." | isJust test]
+            outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->
-                writeFile file $ unlines $ map snd $ prettyOutput 1000000 $ filter isMessage messages
+                writeFile file $ unlines $ map snd $ prettyOutput 1000000 loadedCount $ filter isMessage messages
             whenJust test $ \test -> do
                 res <- exec ghci test
-                outputFill (Just messages) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
+                outputFill (Just (loadedCount, messages)) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
                 updateTitle ""
 
             let wait = nubOrd $ loaded ++ reloaded
@@ -214,8 +215,8 @@ whitelist _ = False
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Int -> [Load] -> [(Style,String)]
-prettyOutput height [] = [(Plain,allGoodMessage)]
-prettyOutput height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
+prettyOutput :: Int -> Int -> [Load] -> [(Style,String)]
+prettyOutput height loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
+prettyOutput loaded height xs = take (max 3 $ height - (length msgs * 2)) msg1 ++ concatMap (take 2) msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
