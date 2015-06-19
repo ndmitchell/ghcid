@@ -73,6 +73,12 @@ Hlint with a .ghci file:
 - ghci - prompt with everything
 - ghci Sample.hs - loads everything first, then prompt with Sample.hs loaded
 - stack ... - never anything loaded
+
+Warnings:
+- cabal repl won't pull in any C files (e.g. hoogle)
+- cabal exec ghci won't work with modules that import an autogen Paths module
+
+As a result, we prefer to give users full control with a .ghci file, if available
 -}
 autoOptions :: Options -> IO Options
 autoOptions o
