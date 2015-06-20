@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    Add an extra boolean argument to startGhci
     Add the number of modules loaded after All good
     Print out messages until the prompt comes up
     #23, add arguments and change what commands get invoked
