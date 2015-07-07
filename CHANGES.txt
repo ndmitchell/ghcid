@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #42, make the first error a minimum of 5 lines
 0.5
     Add an extra boolean argument to startGhci
     Add the number of modules loaded after All good
