@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #43, work even if people use break-on-exception flags
     #42, make the first error a minimum of 5 lines
 0.5
     Add an extra boolean argument to startGhci

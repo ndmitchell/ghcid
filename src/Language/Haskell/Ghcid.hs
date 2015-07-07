@@ -46,6 +46,7 @@ startGhci cmd directory echo = do
     let prefix = "#~GHCID-START~#"
     let finish = "#~GHCID-FINISH~#"
     hPutStrLn inp $ ":set prompt " ++ prefix
+    hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
     echo <- newIORef echo
 
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
