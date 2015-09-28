@@ -67,14 +67,14 @@ Hlint with no .ghci file:
 - cabal exec ghci Sample.hs - prompt with Sample.hs loaded
 - ghci - prompt with nothing loaded
 - ghci Sample.hs - prompt with Sample.hs loaded
-- stack ... - never anything loaded
+- stack ghci - prompt with all libraries and Main loaded
 
 Hlint with a .ghci file:
 - cabal repl - loads everything twice, prompt with Language.Haskell.HLint loaded
 - cabal exec ghci Sample.hs - loads everything first, then prompt with Sample.hs loaded
 - ghci - prompt with everything
 - ghci Sample.hs - loads everything first, then prompt with Sample.hs loaded
-- stack ... - never anything loaded
+- stack ghci - loads everything first, then prompt with libraries and Main loaded
 
 Warnings:
 - cabal repl won't pull in any C files (e.g. hoogle)
