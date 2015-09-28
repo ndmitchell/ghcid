@@ -10,7 +10,7 @@ import Data.Bits
 import Control.Exception
 
 import Graphics.Win32.Misc
-import Graphics.Win32.Window 
+import Graphics.Win32.Window
 import Graphics.Win32.Message
 import Graphics.Win32.GDI.Types
 import System.Win32.Types
