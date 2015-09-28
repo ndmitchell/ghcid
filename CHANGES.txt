@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #45, add an extra space before the ... message
     #42, always show the first error in full
     #43, work even if people use break-on-exception flags
     #42, make the first error a minimum of 5 lines

@@ -146,7 +146,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
     restartTimes <- mapM getModTime restart
-    outStrLn $ "Loading " ++ command ++ "..."
+    outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
     (ghci,messages) <- startGhci command Nothing True
     curdir <- getCurrentDirectory
