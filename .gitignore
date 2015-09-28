@@ -4,3 +4,4 @@
 /cabal.sandbox.config
 /tags
 /.cabal-sandbox
+/.stack-work
