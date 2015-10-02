@@ -180,7 +180,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
                        " " ++ extra ++ "- " ++ takeFileName curdir
-        
+
             updateTitle $ if isJust test then "(running test) " else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->

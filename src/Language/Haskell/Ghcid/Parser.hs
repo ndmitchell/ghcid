@@ -1,7 +1,7 @@
 {-# LANGUAGE PatternGuards #-}
 -- | Parses the output from GHCi
 -- Copyright Neil Mitchell 2014.
-module Language.Haskell.Ghcid.Parser 
+module Language.Haskell.Ghcid.Parser
   ( parseShowModules
   , parseLoad
   )
@@ -35,7 +35,7 @@ parseLoad' (x:xs)
     , (file,':':rest) <- break (== ':') x
     , takeExtension file `elem` [".hs",".lhs"]
     , (pos,rest2) <- span (\c -> c == ':' || isDigit c) rest
-    , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos 
+    , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos
     , (msg,las) <- span (isPrefixOf " ") xs
     , rest3 <- trimStart rest2
     , sev <- if "warning:" `isPrefixOf` lower rest3 then Warning else Error

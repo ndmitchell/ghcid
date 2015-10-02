@@ -24,8 +24,8 @@ source-repository head
 
 library
   hs-source-dirs:  src
-  default-language: Haskell2010  
-  build-depends:   
+  default-language: Haskell2010
+  build-depends:
         base >= 4,
         filepath,
         time,
@@ -36,7 +36,7 @@ library
         terminal-size >= 0.3
   if os(windows)
     build-depends: Win32
-  other-modules:   
+  other-modules:
                    Paths_ghcid,
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
@@ -63,7 +63,7 @@ executable ghcid
       terminal-size >= 0.3
   if os(windows)
     build-depends: Win32
-  other-modules:   
+  other-modules:
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
                    Language.Haskell.Ghcid.Terminal,
@@ -74,8 +74,8 @@ executable ghcid
 test-suite ghcid_test
   type:            exitcode-stdio-1.0
   ghc-options:     -rtsopts -main-is Test.main -threaded -with-rtsopts=-K1K
-  default-language: Haskell2010  
-  build-depends:   
+  default-language: Haskell2010
+  build-depends:
     base >= 4,
     filepath,
     time,
@@ -93,7 +93,7 @@ test-suite ghcid_test
     build-depends: Win32
   hs-source-dirs:  src
   main-is:         Test.hs
-  other-modules:   
+  other-modules:
                    Test.Parser,
                    Test.HighLevel,
                    Test.Util,

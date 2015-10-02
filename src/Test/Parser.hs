@@ -1,5 +1,5 @@
 -- | Test the message parser
-module Test.Parser 
+module Test.Parser
   ( parserTests
   )where
 
@@ -12,20 +12,20 @@ import Language.Haskell.Ghcid.Types
 
 parserTests :: TestTree
 parserTests=testGroup "Parser tests"
-  [ testShowModules 
+  [ testShowModules
   , testParseLoad
   ]
-  
+
 testShowModules :: TestTree
 testShowModules =  testCase "Show Modules" $ parseShowModules [
     "Main             ( src/Main.hs, interpreted )",
     "AI.Neural.WiscDigit ( src/AI/Neural/WiscDigit.hs, interpreted )"
     ] @?= [("Main","src/Main.hs"),("AI.Neural.WiscDigit","src/AI/Neural/WiscDigit.hs")]
-  
-  
+
+
 testParseLoad :: TestTree
 testParseLoad = testGroup "Load Parsing"
-  [ testCase "output1" $ parseLoad output1 @?= 
+  [ testCase "output1" $ parseLoad output1 @?=
     [ Loading "GHCi" "GHCi.hs"
     , Message {loadSeverity = Error, loadFile = "GHCi.hs", loadFilePos = (70,1), loadMessage = ["GHCi.hs:70:1: Parse error: naked expression at top level"]}
     , Message {loadSeverity = Error, loadFile = "GHCi.hs", loadFilePos = (72,13), loadMessage = ["GHCi.hs:72:13:","    No instance for (Num ([String] -> [String]))","      arising from the literal `1'","    Possible fix:","      add an instance declaration for (Num ([String] -> [String]))","    In the expression: 1","    In an equation for `parseLoad': parseLoad = 1"]}
@@ -35,7 +35,7 @@ testParseLoad = testGroup "Load Parsing"
   ]
 
 output1 :: [String]
-output1= 
+output1=
   [ "[1 of 2] Compiling GHCi             ( GHCi.hs, interpreted )"
   , "GHCi.hs:70:1: Parse error: naked expression at top level"
   , "GHCi.hs:72:13:"
