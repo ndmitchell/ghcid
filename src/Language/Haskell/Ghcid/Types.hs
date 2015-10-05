@@ -17,7 +17,7 @@ data GhciError = UnexpectedExit String String
 instance Exception GhciError
 
 -- | Severity of messages
-data Severity = Warning | Error 
+data Severity = Warning | Error
   deriving (Show,Eq,Ord,Bounded,Enum,Typeable)
 
 -- | Load messages
@@ -30,7 +30,7 @@ data Load
         ,loadMessage :: [String]
         }
       deriving (Show, Eq, Ord)
-      
+
 -- | Is a Load a message with severity?
 isMessage :: Load -> Bool
 isMessage Message{} = True

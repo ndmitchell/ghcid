@@ -1,5 +1,5 @@
 -- | Test the high level library API
-module Test.HighLevel 
+module Test.HighLevel
   (
     highLevelTests
   ) where
@@ -17,7 +17,7 @@ import Language.Haskell.Ghcid
 highLevelTests :: TestTree
 highLevelTests=testGroup "High Level tests"
   [ testStartRepl
-  , testShowModules 
+  , testShowModules
   ]
 
 testStartRepl :: TestTree
@@ -37,10 +37,10 @@ testShowModules = testCase "Show Modules" $
     (ghci,_) <- startGhci "cabal repl" (Just root) False
     mods <- showModules ghci
     stopGhci ghci
-    mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")] 
+    mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")]
 
 testProjectName :: String
-testProjectName="BWTest"   
+testProjectName="BWTest"
 
 testCabalContents :: String
 testCabalContents = unlines ["name: "++testProjectName,
@@ -68,30 +68,30 @@ testCabalContents = unlines ["name: "++testProjectName,
         "  other-modules:  TestA",
         "  build-depends:  base",
         ""
-        ]        
-     
+        ]
+
 testCabalFile :: FilePath -> FilePath
-testCabalFile root =root </> (last (splitDirectories root) <.> ".cabal") 
-     
-testAContents :: String     
+testCabalFile root =root </> (last (splitDirectories root) <.> ".cabal")
+
+testAContents :: String
 testAContents=unlines ["module A where","fA=undefined"]
 testCContents :: String
-testCContents=unlines ["module B.C where","fC=undefined"]     
+testCContents=unlines ["module B.C where","fC=undefined"]
 testDContents :: String
-testDContents=unlines ["module B.D where","fD=undefined"]     
+testDContents=unlines ["module B.D where","fD=undefined"]
 testMainContents :: String
-testMainContents=unlines ["module Main where","main=undefined"]   
+testMainContents=unlines ["module Main where","main=undefined"]
 testMainTestContents :: String
-testMainTestContents=unlines ["module Main where","main=undefined"]   
+testMainTestContents=unlines ["module Main where","main=undefined"]
 testTestAContents :: String
-testTestAContents=unlines ["module TestA where","fTA=undefined"]           
-        
+testTestAContents=unlines ["module TestA where","fTA=undefined"]
+
 testSetupContents ::String
 testSetupContents = unlines ["#!/usr/bin/env runhaskell",
         "import Distribution.Simple",
         "main :: IO ()",
-        "main = defaultMain"]        
-        
+        "main = defaultMain"]
+
 createTestProject :: IO FilePath
 createTestProject = do
         temp<-getTemporaryDirectory
