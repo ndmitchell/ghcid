@@ -19,6 +19,7 @@ environment:
 test_script:
 - echo %PATH%
 - set PATH=C:\project;%PATH%
+- C:\project\cabal --version
 - stack init
 - stack setup > nul
 - echo "" | stack --no-terminal build
