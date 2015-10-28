@@ -6,7 +6,7 @@ module Test.HighLevel
 
 import System.Directory
 import System.FilePath
-import Control.Monad (when)
+import Control.Monad
 
 import Test.Tasty
 import Test.Tasty.HUnit
