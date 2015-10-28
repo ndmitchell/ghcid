@@ -6,6 +6,7 @@ module Test.HighLevel
 
 import System.Directory
 import System.FilePath
+import System.Environment
 import Control.Monad
 
 import Test.Tasty
@@ -24,6 +25,7 @@ testStartRepl :: TestTree
 testStartRepl = testCase "Start cabal repl" $
   do
     root <- createTestProject
+    print =<< getEnv "PATH"
     (ghci,load) <- startGhci "cabal repl" (Just root) False
     stopGhci ghci
     load @?=  [ Loading "B.C" (normalise "src/B/C.hs")
