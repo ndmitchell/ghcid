@@ -26,7 +26,7 @@ testStartRepl = testCase "Start cabal repl" $
   do
     root <- createTestProject
     print =<< getEnv "PATH"
-    (ghci,load) <- startGhci "cabal repl" (Just root) False
+    (ghci,load) <- startGhci "cabal repl" (Just root) True
     stopGhci ghci
     load @?=  [ Loading "B.C" (normalise "src/B/C.hs")
               , Loading "A" (normalise "src/A.hs")
@@ -36,7 +36,7 @@ testShowModules :: TestTree
 testShowModules = testCase "Show Modules" $
   do
     root <- createTestProject
-    (ghci,_) <- startGhci "cabal repl" (Just root) False
+    (ghci,_) <- startGhci "cabal repl" (Just root) True
     mods <- showModules ghci
     stopGhci ghci
     mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")]
