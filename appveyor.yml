@@ -10,6 +10,7 @@ before_test:
 - 7z x cabal.tar.gz
 - 7z x cabal.tar
 - ren cabal-1.22.0.0-i386-unknown-mingw32.exe cabal.exe
+- cd
 
 clone_folder: "c:\\project"
 environment:
@@ -17,6 +18,8 @@ environment:
     STACK_ROOT: "c:\\sr"
 
 test_script:
+- cd
+- cabal --version
 - stack init
 - stack setup > nul
 - echo "" | stack --no-terminal build
