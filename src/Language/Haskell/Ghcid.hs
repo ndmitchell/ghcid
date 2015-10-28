@@ -37,7 +37,7 @@ import Prelude
 startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
 startGhci cmd directory echo = do
     (Just inp, Just out, Just err, _) <-
-        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd = directory}
+        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory}
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
