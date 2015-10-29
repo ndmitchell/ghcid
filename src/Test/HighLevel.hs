@@ -7,6 +7,7 @@ module Test.HighLevel
 import System.Directory
 import System.FilePath
 import System.Environment
+import Control.Exception
 import Control.Monad
 
 import Test.Tasty
@@ -26,20 +27,33 @@ testStartRepl = testCase "Start cabal repl" $
   do
     root <- createTestProject
     print =<< getEnv "PATH"
-    (ghci,load) <- startGhci "cabal repl" (Just root) True
-    stopGhci ghci
-    load @?=  [ Loading "B.C" (normalise "src/B/C.hs")
-              , Loading "A" (normalise "src/A.hs")
-              ]
+    withCabal $ \flags -> do
+        (ghci,load) <- startGhci (unwords $ "cabal repl":flags) (Just root) True
+        stopGhci ghci
+        load @?=  [ Loading "B.C" (normalise "src/B/C.hs")
+                  , Loading "A" (normalise "src/A.hs")
+                  ]
 
 testShowModules :: TestTree
 testShowModules = testCase "Show Modules" $
   do
     root <- createTestProject
-    (ghci,_) <- startGhci "cabal repl" (Just root) True
-    mods <- showModules ghci
-    stopGhci ghci
-    mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")]
+    withCabal $ \flags -> do
+        (ghci,_) <- startGhci (unwords $ "cabal repl":flags) (Just root) True
+        mods <- showModules ghci
+        stopGhci ghci
+        mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")]
+
+
+-- | Cabal chokes on GHC_PACKAGE_PATH from Stack, so I have to pass it on as --package-db
+withCabal :: ([String] -> IO a) -> IO a
+withCabal act = do
+    path <- lookupEnv "GHC_PACKAGE_PATH"
+    case path of
+        Nothing -> act []
+        Just path -> act ["--package-db=" ++ x | x <- splitSearchPath path]
+                     `finally` setEnv "GHC_PACKAGE_PATH" path
+
 
 testProjectName :: String
 testProjectName="BWTest"
