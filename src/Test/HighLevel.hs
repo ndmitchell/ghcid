@@ -3,10 +3,11 @@ module Test.HighLevel(highLevelTests) where
 
 import System.Directory
 import System.IO.Extra
+import System.Exit
 import System.FilePath
 import System.Environment
-import Control.Exception
 import Control.Monad
+import System.Process
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -22,8 +23,8 @@ highLevelTests = testGroup "High Level tests"
 
 testStartRepl :: TestTree
 testStartRepl = testCase "Start cabal repl" $
-    withTestProject $ \root -> withCabal $ \flags -> do
-        (ghci,load) <- startGhci (unwords $ "cabal repl":flags) (Just root) True
+    withTestProject $ \root -> do
+        (ghci,load) <- startGhci "cabal repl" (Just root) True
         stopGhci ghci
         load @?=  [ Loading "B.C" (normalise "src/B/C.hs")
                   , Loading "A" (normalise "src/A.hs")
@@ -31,21 +32,11 @@ testStartRepl = testCase "Start cabal repl" $
 
 testShowModules :: TestTree
 testShowModules = testCase "Show Modules" $
-    withTestProject $ \root -> withCabal $ \flags -> do
-        (ghci,_) <- startGhci (unwords $ "cabal repl":flags) (Just root) True
+    withTestProject $ \root -> do
+        (ghci,_) <- startGhci "cabal repl" (Just root) True
         mods <- showModules ghci
         stopGhci ghci
         mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")]
-
-
--- | Cabal chokes on GHC_PACKAGE_PATH from Stack, so I have to pass it on as --package-db
-withCabal :: ([String] -> IO a) -> IO a
-withCabal act = do
-    path <- lookupEnv "GHC_PACKAGE_PATH"
-    case path of
-        Nothing -> act []
-        Just path -> act (take 0 ["--package-db=" ++ x | x <- splitSearchPath path])
-                     `finally` setEnv "GHC_PACKAGE_PATH" path
 
 
 testFiles :: [(FilePath, [String])]
@@ -107,4 +98,9 @@ withTestProject act = withTempDir $ \dir -> do
     forM_ testFiles $ \(name,contents) -> do
         createDirectoryIfMissing True $ takeDirectory $ dir </> name
         writeFile (dir </> name) $ unlines contents
+    env <- getEnvironment
+    let db = ["--package-db=" ++ x | x <- maybe [] splitSearchPath $ lookup "GHC_PACKAGE_PATH" env]
+    (_, _, _, pid) <- createProcess $
+        (proc "cabal" $ "configure":db){env = Just $ filter ((/=) "GHC_PACKAGE_PATH" . fst) env, cwd = Just dir}
+    ExitSuccess <- waitForProcess pid
     act dir
