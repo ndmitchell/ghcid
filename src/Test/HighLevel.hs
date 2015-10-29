@@ -44,7 +44,7 @@ withCabal act = do
     path <- lookupEnv "GHC_PACKAGE_PATH"
     case path of
         Nothing -> act []
-        Just path -> act ["--package-db=" ++ x | x <- splitSearchPath path]
+        Just path -> act (take 0 ["--package-db=" ++ x | x <- splitSearchPath path])
                      `finally` setEnv "GHC_PACKAGE_PATH" path
 
 
