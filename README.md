@@ -1,4 +1,4 @@
-# ghcid [![Hackage version](https://img.shields.io/hackage/v/ghcid.svg?style=flat)](https://hackage.haskell.org/package/ghcid) [![Build Status](https://img.shields.io/travis/ndmitchell/ghcid.svg?style=flat)](https://travis-ci.org/ndmitchell/ghcid)
+# ghcid [![Hackage version](https://img.shields.io/hackage/v/ghcid.svg?label=Hackage)](https://hackage.haskell.org/package/ghcid) [![Linux Build Status](https://img.shields.io/travis/ndmitchell/ghcid.svg?label=Linux%20build)](https://travis-ci.org/ndmitchell/ghcid) [![Windows Build Status](https://img.shields.io/appveyor/ci/ndmitchell/ghcid.svg?label=Windows%20build)](https://ci.appveyor.com/project/ndmitchell/ghcid)
 
 Either "GHCi as a daemon" or "GHC + a bit of an IDE". To a first approximation, it opens `ghci` and runs `:reload` whenever your source code changes, formatting the output to fit a fixed height console. Unlike other Haskell development tools, `ghcid` is intended to be _incredibly simple_. In particular, it doesn't integrate with any editors, doesn't depend on GHC the library and doesn't start web servers.
 
