@@ -35,3 +35,4 @@ Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 
 * _This isn't as good as full IDE._ I've gone for simplicity over features. It's a point in the design space, but not necessarily the best point in the design space for you. For "real" IDEs see [the Haskell wiki](http://www.haskell.org/haskellwiki/IDEs).
 * _If I delete a file and put it back it gets stuck._ Yes, that's a [bug in GHCi](https://ghc.haskell.org/trac/ghc/ticket/9648). If you see GHCi getting confused just kill `ghcid` and start it again.
+* _It doesn't work with Stack._ Pass `-c "stack ghci"`. Work is ongoing to improve the Stack integration (mostly waiting on features/changes/fixes on the Stack side).
