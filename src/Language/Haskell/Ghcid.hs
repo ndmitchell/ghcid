@@ -16,7 +16,7 @@ where
 import System.IO
 import System.IO.Error
 import System.Process
-import Control.Concurrent
+import Control.Concurrent.Extra
 import Control.Exception.Extra
 import Control.Monad.Extra
 import Data.Function
@@ -42,7 +42,7 @@ startGhci cmd directory echo = do
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
 
-    lock <- newMVar () -- ensure only one person talks to ghci at a time
+    lock <- newLock -- ensure only one person talks to ghci at a time
     let prefix = "#~GHCID-START~#"
     let finish = "#~GHCID-FINISH~#"
     hPutStrLn inp $ ":set prompt " ++ prefix
@@ -73,7 +73,7 @@ startGhci cmd directory echo = do
     outs <- consume out "GHCOUT"
     errs <- consume err "GHCERR"
 
-    let f s = withMVar lock $ const $ do
+    let f s = withLock lock $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
                 hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
                 outC <- takeMVar outs
