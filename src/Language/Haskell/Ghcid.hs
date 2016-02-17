@@ -52,7 +52,7 @@ startGhci cmd directory echo = do
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
     let consume h name = do
             result <- newEmptyMVar -- the end result
-            buffer <- newMVar [] -- the things to go in result
+            buffer <- newVar [] -- the things to go in result
             forkIO $ fix $ \rec -> do
                 el <- tryBool isEOFError $ hGetLine h
                 case el of
@@ -63,10 +63,10 @@ startGhci cmd directory echo = do
                             unless (any (`isInfixOf` l) [prefix, finish]) $ outStrLn l
                         if finish `isInfixOf` l
                           then do
-                            buf <- modifyMVar buffer $ \old -> return ([], reverse old)
+                            buf <- modifyVar buffer $ \old -> return ([], reverse old)
                             putMVar result $ Just buf
                           else
-                            modifyMVar_ buffer $ return . (dropPrefixRepeatedly prefix l:)
+                            modifyVar_ buffer $ return . (dropPrefixRepeatedly prefix l:)
                         rec
             return result
 
