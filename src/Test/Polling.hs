@@ -109,7 +109,7 @@ testScript require = do
     -- check warnings persist properly
     writeFile "Main.hs" "import Util\nx"
     require $ requireSimilar ["Main.hs:2:1","Parse error: naked expression at top level"
-                                ,"Util.hs:2:1","Warning: Defined but not used: `x'"]
+                             ,"Util.hs:2:1","Warning: Defined but not used: `x'"]
     writeFile "Main.hs" "import Util\nmain = print 2"
     require $ requireSimilar ["Util.hs:2:1","Warning: Defined but not used: `x'"]
     writeFile "Main.hs" "main = print 3"
