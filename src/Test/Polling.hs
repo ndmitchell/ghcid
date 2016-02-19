@@ -96,6 +96,9 @@ ignoreSpacesAndWeird = lower . filter (\x -> isLetter x || isDigit x || x == ':
 
 testScript :: (([String] -> IO ()) -> IO ()) -> IO ()
 testScript require = do
+    writeFile <- return $ \name x -> do print ("writeFile",name,x); writeFile name x
+    renameFile <- return $ \from to -> do print ("renameFile",from,to); renameFile from to
+
     writeFile "Main.hs" "x"
     require $ requireSimilar ["Main.hs:1:1"," Parse error: naked expression at top level"]
     writeFile "Util.hs" "module Util where"
