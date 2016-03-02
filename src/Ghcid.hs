@@ -141,7 +141,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
         outputFill load msg = do
             (width, height) <- size
             let n = height - length msg
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput n (maybe 0 fst load)
+            load <- return $ take (if isJust load then n else 0) $ prettyOutput (maybe 0 fst load)
                 [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
@@ -185,7 +185,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
             updateTitle $ if isJust test then "(running test) " else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->
-                writeFile file $ unlines $ map snd $ prettyOutput 1000000 loadedCount $ filter isMessage messages
+                writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
             whenJust test $ \test -> do
                 res <- exec ghci test
                 outputFill (Just (loadedCount, messages)) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
@@ -225,8 +225,8 @@ ignoreMessageLine x = any (`isPrefixOf` x) xs
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Int -> Int -> [Load] -> [(Style,String)]
-prettyOutput height loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
-prettyOutput height loaded xs = concat $ msg1:msgs
+prettyOutput :: Int -> [Load] -> [(Style,String)]
+prettyOutput loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
+prettyOutput loaded xs = concat $ msg1:msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
