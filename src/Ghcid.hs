@@ -164,6 +164,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
             let loadedCount = length loaded
             -- some may have reloaded, but caused an error, and thus not be in the loaded set
             let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
+            let wait = nubOrd $ loaded ++ reloaded
             whenLoud $ do
                 outStrLn $ "%MESSAGES: " ++ show messages
                 outStrLn $ "%LOADED: " ++ show loaded
@@ -194,7 +195,6 @@ runGhcid waiter restart command outputfiles test size titles output = do
                 outputFill (Just (loadedCount, messages)) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
                 updateTitle ""
 
-            let wait = nubOrd $ loaded ++ reloaded
             when (null wait) $ do
                 putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
                 exitFailure
