@@ -80,7 +80,7 @@ startGhci cmd directory echo = do
                 errC <- takeMVar errs
                 case liftM2 (++) outC errC of
                     Nothing  -> throwIO $ UnexpectedExit cmd s
-                    Just msg -> return  msg
+                    Just msg -> return msg
     r <- parseLoad <$> f ""
     writeIORef echo False
     return (Ghci f,r)
