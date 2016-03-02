@@ -1,5 +1,4 @@
 -- | Utility functions
--- Copyright Neil Mitchell 2014.
 module Language.Haskell.Ghcid.Util
   ( dropPrefixRepeatedly
   , chunksOfWord

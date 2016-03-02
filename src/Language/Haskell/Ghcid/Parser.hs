@@ -1,6 +1,5 @@
 {-# LANGUAGE PatternGuards #-}
 -- | Parses the output from GHCi
--- Copyright Neil Mitchell 2014.
 module Language.Haskell.Ghcid.Parser
   ( parseShowModules
   , parseLoad
