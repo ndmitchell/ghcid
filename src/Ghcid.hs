@@ -84,17 +84,18 @@ As a result, we prefer to give users full control with a .ghci file, if availabl
 -}
 autoOptions :: Options -> IO Options
 autoOptions o@Options{..}
-    | command /= "" = return $ f command []
+    | command /= "" = return $ f [command] []
     | otherwise = do
         files <- getDirectoryContents "."
         let cabal = filter ((==) ".cabal" . takeExtension) files
+        let opts = ["-fno-code" | isNothing test]
         return $ case () of
-            _ | ".ghci" `elem` files -> f "ghci" [".ghci"]
-              | "stack.yaml" `elem` files, False -> f "stack ghci" ["stack.yaml"] -- see #130
-              | cabal /= [] -> f (if arguments == [] then "cabal repl" else "cabal exec ghci") cabal
-              | otherwise -> f "ghci" []
+            _ | ".ghci" `elem` files -> f ("ghci":opts) [".ghci"]
+              | "stack.yaml" `elem` files, False -> f ("stack ghci":map ("--ghci-options=" ++) opts) ["stack.yaml"] -- see #130
+              | cabal /= [] -> f (if arguments == [] then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
+              | otherwise -> f ("ghci":opts) []
     where
-        f c r = o{command = unwords $ c : map escape arguments, arguments = [], restart = restart ++ r}
+        f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r}
 
         -- in practice we're not expecting many arguments to have anything funky in them
         escape x | ' ' `elem` x = "\"" ++ x ++ "\""

@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #50, use -fno-code when not running tests (about twice as fast)
     #44, abbreviate the redundant module import error
     #45, add an extra space before the ... message
     #42, always show the first error in full
