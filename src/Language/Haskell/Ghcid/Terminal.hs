@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP #-}
+
+-- | Cross-platform operations for manipulating terminal console windows.
 module Language.Haskell.Ghcid.Terminal(
     terminalTopmost,
     withWindowIcon, WindowIcon(..), changeWindowIcon
