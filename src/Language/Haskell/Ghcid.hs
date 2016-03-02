@@ -28,9 +28,9 @@ import Prelude
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   Pass True to write out messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
-startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
+startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, ProcessHandle, [Load])
 startGhci cmd directory echo = do
-    (Just inp, Just out, Just err, _) <-
+    (Just inp, Just out, Just err, ph) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory}
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
@@ -77,7 +77,7 @@ startGhci cmd directory echo = do
                     Just msg -> return msg
     r <- parseLoad <$> f ""
     writeIORef echo False
-    return (Ghci f,r)
+    return (Ghci f,ph, r)
 
 
 -- | Show modules

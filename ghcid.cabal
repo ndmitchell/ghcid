@@ -63,6 +63,8 @@ executable ghcid
       terminal-size >= 0.3
   if os(windows)
     build-depends: Win32
+  else
+    build-depends: unix
   other-modules:
                    Language.Haskell.Ghcid.Types,
                    Language.Haskell.Ghcid.Parser,
@@ -91,6 +93,8 @@ test-suite ghcid_test
     tasty-hunit
   if os(windows)
     build-depends: Win32
+  else
+    build-depends: unix
   hs-source-dirs:  src
   main-is:         Test.hs
   other-modules:
