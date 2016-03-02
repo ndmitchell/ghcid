@@ -120,6 +120,12 @@ testScript require = do
     writeFile "Util.hs" "module Util where"
     require requireAllGood
 
+    -- check recursive modules work
+    writeFile "Util.hs" "module Util where\nimport Main"
+    require $ requireSimilar ["imports form a cycle","Main.hs","Util.hs"]
+    writeFile "Util.hs" "module Util where"
+    require requireAllGood
+
     -- check renaming files works
     -- note that due to GHC bug #9648 we can't save down a new file
     renameFile "Util.hs" "Util2.hs"
@@ -127,8 +133,3 @@ testScript require = do
     renameFile "Util2.hs" "Util.hs"
     require requireAllGood
 
-    -- check recursive modules work
-    writeFile "Util.hs" "module Util where\nimport Main"
-    require $ requireSimilar ["imports form a cycle","module Main","imports Util"]
-    writeFile "Util.hs" "module Util where"
-    require requireAllGood
