@@ -1,17 +1,11 @@
 
 -- | The entry point of the library
-module Language.Haskell.Ghcid
- ( T.Ghci
- , T.GhciError (..)
- , T.Severity (..)
- , T.Load (..)
- , startGhci
- , showModules
- , reload
- , exec
- , stopGhci
- )
-where
+module Language.Haskell.Ghcid(
+    Ghci, GhciError(..),
+    Load(..), Severity(..),
+    startGhci, stopGhci,
+    showModules, reload, exec
+    ) where
 
 import System.IO
 import System.IO.Error
