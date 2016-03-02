@@ -172,7 +172,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
             -- only keep old warnings from files that are still loaded, but did not reload
             let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
             -- newest warnings always go first, so the file you hit save on most recently has warnings first
-            messages <- return $ messages ++ filter validWarn warnings
+            messages <- return $ messages ++ filter validWarn (fromMaybe [] warnings)
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
             test <- return $ if countErrors == 0 then test else Nothing
@@ -205,12 +205,12 @@ runGhcid waiter restart command outputfiles test size titles output = do
                 nextWait <- waitFiles waiter
                 let warnings = [m | m@Message{..} <- messages, loadSeverity == Warning]
                 messages <- reload ghci
-                fire nextWait messages warnings
+                fire nextWait messages $ Just warnings
             else do
                 stopGhci ghci
                 runGhcid waiter restart command outputfiles test size titles output
 
-    fire nextWait messages []
+    fire nextWait messages Nothing
 
 
 -- | Ignore messages that GHC shouldn't really generate.
