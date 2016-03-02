@@ -36,6 +36,8 @@ library
         terminal-size >= 0.3
   if os(windows)
     build-depends: Win32
+  else
+    build-depends: unix
   other-modules:
                    Paths_ghcid,
                    Language.Haskell.Ghcid.Types,

@@ -19,10 +19,6 @@ import System.Directory.Extra
 import System.Exit
 import System.FilePath
 import System.IO
-#if !defined(mingw32_HOST_OS)
-import System.Posix.Signals (signalProcess, sigINT)
-import System.Process.Internals (ProcessHandle,ProcessHandle__(..), withProcessHandle)
-#endif
 
 import Paths_ghcid
 import Language.Haskell.Ghcid
@@ -216,7 +212,7 @@ runGhcid waiter restart command outputfiles test spawn size titles output = do
 
             when (null wait) $ do
                 putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
-                stopGhciTest ph test spawn
+                interrupt ph test spawn
                 exitFailure
             reason <- nextWait $ restart ++ wait
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason
@@ -224,12 +220,12 @@ runGhcid waiter restart command outputfiles test spawn size titles output = do
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
                 let warnings = [m | m@Message{..} <- messages, loadSeverity == Warning]
-                stopGhciTest ph test spawn
+                interrupt ph test spawn
                 when (isJust test && spawn) $ outputTest =<< testCmd
                 messages <- reload ghci
                 fire nextWait messages $ Just warnings
             else do
-                stopGhciTest ph test spawn
+                interrupt ph test spawn
                 stopGhci ghci
                 runGhcid waiter restart command outputfiles test spawn size titles output
 
@@ -258,19 +254,3 @@ prettyOutput loaded xs = concat $ msg1:msgs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
 
 
-stopGhciTest :: ProcessHandle -> Maybe String -> Bool -> IO ()
-#if defined(mingw32_HOST_OS)
-stopGhciTest _ _ _ = return ()
-#else
-stopGhciTest ph test spawn = do
-  when (isJust test && spawn) $ controlC ph
-  where
-    controlC ph = do
-        mPid <- getPid ph
-        whenJust mPid $ signalProcess sigINT
-
-    getPid ph = withProcessHandle ph (return . go)
-      where
-        go (OpenHandle x)   = Just x
-        go (ClosedHandle _) = Nothing
-#endif

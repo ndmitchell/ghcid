@@ -1,9 +1,10 @@
+{-# LANGUAGE CPP #-}
 
 -- | The entry point of the library
 module Language.Haskell.Ghcid(
     Ghci, GhciError(..),
     Load(..), Severity(..),
-    startGhci, stopGhci,
+    startGhci, stopGhci, interrupt,
     showModules, reload, exec
     ) where
 
@@ -15,10 +16,15 @@ import Control.Exception.Extra
 import Control.Monad.Extra
 import Data.Function
 import Data.List
+import Data.Maybe
 import Data.IORef
 import Control.Applicative
 
 import System.Console.CmdArgs.Verbosity
+#if !defined(mingw32_HOST_OS)
+import System.Posix.Signals (signalProcess, sigINT)
+import System.Process.Internals (ProcessHandle,ProcessHandle__(..), withProcessHandle)
+#endif
 
 import Language.Haskell.Ghcid.Parser
 import Language.Haskell.Ghcid.Types as T
@@ -95,3 +101,21 @@ stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":qui
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
 exec (Ghci x) = x
+
+-- | Interrupt the test command.
+interrupt :: ProcessHandle -> Maybe String -> Bool -> IO ()
+#if defined(mingw32_HOST_OS)
+interrupt _ _ _ = return ()
+#else
+interrupt ph test spawn =
+    when (isJust test && spawn) $ controlC ph
+  where
+    controlC ph = do
+        mPid <- getPid ph
+        whenJust mPid $ signalProcess sigINT
+
+    getPid ph = withProcessHandle ph (return . go)
+      where
+        go (OpenHandle x)   = Just x
+        go (ClosedHandle _) = Nothing
+#endif
