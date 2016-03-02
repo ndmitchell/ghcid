@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 -- | Test behavior of the executable, polling files for changes
-module Test.Polling (pollingTest) where
+module Test.Polling(pollingTest) where
 
 import Control.Concurrent
 import Control.Exception.Extra
