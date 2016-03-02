@@ -162,7 +162,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
 
             loaded <- map snd <$> showModules ghci
             let loadedCount = length loaded
-            let reloaded = nubOrd $ map loadFile messages
+            let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
             -- some may have reloaded, but caused an error, and thus not be in the loaded set
             whenLoud $ do
                 outStrLn $ "%MESSAGES: " ++ show messages
