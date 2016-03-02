@@ -1,10 +1,9 @@
 {-# LANGUAGE PatternGuards #-}
+
 -- | Parses the output from GHCi
-module Language.Haskell.Ghcid.Parser
-  ( parseShowModules
-  , parseLoad
-  )
-  where
+module Language.Haskell.Ghcid.Parser(
+    parseShowModules, parseLoad
+    ) where
 
 import System.FilePath
 import Data.Char
@@ -13,15 +12,17 @@ import Data.List.Extra
 import Language.Haskell.Ghcid.Types
 
 
--- | Parse messages from show modules command
+-- | Parse messages from show modules command. Given the parsed lines
+--   return a list of (module name, file).
 parseShowModules :: [String] -> [(String, FilePath)]
 parseShowModules xs =
     [ (takeWhile (not . isSpace) $ trimStart a, takeWhile (/= ',') b)
     | x <- xs, (a,'(':' ':b) <- [break (== '(') x]]
 
--- | Parse messages given on reload
--- nub, because cabal repl sometimes does two reloads at the start
+
+-- | Parse messages given on reload.
 parseLoad :: [String] -> [Load]
+-- nub, because cabal repl sometimes does two reloads at the start
 parseLoad  = nubOrd . parseLoad'
 
 -- | Parse messages given on reload
