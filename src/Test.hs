@@ -6,9 +6,12 @@ import Test.Parser
 import Test.HighLevel
 import Test.Util
 import Test.Polling
+import System.IO
 
 main :: IO ()
-main = defaultMain tests
+main = do
+    hSetBuffering stdout NoBuffering
+    defaultMain tests
 
 tests :: TestTree
 tests = testGroup "Tests"

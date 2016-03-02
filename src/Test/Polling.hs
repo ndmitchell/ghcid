@@ -10,7 +10,6 @@ import Data.Char
 import Data.List.Extra
 import System.FilePath
 import System.Directory.Extra
-import System.IO
 import System.Process
 import System.Console.CmdArgs
 import System.Time.Extra
@@ -25,7 +24,6 @@ import Language.Haskell.Ghcid.Util
 pollingTest :: TestTree
 pollingTest  = testCase "Scripted Test" $ do
     setVerbosity Loud
-    hSetBuffering stdout NoBuffering
     tdir <- fmap (</> ".ghcid") getTemporaryDirectory
     try_ $ removeDirectoryRecursive tdir
     createDirectoryIfMissing True tdir
