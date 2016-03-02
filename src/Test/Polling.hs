@@ -132,4 +132,5 @@ testScript require = do
     require $ requireSimilar ["Main.hs:1:8:","Could not find module `Util'"]
     renameFile "Util2.hs" "Util.hs"
     require requireAllGood
+    -- after this point GHC bugs mean nothing really works too much
 
