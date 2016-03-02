@@ -172,7 +172,8 @@ runGhcid waiter restart command outputfiles test size titles output = do
             let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
             -- newest warnings always go first, so the file you hit save on most recently has warnings first
             messages <- return $ messages ++ filter validWarn warnings
-            let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages]
+            let (countErrors, countWarnings) = both sum $ unzip
+                    [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
             test <- return $ if countErrors == 0 then test else Nothing
 
             when titles $ changeWindowIcon $
