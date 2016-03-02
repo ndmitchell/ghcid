@@ -42,5 +42,12 @@ parseLoad  = nubOrd . f
         f (x:xs)
             | Just file <- stripPrefix "<no location info>: can't find file: " x
             = Message Error file (0,0) [file ++ ": Can't find file"] : f xs
+        f (x:xs)
+            | x == "Module imports form a cycle:"
+            , (xs,rest) <- span (isPrefixOf " ") xs
+            , let ms = [takeWhile (/= ')') x | x <- xs, '(':x <- [dropWhile (/= '(') x]]
+            = Message Error "" (0,0) (x:xs) :
+              -- need to label the modules in the import cycle so I can find them
+              [Message Error m (0,0) [] | m <- nubOrd ms] ++ f rest
         f (_:xs) = f xs
         f [] = []
