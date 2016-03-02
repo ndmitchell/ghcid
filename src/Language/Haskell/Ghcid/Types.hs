@@ -1,7 +1,10 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 -- | The types we use
 -- Copyright Neil Mitchell 2014.
-module Language.Haskell.Ghcid.Types where
+module Language.Haskell.Ghcid.Types(
+    Ghci(..), GhciError(..),
+    Load(..), Severity(..), isMessage
+    ) where
 
 import Data.Typeable
 import Control.Exception.Base (Exception)
