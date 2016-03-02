@@ -125,3 +125,9 @@ testScript require = do
     require $ requireSimilar ["Main.hs:1:8:","Could not find module `Util'"]
     renameFile "Util2.hs" "Util.hs"
     require requireAllGood
+
+    -- check recursive modules work
+    writeFile "Util.hs" "module Util where\nimport Main"
+    require $ requireSimilar ["imports form a cycle","module Main","imports Util"]
+    writeFile "Util.hs" "module Util where"
+    require requireAllGood
