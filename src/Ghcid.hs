@@ -201,7 +201,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
                 updateTitle ""
 
             when (null wait) $ do
-                putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
+                putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
             reason <- nextWait $ restart ++ wait
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason
