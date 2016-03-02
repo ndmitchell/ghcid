@@ -1,7 +1,7 @@
 cabal-version:      >= 1.10
 build-type:         Simple
 name:               ghcid
-version:            0.5
+version:            0.5.1
 license:            BSD3
 license-file:       LICENSE
 category:           Development

@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+0.5.1
     #17, deal with recursive modules errors properly
     #50, use -fno-code when not running tests (about twice as fast)
     #44, abbreviate the redundant module import error
