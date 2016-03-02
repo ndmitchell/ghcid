@@ -5,6 +5,7 @@
 module Ghcid(main, runGhcid) where
 
 import Control.Applicative
+import Control.Exception
 import Control.Monad.Extra
 import Control.Concurrent.Extra
 import Data.List.Extra
@@ -84,17 +85,18 @@ As a result, we prefer to give users full control with a .ghci file, if availabl
 -}
 autoOptions :: Options -> IO Options
 autoOptions o@Options{..}
-    | command /= "" = return $ f command []
+    | command /= "" = return $ f [command] []
     | otherwise = do
         files <- getDirectoryContents "."
         let cabal = filter ((==) ".cabal" . takeExtension) files
+        let opts = ["-fno-code" | isNothing test]
         return $ case () of
-            _ | ".ghci" `elem` files -> f "ghci" [".ghci"]
-              | "stack.yaml" `elem` files, False -> f "stack ghci" ["stack.yaml"] -- see #130
-              | cabal /= [] -> f (if arguments == [] then "cabal repl" else "cabal exec ghci") cabal
-              | otherwise -> f "ghci" []
+            _ | ".ghci" `elem` files -> f ("ghci":opts) [".ghci"]
+              | "stack.yaml" `elem` files, False -> f ("stack ghci":map ("--ghci-options=" ++) opts) ["stack.yaml"] -- see #130
+              | cabal /= [] -> f (if arguments == [] then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
+              | otherwise -> f ("ghci":opts) []
     where
-        f c r = o{command = unwords $ c : map escape arguments, arguments = [], restart = restart ++ r}
+        f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r}
 
         -- in practice we're not expecting many arguments to have anything funky in them
         escape x | ' ' `elem` x = "\"" ++ x ++ "\""
@@ -123,12 +125,13 @@ main = withWindowIcon $ ctrlC $ do
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
-            runGhcid waiter (nubOrd restart) command outputfile test height (not notitle) $ \xs -> do
-                outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
-                    when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
-                    putStr $ concatMap ((:) '\n' . snd) x
-                    when (s == Bold) $ setSGR []
-                hFlush stdout -- must flush, since we don't finish with a newline
+            handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
+                runGhcid waiter (nubOrd restart) command outputfile test height (not notitle) $ \xs -> do
+                    outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
+                        when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
+                        putStr $ concatMap ((:) '\n' . snd) x
+                        when (s == Bold) $ setSGR []
+                    hFlush stdout -- must flush, since we don't finish with a newline
 
 
 data Style = Plain | Bold deriving Eq
@@ -140,7 +143,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
         outputFill load msg = do
             (width, height) <- size
             let n = height - length msg
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput n (maybe 0 fst load)
+            load <- return $ take (if isJust load then n else 0) $ prettyOutput (maybe 0 fst load)
                 [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
@@ -159,17 +162,24 @@ runGhcid waiter restart command outputfiles test size titles output = do
 
             loaded <- map snd <$> showModules ghci
             let loadedCount = length loaded
-            let reloaded = nubOrd $ map loadFile messages
             -- some may have reloaded, but caused an error, and thus not be in the loaded set
+            let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
+
+            let wait = nubOrd $ loaded ++ reloaded
             whenLoud $ do
                 outStrLn $ "%MESSAGES: " ++ show messages
                 outStrLn $ "%LOADED: " ++ show loaded
 
+            when (null wait && isNothing warnings) $ do
+                putStrLn $ "\nNo files loaded, did not start GHCi properly.\nCommand: " ++ command
+                exitFailure
+
             -- only keep old warnings from files that are still loaded, but did not reload
             let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
             -- newest warnings always go first, so the file you hit save on most recently has warnings first
-            messages <- return $ messages ++ filter validWarn warnings
-            let (countErrors, countWarnings) = both sum $ unzip [if loadSeverity m == Error then (1,0) else (0,1) | m@Message{} <- messages]
+            messages <- return $ messages ++ filter validWarn (fromMaybe [] warnings)
+            let (countErrors, countWarnings) = both sum $ unzip
+                    [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
             test <- return $ if countErrors == 0 then test else Nothing
 
             when titles $ changeWindowIcon $
@@ -184,15 +194,14 @@ runGhcid waiter restart command outputfiles test size titles output = do
             updateTitle $ if isJust test then "(running test) " else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->
-                writeFile file $ unlines $ map snd $ prettyOutput 1000000 loadedCount $ filter isMessage messages
+                writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
             whenJust test $ \test -> do
                 res <- exec ghci test
                 outputFill (Just (loadedCount, messages)) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
                 updateTitle ""
 
-            let wait = nubOrd $ loaded ++ reloaded
             when (null wait) $ do
-                putStrLn $ "No files loaded, probably did not start GHCi.\nCommand: " ++ command
+                putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
             reason <- nextWait $ restart ++ wait
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason
@@ -201,12 +210,12 @@ runGhcid waiter restart command outputfiles test size titles output = do
                 nextWait <- waitFiles waiter
                 let warnings = [m | m@Message{..} <- messages, loadSeverity == Warning]
                 messages <- reload ghci
-                fire nextWait messages warnings
+                fire nextWait messages $ Just warnings
             else do
                 stopGhci ghci
                 runGhcid waiter restart command outputfiles test size titles output
 
-    fire nextWait messages []
+    fire nextWait messages Nothing
 
 
 -- | Ignore messages that GHC shouldn't really generate.
@@ -224,8 +233,8 @@ ignoreMessageLine x = any (`isPrefixOf` x) xs
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Int -> Int -> [Load] -> [(Style,String)]
-prettyOutput height loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
-prettyOutput loaded height xs = concat $ msg1:msgs
+prettyOutput :: Int -> [Load] -> [(Style,String)]
+prettyOutput loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
+prettyOutput loaded xs = concat $ msg1:msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn

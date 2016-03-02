@@ -1,14 +1,11 @@
 -- | Utility functions
--- Copyright Neil Mitchell 2014.
-module Language.Haskell.Ghcid.Util
-  ( dropPrefixRepeatedly
-  , chunksOfWord
-  , outWith
-  , outStrLn
-  , outStr
-  , allGoodMessage
-  , getModTime
-  ) where
+module Language.Haskell.Ghcid.Util(
+    dropPrefixRepeatedly,
+    chunksOfWord,
+    outWith, outStrLn, outStr,
+    allGoodMessage,
+    getModTime
+    ) where
 
 import Control.Concurrent.Extra
 import System.IO.Unsafe

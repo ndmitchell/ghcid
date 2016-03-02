@@ -1,17 +1,11 @@
 
 -- | The entry point of the library
-module Language.Haskell.Ghcid
- ( T.Ghci
- , T.GhciError (..)
- , T.Severity (..)
- , T.Load (..)
- , startGhci
- , showModules
- , reload
- , exec
- , stopGhci
- )
-where
+module Language.Haskell.Ghcid(
+    Ghci, GhciError(..),
+    Load(..), Severity(..),
+    startGhci, stopGhci,
+    showModules, reload, exec
+    ) where
 
 import System.IO
 import System.IO.Error
@@ -80,7 +74,7 @@ startGhci cmd directory echo = do
                 errC <- takeMVar errs
                 case liftM2 (++) outC errC of
                     Nothing  -> throwIO $ UnexpectedExit cmd s
-                    Just msg -> return  msg
+                    Just msg -> return msg
     r <- parseLoad <$> f ""
     writeIORef echo False
     return (Ghci f,r)
