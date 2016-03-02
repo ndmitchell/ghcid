@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
--- | The types we use
--- Copyright Neil Mitchell 2014.
+
+-- | The types types that we use in Ghcid
 module Language.Haskell.Ghcid.Types(
     Ghci(..), GhciError(..),
     Load(..), Severity(..), isMessage
