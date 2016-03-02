@@ -164,10 +164,15 @@ runGhcid waiter restart command outputfiles test size titles output = do
             let loadedCount = length loaded
             -- some may have reloaded, but caused an error, and thus not be in the loaded set
             let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
+
             let wait = nubOrd $ loaded ++ reloaded
             whenLoud $ do
                 outStrLn $ "%MESSAGES: " ++ show messages
                 outStrLn $ "%LOADED: " ++ show loaded
+
+            when (null wait && isNothing warnings) $ do
+                putStrLn $ "\nNo files loaded, did not start GHCi properly.\nCommand: " ++ command
+                exitFailure
 
             -- only keep old warnings from files that are still loaded, but did not reload
             let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
