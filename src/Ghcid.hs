@@ -227,6 +227,6 @@ ignoreMessageLine x = any (`isPrefixOf` x) xs
 -- | Given an available height, and a set of messages to display, show them as best you can.
 prettyOutput :: Int -> Int -> [Load] -> [(Style,String)]
 prettyOutput height loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
-prettyOutput loaded height xs = concat $ msg1:msgs
+prettyOutput height loaded xs = concat $ msg1:msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
