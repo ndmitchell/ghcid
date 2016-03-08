@@ -22,8 +22,8 @@ import Control.Applicative
 
 import System.Console.CmdArgs.Verbosity
 #if !defined(mingw32_HOST_OS)
-import System.Posix.Signals (signalProcess, sigINT)
-import System.Process.Internals (ProcessHandle__(..), withProcessHandle)
+import System.Exit
+import System.Posix.Signals
 #endif
 
 import Language.Haskell.Ghcid.Parser
@@ -37,7 +37,7 @@ import Prelude
 startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
 startGhci cmd directory echo = do
     (Just inp, Just out, Just err, ph) <-
-        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory}
+        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
@@ -104,18 +104,5 @@ exec (Ghci (_,f)) = f
 
 -- | Interrupt the test command.
 interrupt :: Ghci -> Maybe String -> Bool -> IO ()
-#if defined(mingw32_HOST_OS)
-interrupt _ _ _ = return ()
-#else
 interrupt (Ghci (ph,_)) test spawn =
-    when (isJust test && spawn) $ controlC ph
-  where
-    controlC ph = do
-        mPid <- getPid ph
-        whenJust mPid $ signalProcess sigINT
-
-    getPid ph = withProcessHandle ph (return . go)
-      where
-        go (OpenHandle x)   = Just x
-        go (ClosedHandle _) = Nothing
-#endif
+    when (isJust test && spawn) $ interruptProcessGroupOf ph
