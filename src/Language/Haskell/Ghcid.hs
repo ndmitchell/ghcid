@@ -83,8 +83,13 @@ startGhci cmd directory echo = do
                     Just msg -> return msg
     r <- parseLoad <$> f ""
     writeIORef echo False
-    return (Ghci (ph, f), r)
 
+    let ghci = Ghci (ph, f)
+#ifndef mingw32_HOST_OS
+    tid <- myThreadId
+    installHandler keyboardSignal (Catch (interrupt ghci (Just "") True >> stopGhci ghci >> throwTo tid ExitSuccess)) Nothing
+#endif
+    return (ghci, r)
 
 -- | Show modules
 showModules :: Ghci -> IO [(String,FilePath)]
