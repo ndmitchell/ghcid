@@ -24,7 +24,7 @@ highLevelTests = testGroup "High Level tests"
 testStartRepl :: TestTree
 testStartRepl = testCase "Start cabal repl" $
     withTestProject $ \root -> do
-        (ghci,_,load) <- startGhci "cabal repl" (Just root) True
+        (ghci,load) <- startGhci "cabal repl" (Just root) True
         stopGhci ghci
         load @?=  [ Loading "B.C" (normalise "src/B/C.hs")
                   , Loading "A" (normalise "src/A.hs")
@@ -33,7 +33,7 @@ testStartRepl = testCase "Start cabal repl" $
 testShowModules :: TestTree
 testShowModules = testCase "Show Modules" $
     withTestProject $ \root -> do
-        (ghci,_,_) <- startGhci "cabal repl" (Just root) True
+        (ghci,_) <- startGhci "cabal repl" (Just root) True
         mods <- showModules ghci
         stopGhci ghci
         mods @?= [("A",normalise "src/A.hs"),("B.C",normalise "src/B/C.hs")]

@@ -153,7 +153,7 @@ runGhcid waiter restart command outputfiles test spawn size titles output = do
     restartTimes <- mapM getModTime restart
     outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
-    (ghci, ph, messages) <- startGhci command Nothing True
+    (ghci, messages) <- startGhci command Nothing True
     curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages, and the warnings from last time
@@ -212,7 +212,7 @@ runGhcid waiter restart command outputfiles test spawn size titles output = do
 
             when (null wait) $ do
                 putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
-                interrupt ph test spawn
+                interrupt ghci test spawn
                 exitFailure
             reason <- nextWait $ restart ++ wait
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason
@@ -220,12 +220,12 @@ runGhcid waiter restart command outputfiles test spawn size titles output = do
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
                 let warnings = [m | m@Message{..} <- messages, loadSeverity == Warning]
-                interrupt ph test spawn
+                interrupt ghci test spawn
                 when (isJust test && spawn) $ outputTest =<< testCmd
                 messages <- reload ghci
                 fire nextWait messages $ Just warnings
             else do
-                interrupt ph test spawn
+                interrupt ghci test spawn
                 stopGhci ghci
                 runGhcid waiter restart command outputfiles test spawn size titles output
 

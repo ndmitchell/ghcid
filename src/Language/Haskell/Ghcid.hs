@@ -23,7 +23,7 @@ import Control.Applicative
 import System.Console.CmdArgs.Verbosity
 #if !defined(mingw32_HOST_OS)
 import System.Posix.Signals (signalProcess, sigINT)
-import System.Process.Internals (ProcessHandle,ProcessHandle__(..), withProcessHandle)
+import System.Process.Internals (ProcessHandle__(..), withProcessHandle)
 #endif
 
 import Language.Haskell.Ghcid.Parser
@@ -34,7 +34,7 @@ import Prelude
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   Pass True to write out messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
-startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, ProcessHandle, [Load])
+startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
 startGhci cmd directory echo = do
     (Just inp, Just out, Just err, ph) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory}
@@ -83,7 +83,7 @@ startGhci cmd directory echo = do
                     Just msg -> return msg
     r <- parseLoad <$> f ""
     writeIORef echo False
-    return (Ghci f,ph, r)
+    return (Ghci (ph, f), r)
 
 
 -- | Show modules
@@ -100,14 +100,14 @@ stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":qui
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
-exec (Ghci x) = x
+exec (Ghci (_,f)) = f
 
 -- | Interrupt the test command.
-interrupt :: ProcessHandle -> Maybe String -> Bool -> IO ()
+interrupt :: Ghci -> Maybe String -> Bool -> IO ()
 #if defined(mingw32_HOST_OS)
 interrupt _ _ _ = return ()
 #else
-interrupt ph test spawn =
+interrupt (Ghci (ph,_)) test spawn =
     when (isJust test && spawn) $ controlC ph
   where
     controlC ph = do
