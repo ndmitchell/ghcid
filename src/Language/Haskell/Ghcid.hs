@@ -16,13 +16,11 @@ import Control.Exception.Extra
 import Control.Monad.Extra
 import Data.Function
 import Data.List
-import Data.Maybe
 import Data.IORef
 import Control.Applicative
 
 import System.Console.CmdArgs.Verbosity
 #if !defined(mingw32_HOST_OS)
-import System.Exit
 import System.Posix.Signals
 #endif
 
@@ -38,6 +36,7 @@ startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
 startGhci cmd directory echo = do
     (Just inp, Just out, Just err, ph) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
+
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
@@ -81,14 +80,19 @@ startGhci cmd directory echo = do
                 case liftM2 (++) outC errC of
                     Nothing  -> throwIO $ UnexpectedExit cmd s
                     Just msg -> return msg
+
+    let i = do
+            whenLoud $ outStrLn "%INTERRUPTED"
+            interruptProcessGroupOf ph
+
+    let ghci = Ghci i f
+#if !defined(mingw32_HOST_OS)
+    tid <- myThreadId
+    installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
+#endif
     r <- parseLoad <$> f ""
     writeIORef echo False
 
-    let ghci = Ghci (ph, f)
-#ifndef mingw32_HOST_OS
-    tid <- myThreadId
-    installHandler keyboardSignal (Catch (interrupt ghci (Just "") True >> stopGhci ghci >> throwTo tid ExitSuccess)) Nothing
-#endif
     return (ghci, r)
 
 -- | Show modules
@@ -105,9 +109,8 @@ stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":qui
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
-exec (Ghci (_,f)) = f
+exec (Ghci _ f) = f
 
--- | Interrupt the test command.
-interrupt :: Ghci -> Maybe String -> Bool -> IO ()
-interrupt (Ghci (ph,_)) test spawn =
-    when (isJust test && spawn) $ interruptProcessGroupOf ph
+-- | Interrupt Ghci
+interrupt :: Ghci -> IO ()
+interrupt (Ghci f _) = f
