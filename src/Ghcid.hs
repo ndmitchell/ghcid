@@ -92,7 +92,7 @@ autoOptions o@Options{..}
         let opts = ["-fno-code" | isNothing test]
         return $ case () of
             _ | ".ghci" `elem` files -> f ("ghci":opts) [".ghci"]
-              | "stack.yaml" `elem` files, False -> f ("stack ghci":map ("--ghci-options=" ++) opts) ["stack.yaml"] -- see #130
+              | "stack.yaml" `elem` files, False -> f ("stack ghci":map ("--ghci-options=" ++) opts) $ "stack.yaml":cabal -- see #130
               | cabal /= [] -> f (if arguments == [] then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
               | otherwise -> f ("ghci":opts) []
     where
