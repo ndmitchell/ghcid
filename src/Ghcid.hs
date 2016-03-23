@@ -195,20 +195,20 @@ runGhcid waiter restart command outputfiles test size titles output = do
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
+            when (null wait) $ do
+                putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
+                interrupt ghci
+                exitFailure
             whenJust test $ \t -> do
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
                 forkIO $ do
-                    res <- exec ghci t
+                    res <- execTest ghci t
                     whenLoud $ outStrLn "%TESTING: Completed"
                     outputFill (Just (loadedCount, messages)) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
                     -- setSGR [Reset]
                     updateTitle ""
                 return ()
 
-            when (null wait) $ do
-                putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
-                interrupt ghci
-                exitFailure
             reason <- nextWait $ restart ++ wait
             when (isJust test) $ interrupt ghci
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason

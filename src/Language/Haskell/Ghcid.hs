@@ -5,7 +5,7 @@ module Language.Haskell.Ghcid(
     Ghci, GhciError(..),
     Load(..), Severity(..),
     startGhci, stopGhci, interrupt,
-    showModules, reload, exec
+    showModules, reload, exec, execTest
     ) where
 
 import System.IO
@@ -47,6 +47,7 @@ startGhci cmd directory echo = do
     hPutStrLn inp $ ":set prompt " ++ prefix
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
     echo <- newIORef echo
+    testRunning <- newIORef False
 
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
     let consume h name = do
@@ -72,25 +73,32 @@ startGhci cmd directory echo = do
     outs <- consume out "GHCOUT"
     errs <- consume err "GHCERR"
 
-    let f s = withLock lock $ do
+    let f isTest s = do
+            withLock lock $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
+                when isTest $ writeIORef testRunning True
                 hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
                 outC <- takeMVar outs
                 errC <- takeMVar errs
+                when isTest $ writeIORef testRunning False
                 case liftM2 (++) outC errC of
-                    Nothing  -> throwIO $ UnexpectedExit cmd s
+                    Nothing  -> do
+                      if isTest
+                        then throwIO $ UnexpectedExit cmd s
+                        else return []
                     Just msg -> return msg
 
-    let i = do
-            whenLoud $ outStrLn "%INTERRUPTED"
-            interruptProcessGroupOf ph
+    let i = whenM (readIORef testRunning) $ do
+                whenLoud $ outStrLn "%INTERRUPTED"
+                ignore $ interruptProcessGroupOf ph
+                writeIORef testRunning False
 
     let ghci = Ghci i f
 #if !defined(mingw32_HOST_OS)
     tid <- myThreadId
     installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
-    r <- parseLoad <$> f ""
+    r <- parseLoad <$> f False ""
     writeIORef echo False
 
     return (ghci, r)
@@ -109,7 +117,10 @@ stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":qui
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
-exec (Ghci _ f) = f
+exec (Ghci _ f) = f False
+
+execTest :: Ghci -> String -> IO [String]
+execTest (Ghci _ f) = f True
 
 -- | Interrupt Ghci
 interrupt :: Ghci -> IO ()

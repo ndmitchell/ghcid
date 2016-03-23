@@ -11,7 +11,7 @@ import Control.Exception.Base (Exception)
 
 -- | A GHCi session. Created with 'startGhci'.
 data Ghci = Ghci (IO ())
-                 (String -> IO [String])
+                 (Bool -> String -> IO [String])
 
 -- | GHCi shut down
 data GhciError = UnexpectedExit String String
