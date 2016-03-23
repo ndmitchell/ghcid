@@ -1,9 +1,10 @@
+{-# LANGUAGE CPP #-}
 
 -- | The entry point of the library
 module Language.Haskell.Ghcid(
     Ghci, GhciError(..),
     Load(..), Severity(..),
-    startGhci, stopGhci,
+    startGhci, stopGhci, interrupt,
     showModules, reload, exec
     ) where
 
@@ -19,6 +20,9 @@ import Data.IORef
 import Control.Applicative
 
 import System.Console.CmdArgs.Verbosity
+#if !defined(mingw32_HOST_OS)
+import System.Posix.Signals
+#endif
 
 import Language.Haskell.Ghcid.Parser
 import Language.Haskell.Ghcid.Types as T
@@ -30,8 +34,9 @@ import Prelude
 --   which might compile dependent packages before really loading.
 startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
 startGhci cmd directory echo = do
-    (Just inp, Just out, Just err, _) <-
-        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory}
+    (Just inp, Just out, Just err, ph) <-
+        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
+
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
@@ -75,10 +80,20 @@ startGhci cmd directory echo = do
                 case liftM2 (++) outC errC of
                     Nothing  -> throwIO $ UnexpectedExit cmd s
                     Just msg -> return msg
+
+    let i = do
+            whenLoud $ outStrLn "%INTERRUPTED"
+            interruptProcessGroupOf ph
+
+    let ghci = Ghci i f
+#if !defined(mingw32_HOST_OS)
+    tid <- myThreadId
+    installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
+#endif
     r <- parseLoad <$> f ""
     writeIORef echo False
-    return (Ghci f,r)
 
+    return (ghci, r)
 
 -- | Show modules
 showModules :: Ghci -> IO [(String,FilePath)]
@@ -94,4 +109,8 @@ stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":qui
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
-exec (Ghci x) = x
+exec (Ghci _ f) = f
+
+-- | Interrupt Ghci
+interrupt :: Ghci -> IO ()
+interrupt (Ghci f _) = f
