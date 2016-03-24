@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, RecordWildCards #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- | The entry point of the library
 module Language.Haskell.Ghcid(
@@ -22,9 +22,6 @@ import Data.IORef
 import Control.Applicative
 
 import System.Console.CmdArgs.Verbosity
-#if !defined(mingw32_HOST_OS)
-import System.Posix.Signals
-#endif
 
 import Language.Haskell.Ghcid.Parser
 import Language.Haskell.Ghcid.Types as T
@@ -97,12 +94,7 @@ startGhci cmd directory echoer = do
                 writeIORef isRunning False
 
     let ghci = Ghci{..}
-#if !defined(mingw32_HOST_OS)
-    tid <- myThreadId
-    installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
-#endif
     r <- parseLoad <$> exec ghci ""
-
     return (ghci, r)
 
 -- | Stop GHCi

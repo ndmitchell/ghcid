@@ -28,6 +28,10 @@ import Language.Haskell.Ghcid.Types
 import Wait
 import Prelude
 
+#if !defined(mingw32_HOST_OS)
+import System.Posix.Signals
+#endif
+
 
 -- | Command line options
 data Options = Options
@@ -152,6 +156,10 @@ runGhcid waiter restart command outputfiles test size titles output = do
     outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
     (ghci,messages) <- startGhci command Nothing outStrLn
+#if !defined(mingw32_HOST_OS)
+    tid <- myThreadId
+    installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
+#endif
     curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages, and the warnings from last time
