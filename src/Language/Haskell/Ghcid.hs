@@ -105,7 +105,7 @@ startGhci cmd directory echoer = do
     tid <- myThreadId
     installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
-    r <- parseLoad <$> ghciExec ""
+    r <- parseLoad <$> exec ghci ""
     modifyVar_ echo $ \old -> return $ \s -> return ()
 
     return (ghci, r)
