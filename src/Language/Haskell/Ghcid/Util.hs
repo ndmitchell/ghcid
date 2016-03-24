@@ -1,3 +1,4 @@
+
 -- | Utility functions
 module Language.Haskell.Ghcid.Util(
     dropPrefixRepeatedly,
