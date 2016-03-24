@@ -124,6 +124,7 @@ stopGhci ghci = do
         interruptProcessGroupOf $ ghciProcess ghci
         sleep 5 -- give the process a few seconds grace period to die nicely
         terminateProcess $ ghciProcess ghci
+    void $ waitForProcess $ ghciProcess ghci
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
