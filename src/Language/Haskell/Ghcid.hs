@@ -11,6 +11,7 @@ module Language.Haskell.Ghcid(
 import System.IO
 import System.IO.Error
 import System.Process
+import System.Time.Extra
 import Control.Concurrent.Extra
 import Control.Exception.Extra
 import Control.Monad.Extra
