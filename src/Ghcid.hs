@@ -219,7 +219,8 @@ runGhcid waiter restart command outputfiles test size titles output = do
                 messages <- reload ghci
                 fire nextWait messages $ Just warnings
             else do
-                stopGhci ghci
+                -- can parallelise killing the old ghci and starting the new one
+                forkIO $ stopGhci ghci
                 runGhcid waiter restart command outputfiles test size titles output
 
     fire nextWait messages Nothing
