@@ -31,8 +31,9 @@ import Prelude
 
 
 -- | A GHCi session. Created with 'startGhci'.
-data Ghci = Ghci (IO ())
-                 (Bool -> String -> IO [String])
+data Ghci = Ghci
+    {ghciInterupt :: IO ()
+    ,ghciExec :: Bool -> String -> IO [String]}
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
@@ -123,11 +124,11 @@ stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":qui
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
-exec (Ghci _ f) = f False
+exec g = ghciExec g False
 
 execTest :: Ghci -> String -> IO [String]
-execTest (Ghci _ f) = f True
+execTest g = ghciExec g True
 
 -- | Interrupt Ghci
 interrupt :: Ghci -> IO ()
-interrupt (Ghci f _) = f
+interrupt = ghciInterupt
