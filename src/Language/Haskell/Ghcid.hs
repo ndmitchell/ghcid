@@ -29,6 +29,12 @@ import Language.Haskell.Ghcid.Types as T
 import Language.Haskell.Ghcid.Util
 import Prelude
 
+
+-- | A GHCi session. Created with 'startGhci'.
+data Ghci = Ghci (IO ())
+                 (Bool -> String -> IO [String])
+
+
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   Pass True to write out messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.

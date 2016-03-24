@@ -2,16 +2,12 @@
 
 -- | The types types that we use in Ghcid
 module Language.Haskell.Ghcid.Types(
-    Ghci(..), GhciError(..),
+    GhciError(..),
     Load(..), Severity(..), isMessage
     ) where
 
 import Data.Typeable
 import Control.Exception.Base (Exception)
-
--- | A GHCi session. Created with 'startGhci'.
-data Ghci = Ghci (IO ())
-                 (Bool -> String -> IO [String])
 
 -- | GHCi shut down
 data GhciError = UnexpectedExit String String
