@@ -3,7 +3,7 @@
 -- | Cross-platform operations for manipulating terminal console windows.
 module Language.Haskell.Ghcid.Terminal(
     terminalTopmost,
-    withWindowIcon, WindowIcon(..), changeWindowIcon
+    withWindowIcon, WindowIcon(..), setWindowIcon
     ) where
 
 #if defined(mingw32_HOST_OS)
@@ -48,9 +48,9 @@ terminalTopmost = return ()
 data WindowIcon = IconOK | IconWarning | IconError
 
 -- | Change the window icon to green, yellow or red depending on whether the file was errorless, contained only warnings or contained at least one error.
-changeWindowIcon :: WindowIcon -> IO ()
+setWindowIcon :: WindowIcon -> IO ()
 #if defined(mingw32_HOST_OS)
-changeWindowIcon x = do
+setWindowIcon x = do
     ico <- return $ case x of
         IconOK -> iDI_ASTERISK
         IconWarning -> iDI_EXCLAMATION
@@ -62,10 +62,11 @@ changeWindowIcon x = do
     sendMessage wnd wM_SETICON iCON_BIG $ fromIntegral $ castPtrToUINTPtr icon
     return ()
 #else
-changeWindowIcon _ = return ()
+setWindowIcon _ = return ()
 #endif
 
 
+-- | Run an operation in which you call setWindowIcon
 withWindowIcon :: IO a -> IO a
 #if defined(mingw32_HOST_OS)
 withWindowIcon act = do
