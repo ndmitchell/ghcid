@@ -60,23 +60,19 @@ startGhci cmd directory echoer = do
     echo <- newVar echoer -- where to write the output
     isRunning <- newIORef False
 
-    -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
+    -- consume from a handle
+    -- produce an MVar with either False (computation finished), or True (stream closed)
+    -- send all data collected to echo
     let consume h name = do
             result <- newEmptyMVar -- the end result
-            buffer <- newVar [] -- the things to go in result
             forkIO $ fix $ \rec -> do
                 el <- tryBool isEOFError $ hGetLine h
                 case el of
-                    Left _ -> putMVar result Nothing
+                    Left _ -> putMVar result True
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ name ++ ": " ++ l
                         unless (any (`isInfixOf` l) [prefix, finish]) $ withVar echo ($ l)
-                        if finish `isInfixOf` l
-                          then do
-                            buf <- modifyVar buffer $ \old -> return ([], reverse old)
-                            putMVar result $ Just buf
-                          else
-                            modifyVar_ buffer $ return . (dropPrefixRepeatedly prefix l:)
+                        when (finish `isInfixOf` l) $ putMVar result False
                         rec
             return result
 
@@ -92,9 +88,8 @@ startGhci cmd directory echoer = do
                 outC <- takeMVar outs
                 errC <- takeMVar errs
                 writeIORef isRunning False
-                case liftM2 (++) outC errC of
-                    Nothing -> throwIO $ UnexpectedExit cmd s
-                    Just msg -> return ()
+                when (outC || errC) $
+                    throwIO $ UnexpectedExit cmd s
 
     let ghciInterupt = whenM (readIORef isRunning) $ do
                 whenLoud $ outStrLn "%INTERRUPTED"
