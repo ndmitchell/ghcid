@@ -124,10 +124,10 @@ stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":qui
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
-exec g = ghciExec g False
+exec ghci = ghciExec ghci False
 
 execTest :: Ghci -> String -> IO [String]
-execTest g = ghciExec g True
+execTest ghci = ghciExec ghci True
 
 -- | Interrupt Ghci
 interrupt :: Ghci -> IO ()
