@@ -90,7 +90,9 @@ startGhci cmd directory echo = do
                 outC <- takeMVar outs
                 errC <- takeMVar errs
                 writeIORef testRunning False
-                return $ fromMaybe [] $ liftM2 (++) outC errC
+                case liftM2 (++) outC errC of
+                    Nothing -> throwIO $ UnexpectedExit cmd s
+                    Just msg -> return msg
 
     let i = whenM (readIORef testRunning) $ do
                 whenLoud $ outStrLn "%INTERRUPTED"
