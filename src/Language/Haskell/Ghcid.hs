@@ -17,6 +17,7 @@ import Control.Exception.Extra
 import Control.Monad.Extra
 import Data.Function
 import Data.List
+import Data.Maybe
 import Data.IORef
 import Control.Applicative
 
@@ -35,7 +36,7 @@ import Prelude
 data Ghci = Ghci
     {ghciProcess :: ProcessHandle
     ,ghciInterupt :: IO ()
-    ,ghciExec :: Bool -> String -> IO [String]}
+    ,ghciExec :: String -> IO [String]}
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
@@ -81,7 +82,7 @@ startGhci cmd directory echo = do
     outs <- consume out "GHCOUT"
     errs <- consume err "GHCERR"
 
-    let f isTest s = do
+    let f s = do
             withLock lock $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
                 writeIORef testRunning True
@@ -89,12 +90,7 @@ startGhci cmd directory echo = do
                 outC <- takeMVar outs
                 errC <- takeMVar errs
                 writeIORef testRunning False
-                case liftM2 (++) outC errC of
-                    Nothing  -> do
-                      if isTest
-                        then throwIO $ UnexpectedExit cmd s
-                        else return []
-                    Just msg -> return msg
+                return $ fromMaybe [] $ liftM2 (++) outC errC
 
     let i = whenM (readIORef testRunning) $ do
                 whenLoud $ outStrLn "%INTERRUPTED"
@@ -106,7 +102,7 @@ startGhci cmd directory echo = do
     tid <- myThreadId
     installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
-    r <- parseLoad <$> f False ""
+    r <- parseLoad <$> f ""
     writeIORef echo $ const $ return ()
 
     return (ghci, r)
@@ -131,10 +127,10 @@ stopGhci ghci = do
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
-exec ghci = ghciExec ghci False
+exec ghci = ghciExec ghci
 
 execTest :: Ghci -> String -> IO [String]
-execTest ghci = ghciExec ghci True
+execTest ghci = ghciExec ghci
 
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
