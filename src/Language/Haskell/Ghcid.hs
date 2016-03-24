@@ -4,7 +4,7 @@
 module Language.Haskell.Ghcid(
     Ghci, GhciError(..),
     Load(..), Severity(..),
-    startGhci, stopGhci, interrupt,
+    startGhci, stopGhci, interrupt, execStream,
     showModules, reload, exec
     ) where
 
@@ -120,6 +120,11 @@ stopGhci ghci = do
         sleep 5 -- give the process a few seconds grace period to die nicely
         terminateProcess $ ghciProcess ghci
     void $ waitForProcess $ ghciProcess ghci
+
+execStream :: Ghci -> String -> (String -> IO ()) -> IO ()
+execStream ghci s echo = do
+    res <- ghciExec ghci s
+    mapM_ echo res
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]

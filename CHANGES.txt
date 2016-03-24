@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    Add execStream to the API
     Make stopGhci more effective, now kills the underlying process
     Make startGhci take a function to write the buffer to
 0.5.1
