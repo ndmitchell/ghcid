@@ -43,7 +43,7 @@ data Ghci = Ghci
 --   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
 startGhci :: String -> Maybe FilePath -> (String -> IO ()) -> IO (Ghci, [Load])
-startGhci cmd directory echo = do
+startGhci cmd directory echoer = do
     (Just inp, Just out, Just err, ghciProcess) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
 
@@ -57,7 +57,7 @@ startGhci cmd directory echo = do
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
 
     lock <- newLock -- ensure only one person talks to ghci at a time
-    echo <- newVar echo -- where to write the output
+    echo <- newVar echoer -- where to write the output
     isRunning <- newIORef False
 
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
