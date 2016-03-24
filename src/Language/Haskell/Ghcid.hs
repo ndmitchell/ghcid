@@ -126,10 +126,6 @@ execStream ghci s echo = do
     res <- ghciExec ghci s
     mapM_ echo res
 
--- | Send a command, get lines of result
-exec :: Ghci -> String -> IO [String]
-exec ghci = ghciExec ghci
-
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
 interrupt = ghciInterupt
@@ -137,6 +133,13 @@ interrupt = ghciInterupt
 
 ---------------------------------------------------------------------
 -- SUGAR HELPERS
+
+-- | Send a command, get lines of result
+exec :: Ghci -> String -> IO [String]
+exec ghci cmd = do
+    ref <- newIORef []
+    execStream ghci cmd $ \s -> modifyIORef ref (s:)
+    reverse <$> readIORef ref
 
 -- | Show modules
 showModules :: Ghci -> IO [(String,FilePath)]
