@@ -57,7 +57,7 @@ startGhci cmd directory echo = do
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
 
     lock <- newLock -- ensure only one person talks to ghci at a time
-    echo <- newIORef echo -- where to write the output
+    echo <- newVar echo -- where to write the output
     isRunning <- newIORef False
 
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
@@ -70,7 +70,7 @@ startGhci cmd directory echo = do
                     Left _ -> putMVar result Nothing
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ name ++ ": " ++ l
-                        unless (any (`isInfixOf` l) [prefix, finish]) $ readIORef echo >>= ($ l)
+                        unless (any (`isInfixOf` l) [prefix, finish]) $ withVar echo ($ l)
                         if finish `isInfixOf` l
                           then do
                             buf <- modifyVar buffer $ \old -> return ([], reverse old)
@@ -106,7 +106,7 @@ startGhci cmd directory echo = do
     installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
     r <- parseLoad <$> ghciExec ""
-    writeIORef echo $ const $ return ()
+    modifyVar_ echo $ \old -> return $ \s -> return ()
 
     return (ghci, r)
 
