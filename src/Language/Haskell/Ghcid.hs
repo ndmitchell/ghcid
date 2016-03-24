@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, RecordWildCards #-}
 
 -- | The entry point of the library
 module Language.Haskell.Ghcid(
@@ -44,7 +44,7 @@ data Ghci = Ghci
 --   which might compile dependent packages before really loading.
 startGhci :: String -> Maybe FilePath -> (String -> IO ()) -> IO (Ghci, [Load])
 startGhci cmd directory echo = do
-    (Just inp, Just out, Just err, ph) <-
+    (Just inp, Just out, Just err, ghciProcess) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
 
     hSetBuffering out LineBuffering
@@ -83,7 +83,7 @@ startGhci cmd directory echo = do
     outs <- consume out "GHCOUT"
     errs <- consume err "GHCERR"
 
-    let f s = do
+    let ghciExec s = do
             withLock lock $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
                 writeIORef isRunning True
@@ -95,17 +95,17 @@ startGhci cmd directory echo = do
                     Nothing -> throwIO $ UnexpectedExit cmd s
                     Just msg -> return msg
 
-    let i = whenM (readIORef isRunning) $ do
+    let ghciInterupt = whenM (readIORef isRunning) $ do
                 whenLoud $ outStrLn "%INTERRUPTED"
-                ignore $ interruptProcessGroupOf ph
+                ignore $ interruptProcessGroupOf ghciProcess
                 writeIORef isRunning False
 
-    let ghci = Ghci ph i f
+    let ghci = Ghci{..}
 #if !defined(mingw32_HOST_OS)
     tid <- myThreadId
     installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
-    r <- parseLoad <$> f ""
+    r <- parseLoad <$> ghciExec ""
     writeIORef echo $ const $ return ()
 
     return (ghci, r)
