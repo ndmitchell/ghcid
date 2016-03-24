@@ -36,7 +36,7 @@ import Prelude
 data Ghci = Ghci
     {ghciProcess :: ProcessHandle
     ,ghciInterupt :: IO ()
-    ,ghciExec :: String -> IO [String]}
+    ,ghciExec :: String -> (String -> IO ()) -> IO ()}
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
@@ -83,7 +83,8 @@ startGhci cmd directory echoer = do
     outs <- consume out "GHCOUT"
     errs <- consume err "GHCERR"
 
-    let ghciExec s = do
+    let ghciExec s echoer = do
+            modifyVar_ echo $ \old -> return echoer
             withLock lock $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
                 writeIORef isRunning True
@@ -93,7 +94,7 @@ startGhci cmd directory echoer = do
                 writeIORef isRunning False
                 case liftM2 (++) outC errC of
                     Nothing -> throwIO $ UnexpectedExit cmd s
-                    Just msg -> return msg
+                    Just msg -> return ()
 
     let ghciInterupt = whenM (readIORef isRunning) $ do
                 whenLoud $ outStrLn "%INTERRUPTED"
@@ -106,7 +107,6 @@ startGhci cmd directory echoer = do
     installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
     r <- parseLoad <$> exec ghci ""
-    modifyVar_ echo $ \old -> return $ \s -> return ()
 
     return (ghci, r)
 
@@ -124,9 +124,7 @@ stopGhci ghci = do
 -- | Execute a command, calling a callback on each response.
 --   The callback will be called single threaded.
 execStream :: Ghci -> String -> (String -> IO ()) -> IO ()
-execStream ghci cmd echo = do
-    res <- ghciExec ghci cmd
-    mapM_ echo res
+execStream = ghciExec
 
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
