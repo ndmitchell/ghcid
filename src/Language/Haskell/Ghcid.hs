@@ -58,7 +58,7 @@ startGhci cmd directory echo = do
 
     lock <- newLock -- ensure only one person talks to ghci at a time
     echo <- newIORef echo -- where to write the output
-    testRunning <- newIORef False
+    isRunning <- newIORef False
 
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
     let consume h name = do
@@ -86,19 +86,19 @@ startGhci cmd directory echo = do
     let f s = do
             withLock lock $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
-                writeIORef testRunning True
+                writeIORef isRunning True
                 hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
                 outC <- takeMVar outs
                 errC <- takeMVar errs
-                writeIORef testRunning False
+                writeIORef isRunning False
                 case liftM2 (++) outC errC of
                     Nothing -> throwIO $ UnexpectedExit cmd s
                     Just msg -> return msg
 
-    let i = whenM (readIORef testRunning) $ do
+    let i = whenM (readIORef isRunning) $ do
                 whenLoud $ outStrLn "%INTERRUPTED"
                 ignore $ interruptProcessGroupOf ph
-                writeIORef testRunning False
+                writeIORef isRunning False
 
     let ghci = Ghci ph i f
 #if !defined(mingw32_HOST_OS)
