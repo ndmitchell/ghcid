@@ -121,6 +121,8 @@ stopGhci ghci = do
         terminateProcess $ ghciProcess ghci
     void $ waitForProcess $ ghciProcess ghci
 
+-- | Execute a command, calling a callback on each response.
+--   The callback will be called single threaded.
 execStream :: Ghci -> String -> (String -> IO ()) -> IO ()
 execStream ghci cmd echo = do
     res <- ghciExec ghci cmd
