@@ -122,8 +122,8 @@ stopGhci ghci = do
     void $ waitForProcess $ ghciProcess ghci
 
 execStream :: Ghci -> String -> (String -> IO ()) -> IO ()
-execStream ghci s echo = do
-    res <- ghciExec ghci s
+execStream ghci cmd echo = do
+    res <- ghciExec ghci cmd
     mapM_ echo res
 
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
