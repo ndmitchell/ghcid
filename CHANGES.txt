@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    Make startGhci take a function to write the buffer to
 0.5.1
     #17, deal with recursive modules errors properly
     #50, use -fno-code when not running tests (about twice as fast)

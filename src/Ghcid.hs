@@ -151,7 +151,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
     restartTimes <- mapM getModTime restart
     outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
-    (ghci,messages) <- startGhci command Nothing True
+    (ghci,messages) <- startGhci command Nothing outStrLn
     curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages, and the warnings from last time

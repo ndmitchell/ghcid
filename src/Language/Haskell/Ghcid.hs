@@ -39,9 +39,9 @@ data Ghci = Ghci
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
---   Pass True to write out messages produced while loading, useful if invoking something like "cabal repl"
+--   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
-startGhci :: String -> Maybe FilePath -> Bool -> IO (Ghci, [Load])
+startGhci :: String -> Maybe FilePath -> (String -> IO ()) -> IO (Ghci, [Load])
 startGhci cmd directory echo = do
     (Just inp, Just out, Just err, ph) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
@@ -68,8 +68,7 @@ startGhci cmd directory echo = do
                     Left _ -> putMVar result Nothing
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ name ++ ": " ++ l
-                        whenM (readIORef echo) $
-                            unless (any (`isInfixOf` l) [prefix, finish]) $ outStrLn l
+                        unless (any (`isInfixOf` l) [prefix, finish]) $ readIORef echo >>= ($ l)
                         if finish `isInfixOf` l
                           then do
                             buf <- modifyVar buffer $ \old -> return ([], reverse old)
@@ -108,7 +107,7 @@ startGhci cmd directory echo = do
     installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
     r <- parseLoad <$> f False ""
-    writeIORef echo False
+    writeIORef echo $ const $ return ()
 
     return (ghci, r)
 
