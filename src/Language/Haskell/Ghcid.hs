@@ -51,12 +51,13 @@ startGhci cmd directory echo = do
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
 
-    lock <- newLock -- ensure only one person talks to ghci at a time
     let prefix = "#~GHCID-START~#"
     let finish = "#~GHCID-FINISH~#"
     hPutStrLn inp $ ":set prompt " ++ prefix
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
-    echo <- newIORef echo
+
+    lock <- newLock -- ensure only one person talks to ghci at a time
+    echo <- newIORef echo -- where to write the output
     testRunning <- newIORef False
 
     -- consume from a handle, produce an MVar with either Just and a message, or Nothing (stream closed)
