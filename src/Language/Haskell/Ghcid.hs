@@ -37,6 +37,7 @@ data Ghci = Ghci
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
+--   If you do not call 'stopGhci' then the underlying process may be leaked.
 --   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
 startGhci :: String -> Maybe FilePath -> (String -> IO ()) -> IO (Ghci, [Load])
