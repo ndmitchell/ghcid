@@ -32,7 +32,8 @@ import Prelude
 
 -- | A GHCi session. Created with 'startGhci'.
 data Ghci = Ghci
-    {ghciInterupt :: IO ()
+    {ghciProcess :: ProcessHandle
+    ,ghciInterupt :: IO ()
     ,ghciExec :: Bool -> String -> IO [String]}
 
 
@@ -100,7 +101,7 @@ startGhci cmd directory echo = do
                 ignore $ interruptProcessGroupOf ph
                 writeIORef testRunning False
 
-    let ghci = Ghci i f
+    let ghci = Ghci ph i f
 #if !defined(mingw32_HOST_OS)
     tid <- myThreadId
     installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
@@ -120,7 +121,13 @@ reload ghci = parseLoad <$> exec ghci ":reload"
 
 -- | Stop GHCi
 stopGhci :: Ghci -> IO ()
-stopGhci ghci = handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
+stopGhci ghci = do
+    handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
+    void $ forkIO $ ignore $ do
+        sleep 1 -- try and give ghci a chance to go quietly
+        interruptProcessGroupOf $ ghciProcess ghci
+        sleep 5 -- give the process a few seconds grace period to die nicely
+        terminateProcess $ ghciProcess ghci
 
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
