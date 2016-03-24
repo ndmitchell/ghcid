@@ -84,8 +84,8 @@ startGhci cmd directory echoer = do
     errs <- consume err "GHCERR"
 
     let ghciExec s echoer = do
-            modifyVar_ echo $ \old -> return echoer
             withLock lock $ do
+                modifyVar_ echo $ \old -> return echoer
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
                 writeIORef isRunning True
                 hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
