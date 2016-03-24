@@ -109,14 +109,6 @@ startGhci cmd directory echo = do
 
     return (ghci, r)
 
--- | Show modules
-showModules :: Ghci -> IO [(String,FilePath)]
-showModules ghci = parseShowModules <$> exec ghci ":show modules"
-
--- | reload modules
-reload :: Ghci -> IO [Load]
-reload ghci = parseLoad <$> exec ghci ":reload"
-
 -- | Stop GHCi
 stopGhci :: Ghci -> IO ()
 stopGhci ghci = do
@@ -135,3 +127,15 @@ exec ghci = ghciExec ghci
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
 interrupt = ghciInterupt
+
+
+---------------------------------------------------------------------
+-- SUGAR HELPERS
+
+-- | Show modules
+showModules :: Ghci -> IO [(String,FilePath)]
+showModules ghci = parseShowModules <$> exec ghci ":show modules"
+
+-- | reload modules
+reload :: Ghci -> IO [Load]
+reload ghci = parseLoad <$> exec ghci ":reload"
