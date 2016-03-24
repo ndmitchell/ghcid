@@ -129,6 +129,6 @@ exec ghci = ghciExec ghci False
 execTest :: Ghci -> String -> IO [String]
 execTest ghci = ghciExec ghci True
 
--- | Interrupt Ghci
+-- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
 interrupt = ghciInterupt
