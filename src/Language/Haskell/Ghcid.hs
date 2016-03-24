@@ -84,11 +84,11 @@ startGhci cmd directory echo = do
     let f isTest s = do
             withLock lock $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
-                when isTest $ writeIORef testRunning True
+                writeIORef testRunning True
                 hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
                 outC <- takeMVar outs
                 errC <- takeMVar errs
-                when isTest $ writeIORef testRunning False
+                writeIORef testRunning False
                 case liftM2 (++) outC errC of
                     Nothing  -> do
                       if isTest
