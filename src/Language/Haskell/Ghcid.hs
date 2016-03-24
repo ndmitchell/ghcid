@@ -103,7 +103,7 @@ startGhci cmd directory echo = do
     let ghci = Ghci{..}
 #if !defined(mingw32_HOST_OS)
     tid <- myThreadId
-    installHandler sigINT (Catch (i >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
+    installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
 #endif
     r <- parseLoad <$> ghciExec ""
     modifyVar_ echo $ \old -> return $ \s -> return ()
