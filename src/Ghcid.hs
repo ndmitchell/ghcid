@@ -202,7 +202,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
             whenJust test $ \t -> do
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
                 forkIO $ do
-                    res <- execTest ghci t
+                    res <- exec ghci t
                     whenLoud $ outStrLn "%TESTING: Completed"
                     outputFill (Just (loadedCount, messages)) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
                     -- setSGR [Reset]

@@ -5,7 +5,7 @@ module Language.Haskell.Ghcid(
     Ghci, GhciError(..),
     Load(..), Severity(..),
     startGhci, stopGhci, interrupt,
-    showModules, reload, exec, execTest
+    showModules, reload, exec
     ) where
 
 import System.IO
@@ -128,9 +128,6 @@ stopGhci ghci = do
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
 exec ghci = ghciExec ghci
-
-execTest :: Ghci -> String -> IO [String]
-execTest ghci = ghciExec ghci
 
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
