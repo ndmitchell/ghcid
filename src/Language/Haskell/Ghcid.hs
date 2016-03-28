@@ -2,7 +2,7 @@
 
 -- | The entry point of the library
 module Language.Haskell.Ghcid(
-    Ghci, GhciError(..), GhciStream(..),
+    Ghci, GhciError(..), Stream(..),
     Load(..), Severity(..),
     startGhci, stopGhci, interrupt, execStream,
     showModules, reload, exec
@@ -33,16 +33,14 @@ import Prelude
 data Ghci = Ghci
     {ghciProcess :: ProcessHandle
     ,ghciInterupt :: IO ()
-    ,ghciExec :: String -> (GhciStream -> String -> IO ()) -> IO ()}
-
-data GhciStream = GhciOut | GhciErr deriving (Show,Eq,Ord,Enum,Read)
+    ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()}
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   If you do not call 'stopGhci' then the underlying process may be leaked.
 --   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
-startGhci :: String -> Maybe FilePath -> (GhciStream -> String -> IO ()) -> IO (Ghci, [Load])
+startGhci :: String -> Maybe FilePath -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhci cmd directory echoer = do
     (Just inp, Just out, Just err, ghciProcess) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
@@ -78,8 +76,8 @@ startGhci cmd directory echoer = do
                         rec
             return result
 
-    outs <- consume out GhciOut
-    errs <- consume err GhciErr
+    outs <- consume out Stdout
+    errs <- consume err Stderr
 
     let ghciExec s echoer = do
             withLock lock $ do
@@ -115,7 +113,7 @@ stopGhci ghci = do
 
 -- | Execute a command, calling a callback on each response.
 --   The callback will be called single threaded.
-execStream :: Ghci -> String -> (GhciStream -> String -> IO ()) -> IO ()
+execStream :: Ghci -> String -> (Stream -> String -> IO ()) -> IO ()
 execStream = ghciExec
 
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
@@ -131,7 +129,7 @@ exec :: Ghci -> String -> IO [String]
 exec ghci cmd = do
     stdout <- newIORef []
     stderr <- newIORef []
-    execStream ghci cmd $ \i s -> modifyIORef (if i == GhciOut then stdout else stderr) (s:)
+    execStream ghci cmd $ \i s -> modifyIORef (if i == Stdout then stdout else stderr) (s:)
     reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
 
 -- | Show modules

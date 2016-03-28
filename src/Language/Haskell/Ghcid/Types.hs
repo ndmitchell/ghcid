@@ -3,6 +3,7 @@
 -- | The types types that we use in Ghcid
 module Language.Haskell.Ghcid.Types(
     GhciError(..),
+    Stream(..),
     Load(..), Severity(..), isMessage
     ) where
 
@@ -15,6 +16,10 @@ data GhciError = UnexpectedExit String String
 
 -- | Make GhciError an exception
 instance Exception GhciError
+
+-- | The stream Ghci is talking over.
+data Stream = Stdout | Stderr
+    deriving (Show,Eq,Ord,Bounded,Enum,Read,Typeable,Data)
 
 -- | Severity of messages
 data Severity = Warning | Error
