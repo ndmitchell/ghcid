@@ -2,7 +2,7 @@
 
 -- | The entry point of the library
 module Language.Haskell.Ghcid(
-    Ghci, GhciError(..),
+    Ghci, GhciError(..), GhciStream(..),
     Load(..), Severity(..),
     startGhci, stopGhci, interrupt, execStream,
     showModules, reload, exec
@@ -16,7 +16,7 @@ import Control.Concurrent.Extra
 import Control.Exception.Extra
 import Control.Monad.Extra
 import Data.Function
-import Data.List
+import Data.List.Extra
 import Data.Maybe
 import Data.IORef
 import Control.Applicative
@@ -33,14 +33,16 @@ import Prelude
 data Ghci = Ghci
     {ghciProcess :: ProcessHandle
     ,ghciInterupt :: IO ()
-    ,ghciExec :: String -> (String -> IO ()) -> IO ()}
+    ,ghciExec :: String -> (GhciStream -> String -> IO ()) -> IO ()}
+
+data GhciStream = GhciOut | GhciErr deriving (Show,Eq,Ord,Enum,Read)
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   If you do not call 'stopGhci' then the underlying process may be leaked.
 --   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
-startGhci :: String -> Maybe FilePath -> (String -> IO ()) -> IO (Ghci, [Load])
+startGhci :: String -> Maybe FilePath -> (GhciStream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhci cmd directory echoer = do
     (Just inp, Just out, Just err, ghciProcess) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
@@ -68,14 +70,16 @@ startGhci cmd directory echoer = do
                 case el of
                     Left _ -> putMVar result True
                     Right l -> do
-                        whenLoud $ outStrLn $ "%" ++ name ++ ": " ++ l
-                        unless (any (`isInfixOf` l) [prefix, finish]) $ withVar echo ($ l)
-                        when (finish `isInfixOf` l) $ putMVar result False
+                        whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
+                        if finish `isInfixOf` l then
+                            putMVar result False
+                         else do
+                            withVar echo $ \echo -> echo name $ dropPrefixRepeatedly prefix l
                         rec
             return result
 
-    outs <- consume out "GHCOUT"
-    errs <- consume err "GHCERR"
+    outs <- consume out GhciOut
+    errs <- consume err GhciErr
 
     let ghciExec s echoer = do
             withLock lock $ do
@@ -111,7 +115,7 @@ stopGhci ghci = do
 
 -- | Execute a command, calling a callback on each response.
 --   The callback will be called single threaded.
-execStream :: Ghci -> String -> (String -> IO ()) -> IO ()
+execStream :: Ghci -> String -> (GhciStream -> String -> IO ()) -> IO ()
 execStream = ghciExec
 
 -- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
@@ -125,9 +129,10 @@ interrupt = ghciInterupt
 -- | Send a command, get lines of result
 exec :: Ghci -> String -> IO [String]
 exec ghci cmd = do
-    ref <- newIORef []
-    execStream ghci cmd $ \s -> modifyIORef ref (s:)
-    reverse <$> readIORef ref
+    stdout <- newIORef []
+    stderr <- newIORef []
+    execStream ghci cmd $ \i s -> modifyIORef (if i == GhciOut then stdout else stderr) (s:)
+    reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
 
 -- | Show modules
 showModules :: Ghci -> IO [(String,FilePath)]

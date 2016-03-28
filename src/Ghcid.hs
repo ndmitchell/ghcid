@@ -155,7 +155,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
     restartTimes <- mapM getModTime restart
     outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
-    (ghci,messages) <- startGhci command Nothing outStrLn
+    (ghci,messages) <- startGhci command Nothing $ const outStrLn
 #if !defined(mingw32_HOST_OS)
     tid <- myThreadId
     installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
