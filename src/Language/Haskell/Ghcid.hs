@@ -83,6 +83,7 @@ startGhci cmd directory echoer = do
     outs <- consume out Stdout
     errs <- consume err Stderr
 
+    -- FIXME: Shouldn't use a lock, should error if multiple ones
     let ghciExec s echoer = do
             withLock lock $ do
                 modifyVar_ echo $ \old -> return echoer
@@ -98,6 +99,8 @@ startGhci cmd directory echoer = do
     let ghciInterupt = whenM (readIORef isRunning) $ do
                 whenLoud $ outStrLn "%INTERRUPTED"
                 ignore $ interruptProcessGroupOf ghciProcess
+                -- FIXME: Should call out to ghciExec to wait for an interaction
+                --        Probably using a unique flag so it can tell if the previous process just finished.
                 writeIORef isRunning False
 
     let ghci = Ghci{..}
