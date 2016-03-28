@@ -6,19 +6,19 @@ module Language.Haskell.Ghcid.Types(
     Load(..), Severity(..), isMessage
     ) where
 
-import Data.Typeable
+import Data.Data
 import Control.Exception.Base (Exception)
 
 -- | GHCi shut down
 data GhciError = UnexpectedExit String String
-    deriving (Show,Eq,Ord,Typeable)
+    deriving (Show,Eq,Ord,Typeable,Data)
 
 -- | Make GhciError an exception
 instance Exception GhciError
 
 -- | Severity of messages
 data Severity = Warning | Error
-    deriving (Show,Eq,Ord,Bounded,Enum,Typeable)
+    deriving (Show,Eq,Ord,Bounded,Enum,Read,Typeable,Data)
 
 -- | Load messages
 data Load
