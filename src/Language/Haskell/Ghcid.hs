@@ -118,7 +118,7 @@ stopGhci ghci = do
 execStream :: Ghci -> String -> (Stream -> String -> IO ()) -> IO ()
 execStream = ghciExec
 
--- | Interrupt Ghci, stopping the current task, but leaving the process open to new input.
+-- | Interrupt Ghci, stopping the current computation (if any), but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
 interrupt = ghciInterupt
 
