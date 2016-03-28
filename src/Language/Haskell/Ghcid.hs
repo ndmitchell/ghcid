@@ -29,7 +29,11 @@ import Language.Haskell.Ghcid.Util
 import Prelude
 
 
--- | A GHCi session. Created with 'startGhci'.
+-- | A GHCi session. Created with 'startGhci', closed with 'stopGhci'.
+--
+--   The interactions with a 'Ghci' session must all occur single-threaded,
+--   or an error will be raised. The only exception is 'interrupt', which aborts
+--   a running computation, or does nothing if no computation is running.
 data Ghci = Ghci
     {ghciProcess :: ProcessHandle
     ,ghciInterupt :: IO ()
