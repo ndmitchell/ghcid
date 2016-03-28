@@ -105,9 +105,7 @@ stopGhci :: Ghci -> IO ()
 stopGhci ghci = do
     handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
     void $ forkIO $ ignore $ do
-        sleep 1 -- try and give ghci a chance to go quietly
-        interruptProcessGroupOf $ ghciProcess ghci
-        sleep 5 -- give the process a few seconds grace period to die nicely
+        sleep 5 -- try and give ghci a chance to go quietly
         terminateProcess $ ghciProcess ghci
     void $ waitForProcess $ ghciProcess ghci
 
