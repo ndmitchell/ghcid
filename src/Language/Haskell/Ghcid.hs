@@ -83,7 +83,10 @@ startGhci cmd directory echoer = do
                          else do
                             withVar echo $ \echo -> echo name $ dropPrefixRepeatedly prefix l
                         rec
-            return $ takeMVar result
+            return $ do
+                v <- takeMVar result
+                when (v == Finished) $ putMVar result Finished
+                return v
 
     outs <- consume Stdout
     errs <- consume Stderr
