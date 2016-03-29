@@ -56,10 +56,16 @@ startGhci cmd directory echoer = do
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
 
-    let prefix = "#~GHCID-START~#"
-    let finish = "#~GHCID-FINISH~#"
-    hPutStrLn inp $ ":set prompt " ++ prefix
+    -- Special strings that shouldn't occur in normal use
+    let codePrefix = "#~GHCID-START~#"
+        codeFinish = "#~GHCID-FINISH~#"
+
+    -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
+    -- string and filter that out.
+    hPutStrLn inp $ ":set prompt " ++ codePrefix
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+
+    let sync msg = hPutStrLn inp $ "Prelude.putStrLn " ++ show msg ++ "\nPrelude.error " ++ show msg
 
     echo <- newVar echoer -- where to write the output
 
@@ -74,10 +80,10 @@ startGhci cmd directory echoer = do
                     Left _ -> putMVar result Finished
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
-                        if finish `isInfixOf` l then
+                        if codeFinish `isInfixOf` l then
                             putMVar result More
                          else do
-                            withVar echo $ \echo -> echo name $ dropPrefixRepeatedly prefix l
+                            withVar echo $ \echo -> echo name $ dropPrefixRepeatedly codePrefix l
                         rec
             return $ do
                 v <- takeMVar result
@@ -96,7 +102,8 @@ startGhci cmd directory echoer = do
                 modifyVar_ echo $ \old -> return echoer
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
                 writeIORef isRunning True
-                hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
+                hPutStrLn inp s
+                sync codeFinish
                 outC <- outs
                 errC <- errs
                 writeIORef isRunning False
