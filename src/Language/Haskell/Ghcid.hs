@@ -173,7 +173,8 @@ execStream :: Ghci -> String -> (Stream -> String -> IO ()) -> IO ()
 execStream = ghciExec
 
 
--- | Interrupt Ghci, stopping the current computation (if any), but leaving the process open to new input.
+-- | Interrupt Ghci, stopping the current computation (if any),
+--   but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
 interrupt = ghciInterupt
 
@@ -181,7 +182,7 @@ interrupt = ghciInterupt
 ---------------------------------------------------------------------
 -- SUGAR HELPERS
 
--- | Send a command, get lines of result
+-- | Send a command, get lines of result. Must be called single-threaded.
 exec :: Ghci -> String -> IO [String]
 exec ghci cmd = do
     stdout <- newIORef []
