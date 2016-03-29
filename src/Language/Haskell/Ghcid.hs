@@ -39,8 +39,9 @@ data Ghci = Ghci
     ,ghciInterupt :: IO ()
     ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()}
 
+
 -- | The current status of a Stream
-data Status = Finished | More deriving Eq
+data StreamStatus = Finished | More deriving Eq
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
@@ -70,7 +71,7 @@ startGhci cmd directory echoer = do
     echo <- newVar echoer -- where to write the output
 
     -- consume from a handle, send all data collected to echo
-    let consume :: Stream -> IO (IO Status)
+    let consume :: Stream -> IO (IO StreamStatus)
         consume name = do
             let h = if name == Stdout then out else err
             result <- newEmptyMVar -- the end result
