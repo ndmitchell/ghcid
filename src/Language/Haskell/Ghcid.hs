@@ -113,7 +113,7 @@ stopGhci ghci = do
     forkIO $ ignore $ do
         -- try shutting down nicely
         interrupt ghci
-        handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
+        void $ exec ghci ":quit"
     forkIO $ ignore $ do
         -- if nicely doesn't work, kill ghci as the process level
         sleep 5
