@@ -65,9 +65,7 @@ startGhci cmd directory echoer = do
     echo <- newVar echoer -- where to write the output
     isRunning <- newIORef False
 
-    -- consume from a handle
-    -- produce an MVar with either False (computation finished), or True (stream closed)
-    -- send all data collected to echo
+    -- consume from a handle, send all data collected to echo
     let consume :: Stream -> IO (IO Status)
         consume name = do
             let h = if name == Stdout then out else err
