@@ -50,6 +50,7 @@ data StreamStatus = Finished | More deriving Eq
 --   which might compile dependent packages before really loading.
 startGhci :: String -> Maybe FilePath -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhci cmd directory echoer = do
+    callerThread <- myThreadId
     (Just inp, Just out, Just err, ghciProcess) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
 
@@ -84,7 +85,9 @@ startGhci cmd directory echoer = do
                         if codeFinish `isInfixOf` l then
                             putMVar result More
                          else do
-                            withVar echo $ \echo -> echo name $ dropPrefixRepeatedly codePrefix l
+                            withVar echo $ \echo -> do
+                                let s = dropPrefixRepeatedly codePrefix l
+                                echo name s `catch_` throwTo callerThread
                         rec
             return $ do
                 v <- takeMVar result
