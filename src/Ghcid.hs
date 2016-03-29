@@ -164,9 +164,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
 
     -- fire, given a waiter, the messages, and the warnings from last time
     let fire nextWait messages warnings = do
-            let f m@Message{} = m{loadMessage = filter (not . ignoreMessageLine) $ loadMessage m}
-                f x = x
-            messages <- return $ map f $ filter (not . ignoreMessage) messages
+            messages <- return $ mapMaybe tidyMessage messages
 
             loaded <- map snd <$> showModules ghci
             let loadedCount = length loaded
@@ -234,18 +232,16 @@ runGhcid waiter restart command outputfiles test size titles output = do
     fire nextWait messages Nothing
 
 
--- | Ignore messages that GHC shouldn't really generate.
-ignoreMessage :: Load -> Bool
-ignoreMessage Message{loadSeverity=Warning, loadMessage=[_,x]}
-    = x `elem` ["    -O conflicts with --interactive; -O ignored."]
-ignoreMessage _ = False
 
--- | Ignore lines in messages that are pointless.
-ignoreMessageLine :: String -> Bool
-ignoreMessageLine x = any (`isPrefixOf` x) xs
-    where
-        xs = ["      except perhaps to import instances from"
-             ,"    To import instances alone, use: import "]
+-- | Ignore entirely pointless messages and remove unnecessary lines.
+tidyMessage :: Load -> Maybe Load
+tidyMessage Message{loadSeverity=Warning, loadMessage=[_,x]}
+    | x == "    -O conflicts with --interactive; -O ignored." = Nothing
+tidyMessage m@Message{..}
+    = Just m{loadMessage = filter (\x -> not $ any (`isPrefixOf` x) bad) loadMessage}
+    where bad = ["      except perhaps to import instances from"
+                ,"    To import instances alone, use: import "]
+tidyMessage x = Just x
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
