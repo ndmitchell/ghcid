@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #29, add interrupt function
     Add Data instances for the types
     Add execStream to the API
     Make stopGhci more effective, now kills the underlying process
