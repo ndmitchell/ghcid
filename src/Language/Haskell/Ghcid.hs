@@ -68,7 +68,7 @@ startGhci cmd directory echoer = do
     -- consume from a handle
     -- produce an MVar with either False (computation finished), or True (stream closed)
     -- send all data collected to echo
-    let consume :: Stream -> IO (MVar Status)
+    let consume :: Stream -> IO (IO Status)
         consume name = do
             let h = if name == Stdout then out else err
             result <- newEmptyMVar -- the end result
@@ -83,7 +83,7 @@ startGhci cmd directory echoer = do
                          else do
                             withVar echo $ \echo -> echo name $ dropPrefixRepeatedly prefix l
                         rec
-            return result
+            return $ takeMVar result
 
     outs <- consume Stdout
     errs <- consume Stderr
@@ -95,8 +95,8 @@ startGhci cmd directory echoer = do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
                 writeIORef isRunning True
                 hPutStrLn inp $ s ++ "\nPrelude.putStrLn " ++ show finish ++ "\nPrelude.error " ++ show finish
-                outC <- takeMVar outs
-                errC <- takeMVar errs
+                outC <- outs
+                errC <- errs
                 writeIORef isRunning False
                 when (outC == Finished || errC == Finished) $
                     throwIO $ UnexpectedExit cmd s
