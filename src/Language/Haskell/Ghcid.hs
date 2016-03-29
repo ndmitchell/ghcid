@@ -39,6 +39,9 @@ data Ghci = Ghci
     ,ghciInterupt :: IO ()
     ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()}
 
+-- | The current status of a Stream
+data Status = Finished | More deriving Eq
+
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   If you do not call 'stopGhci' then the underlying process may be leaked.
@@ -65,18 +68,18 @@ startGhci cmd directory echoer = do
     -- consume from a handle
     -- produce an MVar with either False (computation finished), or True (stream closed)
     -- send all data collected to echo
-    let consume :: Stream -> IO (MVar Bool)
+    let consume :: Stream -> IO (MVar Status)
         consume name = do
             let h = if name == Stdout then out else err
             result <- newEmptyMVar -- the end result
             forkIO $ fix $ \rec -> do
                 el <- tryBool isEOFError $ hGetLine h
                 case el of
-                    Left _ -> putMVar result True
+                    Left _ -> putMVar result Finished
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
                         if finish `isInfixOf` l then
-                            putMVar result False
+                            putMVar result More
                          else do
                             withVar echo $ \echo -> echo name $ dropPrefixRepeatedly prefix l
                         rec
@@ -95,7 +98,7 @@ startGhci cmd directory echoer = do
                 outC <- takeMVar outs
                 errC <- takeMVar errs
                 writeIORef isRunning False
-                when (outC || errC) $
+                when (outC == Finished || errC == Finished) $
                     throwIO $ UnexpectedExit cmd s
 
     let ghciInterupt = whenM (readIORef isRunning) $ do
