@@ -107,6 +107,7 @@ startGhci cmd directory echoer = do
     r <- parseLoad <$> exec ghci ""
     return (ghci, r)
 
+
 -- | Stop GHCi
 stopGhci :: Ghci -> IO ()
 stopGhci ghci = do
@@ -125,6 +126,7 @@ stopGhci ghci = do
 --   The callback will be called single threaded.
 execStream :: Ghci -> String -> (Stream -> String -> IO ()) -> IO ()
 execStream = ghciExec
+
 
 -- | Interrupt Ghci, stopping the current computation (if any), but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
