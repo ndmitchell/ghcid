@@ -110,11 +110,16 @@ startGhci cmd directory echoer = do
 -- | Stop GHCi
 stopGhci :: Ghci -> IO ()
 stopGhci ghci = do
-    handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
-    void $ forkIO $ ignore $ do
-        sleep 5 -- try and give ghci a chance to go quietly
+    forkIO $ ignore $ do
+        -- try shutting down nicely
+        interrupt ghci
+        handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
+    forkIO $ ignore $ do
+        -- if nicely doesn't work, kill ghci as the process level
+        sleep 5
         terminateProcess $ ghciProcess ghci
     void $ waitForProcess $ ghciProcess ghci
+
 
 -- | Execute a command, calling a callback on each response.
 --   The callback will be called single threaded.
