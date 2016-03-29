@@ -61,9 +61,7 @@ startGhci cmd directory echoer = do
     hPutStrLn inp $ ":set prompt " ++ prefix
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
 
-    lock <- newLock -- ensure only one person talks to ghci at a time
     echo <- newVar echoer -- where to write the output
-    isRunning <- newIORef False
 
     -- consume from a handle, send all data collected to echo
     let consume :: Stream -> IO (IO Status)
@@ -88,6 +86,9 @@ startGhci cmd directory echoer = do
 
     outs <- consume Stdout
     errs <- consume Stderr
+
+    lock <- newLock -- ensure only one person talks to ghci at a time
+    isRunning <- newIORef False
 
     -- FIXME: Shouldn't use a lock, should error if multiple ones
     let ghciExec s echoer = do
