@@ -65,7 +65,8 @@ startGhci cmd directory echoer = do
     -- consume from a handle
     -- produce an MVar with either False (computation finished), or True (stream closed)
     -- send all data collected to echo
-    let consume h name = do
+    let consume :: Handle -> Stream -> IO (MVar Bool)
+        consume h name = do
             result <- newEmptyMVar -- the end result
             forkIO $ fix $ \rec -> do
                 el <- tryBool isEOFError $ hGetLine h
