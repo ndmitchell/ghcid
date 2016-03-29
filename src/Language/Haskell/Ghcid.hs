@@ -61,6 +61,7 @@ startGhci cmd directory echoer = do
     -- Special strings that shouldn't occur in normal use
     let codePrefix = "#~GHCID-START~#"
         codeFinish = "#~GHCID-FINISH~#"
+        codeAbort  = "#~GHCID-ABORT~#"
 
     -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
     -- string and filter that out.
@@ -97,29 +98,55 @@ startGhci cmd directory echoer = do
     outs <- consume Stdout
     errs <- consume Stderr
 
-    lock <- newLock -- ensure only one person talks to ghci at a time
-    isRunning <- newIORef False
+    -- held while interrupting, and briefly held when starting an exec
+    -- ensures exec values queue up behind an ongoing interrupt and no two interrupts run at once
+    isInterrupting <- newLock
 
-    -- FIXME: Shouldn't use a lock, should error if multiple ones
+    -- is anyone running running an exec statement, ensure only one person talks to ghci at a time
+    isRunning <- newVar False
+
     let ghciExec s echoer = do
-            withLock lock $ do
-                modifyVar_ echo $ \old -> return echoer
+            withLock isInterrupting $ return ()
+            bracket_
+                (modifyVar_ isRunning $ \b ->
+                    if not b then return True else
+                        fail "Ghcid.exec, computation is already running, must be used single-threaded")
+                (modifyVar_ isRunning $ \b ->
+                    if b then return False else
+                        fail "Ghcid.exec, internal logic error, running became False") $ do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ s
-                writeIORef isRunning True
+                modifyVar_ echo $ \old -> return echoer
                 hPutStrLn inp s
                 sync codeFinish
                 outC <- outs
                 errC <- errs
-                writeIORef isRunning False
                 when (outC == Finished || errC == Finished) $
                     throwIO $ UnexpectedExit cmd s
 
-    let ghciInterupt = whenM (readIORef isRunning) $ do
-                whenLoud $ outStrLn "%INTERRUPTED"
-                ignore $ interruptProcessGroupOf ghciProcess
-                -- FIXME: Should call out to ghciExec to wait for an interaction
-                --        Probably using a unique flag so it can tell if the previous process just finished.
-                writeIORef isRunning False
+    let ghciInterupt = withLock isInterrupting $ do
+            whenM (readVar isRunning) $ do
+                whenLoud $ outStrLn "%INTERRUPT"
+                seenOut <- newBarrier; seenErr <- newBarrier
+                let echoer strm s =
+                        when (codeAbort `isInfixOf` s) $
+                            signalBarrier (if strm == Stdout then seenOut else seenErr) ()
+                modifyVar_ echo $ \old -> return echoer
+
+                -- send the abort sync
+                sync codeAbort
+                waitBarrier seenOut; waitBarrier seenErr
+
+                -- abort has been received, so if finish for exec snuck in first
+                -- it must have arrived by now
+                -- if I am still running then resend the finish sync
+                whenM (readVar isRunning) $ do
+                    whenLoud $ outStrLn "%INTERRUPT SYNC"
+                    sync codeFinish
+                    -- now wait for another sync so I know that running left
+                    sync codeFinish
+                    void outs; void errs
+                    whenM (readVar isRunning) $ fail "Ghcid, internal error, interrupt failed"
+
 
     let ghci = Ghci{..}
     r <- parseLoad <$> exec ghci ""
