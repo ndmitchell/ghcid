@@ -40,10 +40,6 @@ data Ghci = Ghci
     ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()}
 
 
--- | The current status of a Stream
-data StreamStatus = Finished | More deriving Eq
-
-
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   If you do not call 'stopGhci' then the underlying process may be leaked.
 --   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
