@@ -49,7 +49,7 @@ data StreamStatus = Finished | More deriving Eq
 --   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
 --   which might compile dependent packages before really loading.
 startGhci :: String -> Maybe FilePath -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
-startGhci cmd directory echoer = do
+startGhci cmd directory echo0 = do
     callerThread <- myThreadId
     (Just inp, Just out, Just err, ghciProcess) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
@@ -65,91 +65,74 @@ startGhci cmd directory echoer = do
     hPutStrLn inp $ ":set prompt " ++ ghcid_prefix
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
 
-    -- Special strings that shouldn't occur in normal use
-    let codeFinish = "#~GHCID-FINISH~#"
-        codeAbort  = "#~GHCID-ABORT~#"
+    -- At various points I need to ensure everything the user is waiting for has completed
+    -- So I send messages on stdout/stderr and wait for them to arrive
+    syncCount <- newVar 0
+    let syncReplay = do
+            i <- readVar syncCount
+            let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
+            hPutStrLn inp $ "Prelude.putStrLn " ++ show msg ++ "\nPrelude.error " ++ show msg
+            return $ isInfixOf msg
+    let syncFresh = do
+            modifyVar_ syncCount $ return . succ
+            syncReplay
 
-    let sync msg = hPutStrLn inp $ "Prelude.putStrLn " ++ show msg ++ "\nPrelude.error " ++ show msg
-
-    echo <- newVar echoer -- where to write the output
-
-    -- consume from a handle, send all data collected to echo
-    let consume :: Stream -> IO (IO StreamStatus)
-        consume name = do
+    -- Consume from a stream until EOF (return Nothing) or some predicate returns Just
+    let consume :: Stream -> (String -> IO (Maybe a)) -> IO (Maybe a)
+        consume name finish = do
             let h = if name == Stdout then out else err
-            result <- newEmptyMVar -- the end result
-            forkIO $ fix $ \rec -> do
+            fix $ \rec -> do
                 el <- tryBool isEOFError $ hGetLine h
                 case el of
-                    Left _ -> putMVar result Finished
+                    Left _ -> return Nothing
                     Right l -> do
                         whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
-                        if codeFinish `isInfixOf` l then
-                            putMVar result More
-                         else do
-                            withVar echo $ \echo ->
-                                echo name (removePrefix l) `catch_` throwTo callerThread
-                        rec
-            return $ do
-                v <- takeMVar result
-                when (v == Finished) $ putMVar result Finished
-                return v
+                        res <- finish $ removePrefix l
+                        case res of
+                            Nothing -> rec
+                            Just a -> return $ Just a
 
-    outs <- consume Stdout
-    errs <- consume Stderr
+    let consume2 :: (Stream -> String -> IO (Maybe a)) -> IO (Maybe (a,a))
+        consume2 finish = do
+            res1 <- onceFork $ consume Stdout (finish Stdout)
+            res2 <- consume Stderr (finish Stderr)
+            res1 <- res1
+            return $ liftM2 (,) res1 res2
+
 
     -- held while interrupting, and briefly held when starting an exec
     -- ensures exec values queue up behind an ongoing interrupt and no two interrupts run at once
     isInterrupting <- newLock
 
     -- is anyone running running an exec statement, ensure only one person talks to ghci at a time
-    isRunning <- newVar False
+    isRunning <- newLock
 
-    let ghciExec s echoer = do
+    let ghciExec command echo = do
             withLock isInterrupting $ return ()
-            bracket_
-                (modifyVar_ isRunning $ \b ->
-                    if not b then return True else
-                        fail "Ghcid.exec, computation is already running, must be used single-threaded")
-                (modifyVar_ isRunning $ \b ->
-                    if b then return False else
-                        fail "Ghcid.exec, internal logic error, running became False") $ do
-                whenLoud $ outStrLn $ "%GHCINP: " ++ s
-                modifyVar_ echo $ \old -> return echoer
-                hPutStrLn inp s
-                sync codeFinish
-                outC <- outs
-                errC <- errs
-                when (outC == Finished || errC == Finished) $
-                    throwIO $ UnexpectedExit cmd s
+            res <- withLockTry isRunning $ do
+                whenLoud $ outStrLn $ "%GHCINP: " ++ command
+                hPutStrLn inp command
+                stop <- syncFresh
+                res <- consume2 $ \strm s ->
+                    if stop s then return $ Just () else do echo strm s; return Nothing
+                when (res == Nothing) $
+                    throwIO $ UnexpectedExit cmd command
+            when (isNothing res) $
+                fail "Ghcid.exec, computation is already running, must be used single-threaded"
 
     let ghciInterupt = withLock isInterrupting $ do
-            whenM (readVar isRunning) $ do
+            whenM (fmap isNothing $ withLockTry isRunning $ return ()) $ do
                 whenLoud $ outStrLn "%INTERRUPT"
-                seenOut <- newBarrier; seenErr <- newBarrier
-                let echoer strm s =
-                        when (codeAbort `isInfixOf` s) $
-                            signalBarrier (if strm == Stdout then seenOut else seenErr) ()
-                modifyVar_ echo $ \old -> return echoer
-
-                -- send the abort sync
-                sync codeAbort
-                waitBarrier seenOut; waitBarrier seenErr
-
-                -- abort has been received, so if finish for exec snuck in first
-                -- it must have arrived by now
-                -- if I am still running then resend the finish sync
-                whenM (readVar isRunning) $ do
-                    whenLoud $ outStrLn "%INTERRUPT SYNC"
-                    sync codeFinish
-                    -- now wait for another sync so I know that running left
-                    sync codeFinish
-                    void outs; void errs
-                    whenM (readVar isRunning) $ fail "Ghcid, internal error, interrupt failed"
-
+                interruptProcessGroupOf ghciProcess
+                syncReplay -- let the running person finish
+                stop <- syncFresh -- now sync on a fresh message (in case they finished before)
+                res <- consume2 $ \_ s -> return $ if stop s then Just () else Nothing
+                when (res == Nothing) $
+                    throwIO $ UnexpectedExit cmd "Interrupt"
+                withLock isRunning $ return ()
 
     let ghci = Ghci{..}
-    r <- parseLoad <$> exec ghci ""
+    r <- parseLoad <$> execBuffer ghci "" echo0
     return (ghci, r)
 
 
