@@ -182,13 +182,20 @@ interrupt = ghciInterupt
 ---------------------------------------------------------------------
 -- SUGAR HELPERS
 
--- | Send a command, get lines of result. Must be called single-threaded.
-exec :: Ghci -> String -> IO [String]
-exec ghci cmd = do
+-- | Execute a command, calling a callback on each response.
+--   The callback will be called single threaded.
+execBuffer :: Ghci -> String -> (Stream -> String -> IO ()) -> IO [String]
+execBuffer ghci cmd echo = do
     stdout <- newIORef []
     stderr <- newIORef []
-    execStream ghci cmd $ \i s -> modifyIORef (if i == Stdout then stdout else stderr) (s:)
+    execStream ghci cmd $ \i s -> do
+        modifyIORef (if i == Stdout then stdout else stderr) (s:)
+        echo i s
     reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
+
+-- | Send a command, get lines of result. Must be called single-threaded.
+exec :: Ghci -> String -> IO [String]
+exec ghci cmd = execBuffer ghci cmd $ \_ _ -> return ()
 
 -- | Show modules
 showModules :: Ghci -> IO [(String,FilePath)]
