@@ -12,6 +12,7 @@ import Data.List.Extra
 import Data.Maybe
 import Data.Tuple.Extra
 import Data.Version
+import Session
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
 import System.Console.ANSI
@@ -107,13 +108,8 @@ autoOptions o@Options{..}
                  | otherwise = x
 
 
--- ensure the action runs off the main thread
-ctrlC :: IO () -> IO ()
-ctrlC = join . onceFork
-
-
 main :: IO ()
-main = withWindowIcon $ ctrlC $ do
+main = withWindowIcon $ withSession $ \session -> do
     opts <- cmdArgsRun options
     withCurrentDirectory (directory opts) $ do
         opts@Options{..} <- autoOptions opts
@@ -130,7 +126,7 @@ main = withWindowIcon $ ctrlC $ do
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid waiter (nubOrd restart) command outputfile test height (not notitle) $ \xs -> do
+                runGhcid session waiter (nubOrd restart) command outputfile test height (not notitle) $ \xs -> do
                     outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                         when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                         putStr $ concatMap ((:) '\n' . snd) x
@@ -141,8 +137,8 @@ main = withWindowIcon $ ctrlC $ do
 data Style = Plain | Bold deriving Eq
 
 
-runGhcid :: Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid waiter restart command outputfiles test size titles output = do
+runGhcid :: Session -> Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
+runGhcid session waiter restart command outputfiles test size titles output = do
     let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -227,7 +223,7 @@ runGhcid waiter restart command outputfiles test size titles output = do
             else do
                 -- can parallelise killing the old ghci and starting the new one
                 forkIO $ stopGhci ghci
-                runGhcid waiter restart command outputfiles test size titles output
+                runGhcid session waiter restart command outputfiles test size titles output
 
     fire nextWait messages Nothing
 

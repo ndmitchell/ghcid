@@ -73,6 +73,7 @@ executable ghcid
                    Language.Haskell.Ghcid.Terminal,
                    Language.Haskell.Ghcid.Util,
                    Language.Haskell.Ghcid,
+                   Session,
                    Wait
 
 test-suite ghcid_test
