@@ -46,7 +46,6 @@ data Ghci = Ghci
 --   which might compile dependent packages before really loading.
 startGhci :: String -> Maybe FilePath -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhci cmd directory echo0 = do
-    callerThread <- myThreadId
     (Just inp, Just out, Just err, ghciProcess) <-
         createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
 
