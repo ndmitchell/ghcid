@@ -1,7 +1,7 @@
 
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 module Session(
-    Session, withSession, start,
+    Session, withSession, start, underlying,
     ) where
 
 import Language.Haskell.Ghcid
@@ -49,3 +49,8 @@ start (Session ref) command = do
     (ghci, load) <- startGhci command Nothing (const outStrLn)
     writeIORef ref $ Just ghci
     return load
+
+underlying :: Session -> IO Ghci
+underlying (Session ref) = do
+    ghci <- readIORef ref
+    maybe (fail "Underlying called before start") return ghci
