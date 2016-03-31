@@ -178,15 +178,15 @@ execBuffer ghci cmd echo = do
 exec :: Ghci -> String -> IO [String]
 exec ghci cmd = execBuffer ghci cmd $ \_ _ -> return ()
 
--- | Show modules
+-- | List the modules currently loaded, with module name and source file.
 showModules :: Ghci -> IO [(String,FilePath)]
 showModules ghci = parseShowModules <$> exec ghci ":show modules"
 
--- | Reload modules
+-- | Perform a reload, list the messages that reload generated.
 reload :: Ghci -> IO [Load]
 reload ghci = parseLoad <$> exec ghci ":reload"
 
--- | Send @:quit@ and wait for the process to die.
+-- | Send @:quit@ and wait for the process to quit.
 quit :: Ghci -> IO ()
 quit ghci =  do
     interrupt ghci
