@@ -151,7 +151,8 @@ runGhcid session waiter restart command outputfiles test size titles output = do
     restartTimes <- mapM getModTime restart
     outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
-    (ghci,messages) <- startGhci command Nothing $ const outStrLn
+    messages <- start session command
+    ghci <- underlying session
 #if !defined(mingw32_HOST_OS)
     tid <- myThreadId
     installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
@@ -221,8 +222,6 @@ runGhcid session waiter restart command outputfiles test size titles output = do
                 messages <- reload ghci
                 fire nextWait messages $ Just warnings
             else do
-                -- can parallelise killing the old ghci and starting the new one
-                forkIO $ stopGhci ghci
                 runGhcid session waiter restart command outputfiles test size titles output
 
     fire nextWait messages Nothing
