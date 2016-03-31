@@ -1,11 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
 
--- | The entry point of the library
+-- | Library for spawning and working with Ghci sessions.
 module Language.Haskell.Ghcid(
     Ghci, GhciError(..), Stream(..),
     Load(..), Severity(..),
-    startGhci, stopGhci, interrupt, execStream,
-    showModules, reload, exec
+    startGhci, stopGhci, interrupt, process, execStream,
+    showModules, reload, exec, quit
     ) where
 
 import System.IO
@@ -131,18 +131,16 @@ startGhci cmd directory echo0 = do
     return (ghci, r)
 
 
--- | Stop GHCi
+-- | Stop GHCi. Attempts to interrupt and execute @:quit:@, but if that doesn't complete
+--   within 5 seconds it just terminates the process.
 stopGhci :: Ghci -> IO ()
 stopGhci ghci = do
-    forkIO $ ignore $ do
-        -- try shutting down nicely
-        interrupt ghci
-        void $ exec ghci ":quit"
-    forkIO $ ignore $ do
+    forkIO $ quit ghci
+    forkIO $ do
         -- if nicely doesn't work, kill ghci as the process level
         sleep 5
-        terminateProcess $ ghciProcess ghci
-    void $ waitForProcess $ ghciProcess ghci
+        terminateProcess $ process ghci
+    void $ waitForProcess $ process ghci
 
 
 -- | Execute a command, calling a callback on each response.
@@ -155,6 +153,11 @@ execStream = ghciExec
 --   but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
 interrupt = ghciInterupt
+
+
+-- | Obtain the progress handle behind a GHCi instance.
+process :: Ghci -> ProcessHandle
+process = ghciProcess
 
 
 ---------------------------------------------------------------------
@@ -179,6 +182,13 @@ exec ghci cmd = execBuffer ghci cmd $ \_ _ -> return ()
 showModules :: Ghci -> IO [(String,FilePath)]
 showModules ghci = parseShowModules <$> exec ghci ":show modules"
 
--- | reload modules
+-- | Reload modules
 reload :: Ghci -> IO [Load]
 reload ghci = parseLoad <$> exec ghci ":reload"
+
+-- | Send @:quit@ and wait for the process to die.
+quit :: Ghci -> IO ()
+quit ghci =  do
+    interrupt ghci
+    handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
+    void $ waitForProcess $ process ghci
