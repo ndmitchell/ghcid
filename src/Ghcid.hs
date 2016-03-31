@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, DeriveDataTypeable, CPP, TupleSections #-}
+{-# LANGUAGE RecordWildCards, DeriveDataTypeable, TupleSections #-}
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
@@ -28,10 +28,6 @@ import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Wait
 import Prelude
-
-#if !defined(mingw32_HOST_OS)
-import System.Posix.Signals
-#endif
 
 
 -- | Command line options
@@ -153,10 +149,6 @@ runGhcid session waiter restart command outputfiles test size titles output = do
     nextWait <- waitFiles waiter
     messages <- start session command
     ghci <- underlying session
-#if !defined(mingw32_HOST_OS)
-    tid <- myThreadId
-    installHandler sigINT (Catch (interrupt ghci >> stopGhci ghci >> throwTo tid UserInterrupt)) Nothing
-#endif
     curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages, and the warnings from last time
