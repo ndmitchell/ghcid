@@ -58,15 +58,16 @@ startGhci cmd directory echoer = do
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
 
-    -- Special strings that shouldn't occur in normal use
-    let codePrefix = "#~GHCID-START~#"
-        codeFinish = "#~GHCID-FINISH~#"
-        codeAbort  = "#~GHCID-ABORT~#"
-
     -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
     -- string and filter that out.
-    hPutStrLn inp $ ":set prompt " ++ codePrefix
+    let ghcid_prefix = "#~GHCID-START~#"
+    let removePrefix = dropPrefixRepeatedly ghcid_prefix
+    hPutStrLn inp $ ":set prompt " ++ ghcid_prefix
     hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+
+    -- Special strings that shouldn't occur in normal use
+    let codeFinish = "#~GHCID-FINISH~#"
+        codeAbort  = "#~GHCID-ABORT~#"
 
     let sync msg = hPutStrLn inp $ "Prelude.putStrLn " ++ show msg ++ "\nPrelude.error " ++ show msg
 
@@ -86,9 +87,8 @@ startGhci cmd directory echoer = do
                         if codeFinish `isInfixOf` l then
                             putMVar result More
                          else do
-                            withVar echo $ \echo -> do
-                                let s = dropPrefixRepeatedly codePrefix l
-                                echo name s `catch_` throwTo callerThread
+                            withVar echo $ \echo ->
+                                echo name (removePrefix l) `catch_` throwTo callerThread
                         rec
             return $ do
                 v <- takeMVar result
