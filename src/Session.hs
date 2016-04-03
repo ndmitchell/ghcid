@@ -61,14 +61,14 @@ sessionStart Session{..} cmd = do
 
 sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
-    cmd <- readIORef command
-    maybe (fail "Restart called before start") (sessionStart session) cmd
+    Just cmd <- readIORef command
+    sessionStart session cmd
 
 
 sessionUnderlying :: Session -> IO Ghci
 sessionUnderlying Session{..} = do
-    v <- readIORef ghci
-    maybe (fail "Underlying called before start") return v
+    Just v <- readIORef ghci
+    return v
 
 
 -- | Ignore entirely pointless messages and remove unnecessary lines.
