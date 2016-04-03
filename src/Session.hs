@@ -14,6 +14,7 @@ import System.Process
 import Control.Exception.Extra
 import Control.Concurrent.Extra
 import Control.Monad.Extra
+import Data.List.Extra
 
 
 data Session = Session
@@ -55,7 +56,7 @@ sessionStart Session{..} cmd = do
     writeIORef ghci Nothing
     (v, load) <- startGhci cmd Nothing (const outStrLn)
     writeIORef ghci $ Just v
-    return (load, [])
+    return (load, nubOrd $ map loadFile load)
 
 sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
