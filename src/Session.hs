@@ -3,10 +3,10 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, withSession, start, restart, underlying,
+    Session, withSession, sessionStart, sessionRestart, sessionUnderlying,
     ) where
 
-import Language.Haskell.Ghcid
+import Language.Haskell.Ghcid as G
 import Language.Haskell.Ghcid.Util
 import Data.IORef
 import System.Time.Extra
@@ -47,8 +47,8 @@ kill ghci = ignore $ do
     terminateProcess $ process ghci
 
 
-start :: Session -> String -> IO ([Load], [FilePath])
-start Session{..} cmd = do
+sessionStart :: Session -> String -> IO ([Load], [FilePath])
+sessionStart Session{..} cmd = do
     writeIORef command $ Just cmd
     val <- readIORef ghci
     whenJust val $ void . forkIO . kill
@@ -57,12 +57,13 @@ start Session{..} cmd = do
     writeIORef ghci $ Just v
     return (load, [])
 
-restart :: Session -> IO ([Load], [FilePath])
-restart session@Session{..} = do
+sessionRestart :: Session -> IO ([Load], [FilePath])
+sessionRestart session@Session{..} = do
     cmd <- readIORef command
-    maybe (fail "Restart called before start") (start session) cmd
+    maybe (fail "Restart called before start") (sessionStart session) cmd
 
-underlying :: Session -> IO Ghci
-underlying Session{..} = do
+
+sessionUnderlying :: Session -> IO Ghci
+sessionUnderlying Session{..} = do
     v <- readIORef ghci
     maybe (fail "Underlying called before start") return v

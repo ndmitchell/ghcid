@@ -147,8 +147,8 @@ runGhcid session waiter restart command outputfiles test size titles output = do
     restartTimes <- mapM getModTime restart
     outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
-    (messages, _) <- start session command
-    ghci <- underlying session
+    (messages, _) <- sessionStart session command
+    ghci <- sessionUnderlying session
     curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages, and the warnings from last time
