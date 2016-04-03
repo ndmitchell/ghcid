@@ -1,5 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | Use 'withWaiterPoll' or 'withWaiterNotify' to create a 'Waiter' object,
+--   then access it (single-threaded) by using 'waitFiles'.
 module Wait(Waiter, withWaiterPoll, withWaiterNotify, waitFiles) where
 
 import Control.Concurrent.Extra
@@ -32,8 +34,16 @@ withWaiterNotify f = withManagerConf defaultConfig{confDebounce=NoDebounce} $ \m
     f $ WaiterNotify manager mvar var
 
 
--- | Return a message about why you are continuing (usually a file name).
---   Reports any changes between the first
+-- | Given the pattern:
+--
+-- > wait <- waitFiles waiter
+-- > ...
+-- > wait ["File1.hs","File2.hs"]
+--
+--   This continues as soon as either @File1.hs@ or @File2.hs@ changes,
+--   starting from when 'waitFiles' was initially called.
+--
+--   Returns a message about why you are continuing (usually a file name).
 waitFiles :: Waiter -> IO ([FilePath] -> IO [String])
 waitFiles waiter = do
     base <- getCurrentTime
