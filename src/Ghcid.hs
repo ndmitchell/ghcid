@@ -39,7 +39,7 @@ data Options = Options
     ,width :: Maybe Int
     ,topmost :: Bool
     ,notitle :: Bool
-    ,restartWatch :: [FilePath]
+    ,restart :: [FilePath]
     ,directory :: FilePath
     ,outputfile :: [FilePath]
     }
@@ -54,7 +54,7 @@ options = cmdArgsMode $ Options
     ,width = Nothing &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,notitle = False &= help "Don't update the shell title/icon"
-    ,restartWatch = [] &= typFile &= name "restart" &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
+    ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     } &= verbosity &=
@@ -97,7 +97,7 @@ autoOptions o@Options{..}
               | cabal /= [] -> f (if arguments == [] then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
               | otherwise -> f ("ghci":opts) []
     where
-        f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restartWatch = restartWatch ++ r}
+        f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r}
 
         -- in practice we're not expecting many arguments to have anything funky in them
         escape x | ' ' `elem` x = "\"" ++ x ++ "\""
@@ -122,7 +122,7 @@ main = withWindowIcon $ withSession $ \session -> do
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid session waiter (nubOrd restartWatch) command outputfile test height (not notitle) $ \xs -> do
+                runGhcid session waiter (nubOrd restart) command outputfile test height (not notitle) $ \xs -> do
                     outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                         when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                         putStr $ concatMap ((:) '\n' . snd) x
