@@ -131,18 +131,6 @@ startGhci cmd directory echo0 = do
     return (ghci, r)
 
 
--- | Stop GHCi. Attempts to interrupt and execute @:quit:@, but if that doesn't complete
---   within 5 seconds it just terminates the process.
-stopGhci :: Ghci -> IO ()
-stopGhci ghci = do
-    forkIO $ quit ghci
-    forkIO $ do
-        -- if nicely doesn't work, kill ghci as the process level
-        sleep 5
-        terminateProcess $ process ghci
-    void $ waitForProcess $ process ghci
-
-
 -- | Execute a command, calling a callback on each response.
 --   The callback will be called single threaded.
 execStream :: Ghci -> String -> (Stream -> String -> IO ()) -> IO ()
@@ -191,4 +179,16 @@ quit :: Ghci -> IO ()
 quit ghci =  do
     interrupt ghci
     handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
+    void $ waitForProcess $ process ghci
+
+
+-- | Stop GHCi. Attempts to interrupt and execute @:quit:@, but if that doesn't complete
+--   within 5 seconds it just terminates the process.
+stopGhci :: Ghci -> IO ()
+stopGhci ghci = do
+    forkIO $ quit ghci
+    forkIO $ do
+        -- if nicely doesn't work, kill ghci as the process level
+        sleep 5
+        terminateProcess $ process ghci
     void $ waitForProcess $ process ghci
