@@ -3,7 +3,7 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, withSession, start, underlying,
+    Session, withSession, start, restart, underlying,
     ) where
 
 import Language.Haskell.Ghcid
@@ -57,6 +57,10 @@ start Session{..} cmd = do
     writeIORef ghci $ Just v
     return (load, [])
 
+restart :: Session -> IO ([Load], [FilePath])
+restart session@Session{..} = do
+    cmd <- readIORef command
+    maybe (fail "Restart called before start") (start session) cmd
 
 underlying :: Session -> IO Ghci
 underlying Session{..} = do
