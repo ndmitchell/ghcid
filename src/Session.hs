@@ -4,7 +4,8 @@
 --   Not suitable for calling multithreaded.
 module Session(
     Session, withSession, sessionUnderlying,
-    sessionStart, sessionRestart, sessionReload
+    sessionStart, sessionRestart, sessionReload,
+    sessionExecAsync,
     ) where
 
 import Language.Haskell.Ghcid as G
@@ -23,6 +24,7 @@ data Session = Session
     {ghci :: IORef (Maybe Ghci) -- ^ The Ghci session, or Nothing if there is none
     ,command :: IORef (Maybe String) -- ^ The last command passed to sessionStart
     ,warnings :: IORef [Load] -- ^ The warnings from the last load
+    ,running :: Var Bool
     }
 
 
@@ -39,6 +41,7 @@ withSession f = do
     ghci <- newIORef Nothing
     command <- newIORef Nothing
     warnings <- newIORef []
+    running <- newVar False
     ctrlC (f $ Session{..}) `finally` do
         whenJustM (readIORef ghci) $ \v -> do
             writeIORef ghci Nothing
@@ -72,20 +75,39 @@ sessionRestart session@Session{..} = do
 
 
 sessionReload :: Session -> IO ([Load], [FilePath])
-sessionReload Session{..} = do
+sessionReload session@Session{..} = do
+    -- kill anything async, set stuck if you didn't succeed
+    old <- modifyVar running $ \b -> return (False, b)
+    stuck <- if not old then return False else do
+        Just ghci <- readIORef ghci
+        fmap isNothing $ timeout 5 $ interrupt ghci
+
+    if stuck then sessionRestart session else do
+        -- actually reload
+        Just ghci <- readIORef ghci
+        messages <- mapMaybe tidyMessage <$> reload ghci
+        loaded <- map snd <$> showModules ghci
+        let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
+        warn <- readIORef warnings
+
+        -- only keep old warnings from files that are still loaded, but did not reload
+        let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
+        -- newest warnings always go first, so the file you hit save on most recently has warnings first
+        messages <- return $ messages ++ filter validWarn warn
+
+        writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
+        return (messages, nubOrd $ loaded ++ reloaded)
+
+
+sessionExecAsync :: Session -> String -> IO () -> IO ()
+sessionExecAsync Session{..} cmd done = do
     Just ghci <- readIORef ghci
-    messages <- mapMaybe tidyMessage <$> reload ghci
-    loaded <- map snd <$> showModules ghci
-    let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
-    warn <- readIORef warnings
-
-   -- only keep old warnings from files that are still loaded, but did not reload
-    let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
-    -- newest warnings always go first, so the file you hit save on most recently has warnings first
-    messages <- return $ messages ++ filter validWarn warn
-
-    writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
-    return (messages, nubOrd $ loaded ++ reloaded)
+    modifyVar_ running $ const $ return True
+    void $ forkIO $ do
+        exec ghci cmd
+        old <- modifyVar running $ \b -> return (False, b)
+        -- don't fire Done if someone interrupted us
+        when old done
 
 
 sessionUnderlying :: Session -> IO Ghci
