@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
@@ -15,7 +16,10 @@ import Control.Concurrent.Extra
 import Control.Monad.Extra
 
 
-newtype Session = Session (IORef (Maybe Ghci))
+data Session = Session
+    {ghci :: IORef (Maybe Ghci)
+    ,command :: IORef (Maybe String)
+    }
 
 
 -- | Ensure an action runs off the main thread, so can't get hit with Ctrl-C exceptions.
@@ -28,11 +32,12 @@ ctrlC = join . onceFork
 --   properly.
 withSession :: (Session -> IO a) -> IO a
 withSession f = do
-    ref <- newIORef Nothing
-    ctrlC (f $ Session ref) `finally` do
-        whenJustM (readIORef ref) $ \ghci -> do
-            writeIORef ref Nothing
-            ctrlC $ kill ghci
+    ghci <- newIORef Nothing
+    command <- newIORef Nothing
+    ctrlC (f $ Session{..}) `finally` do
+        whenJustM (readIORef ghci) $ \v -> do
+            writeIORef ghci Nothing
+            ctrlC $ kill v
 
 
 -- | Kill. Wait just long enough to ensure you've done the job, but not to see the results.
@@ -43,16 +48,17 @@ kill ghci = ignore $ do
 
 
 start :: Session -> String -> IO ([Load], [FilePath])
-start (Session ref) command = do
-    val <- readIORef ref
+start Session{..} cmd = do
+    writeIORef command $ Just cmd
+    val <- readIORef ghci
     whenJust val $ void . forkIO . kill
-    writeIORef ref Nothing
-    (ghci, load) <- startGhci command Nothing (const outStrLn)
-    writeIORef ref $ Just ghci
+    writeIORef ghci Nothing
+    (v, load) <- startGhci cmd Nothing (const outStrLn)
+    writeIORef ghci $ Just v
     return (load, [])
 
 
 underlying :: Session -> IO Ghci
-underlying (Session ref) = do
-    ghci <- readIORef ref
-    maybe (fail "Underlying called before start") return ghci
+underlying Session{..} = do
+    v <- readIORef ghci
+    maybe (fail "Underlying called before start") return v
