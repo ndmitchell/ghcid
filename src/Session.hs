@@ -62,7 +62,7 @@ sessionStart Session{..} cmd = do
     whenJust val $ void . forkIO . kill
     writeIORef ghci Nothing
     outStrLn $ "Loading " ++ cmd ++ " ..."
-    (v, messages) <- startGhci cmd Nothing (const outStrLn)
+    (v, messages) <- startGhci cmd Nothing $ const outStrLn
     writeIORef ghci $ Just v
     messages <- return $ mapMaybe tidyMessage messages
     writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
