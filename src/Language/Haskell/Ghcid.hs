@@ -120,11 +120,11 @@ startGhci cmd directory echo0 = do
                 whenLoud $ outStrLn "%INTERRUPT"
                 interruptProcessGroupOf ghciProcess
                 syncReplay -- let the running person finish
+                withLock isRunning $ return ()
                 stop <- syncFresh -- now sync on a fresh message (in case they finished before)
                 res <- consume2 $ \_ s -> return $ if stop s then Just () else Nothing
                 when (res == Nothing) $
                     throwIO $ UnexpectedExit cmd "Interrupt"
-                withLock isRunning $ return ()
 
     let ghci = Ghci{..}
     r <- parseLoad <$> execBuffer ghci "" echo0
