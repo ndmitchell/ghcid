@@ -67,8 +67,8 @@ sessionRestart session@Session{..} = do
 
 sessionUnderlying :: Session -> IO Ghci
 sessionUnderlying Session{..} = do
-    Just v <- readIORef ghci
-    return v
+    Just ghci <- readIORef ghci
+    return ghci
 
 
 -- | Ignore entirely pointless messages and remove unnecessary lines.
