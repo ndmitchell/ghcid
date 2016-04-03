@@ -1,5 +1,6 @@
 
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
+--   Not suitable for calling multithreaded.
 module Session(
     Session, withSession, start, underlying,
     ) where
