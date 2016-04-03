@@ -18,6 +18,8 @@ import Control.Concurrent.Extra
 import Control.Monad.Extra
 import Data.Maybe
 import Data.List.Extra
+import Control.Applicative
+import Prelude
 
 
 data Session = Session
