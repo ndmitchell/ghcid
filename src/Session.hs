@@ -57,6 +57,7 @@ kill ghci = ignore $ do
 
 sessionStart :: Session -> String -> IO ([Load], [FilePath])
 sessionStart Session{..} cmd = do
+    modifyVar_ running $ const $ return False
     writeIORef command $ Just cmd
     val <- readIORef ghci
     whenJust val $ void . forkIO . kill
