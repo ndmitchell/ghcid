@@ -3,7 +3,8 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, withSession, sessionStart, sessionRestart, sessionUnderlying,
+    Session, withSession, sessionUnderlying,
+    sessionStart, sessionRestart, sessionReload
     ) where
 
 import Language.Haskell.Ghcid as G
@@ -67,6 +68,23 @@ sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
     Just cmd <- readIORef command
     sessionStart session cmd
+
+
+sessionReload :: Session -> IO ([Load], [FilePath])
+sessionReload Session{..} = do
+    Just ghci <- readIORef ghci
+    messages <- mapMaybe tidyMessage <$> reload ghci
+    loaded <- map snd <$> showModules ghci
+    let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
+    warn <- readIORef warnings
+
+   -- only keep old warnings from files that are still loaded, but did not reload
+    let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
+    -- newest warnings always go first, so the file you hit save on most recently has warnings first
+    messages <- return $ messages ++ filter validWarn warn
+
+    writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
+    return (messages, nubOrd $ loaded ++ reloaded)
 
 
 sessionUnderlying :: Session -> IO Ghci
