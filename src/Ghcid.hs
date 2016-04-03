@@ -145,7 +145,6 @@ runGhcid session waiter restart command outputfiles test size titles output = do
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
     restartTimes <- mapM getModTime restart
-    outStrLn $ "Loading " ++ command ++ " ..."
     nextWait <- waitFiles waiter
     (messages, _) <- sessionStart session command
     ghci <- sessionUnderlying session
