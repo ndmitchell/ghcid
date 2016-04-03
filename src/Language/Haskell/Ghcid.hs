@@ -36,7 +36,7 @@ import Prelude
 --   a running computation, or does nothing if no computation is running.
 data Ghci = Ghci
     {ghciProcess :: ProcessHandle
-    ,ghciInterupt :: IO ()
+    ,ghciInterrupt :: IO ()
     ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()}
 
 
@@ -115,7 +115,7 @@ startGhci cmd directory echo0 = do
             when (isNothing res) $
                 fail "Ghcid.exec, computation is already running, must be used single-threaded"
 
-    let ghciInterupt = withLock isInterrupting $ do
+    let ghciInterrupt = withLock isInterrupting $ do
             whenM (fmap isNothing $ withLockTry isRunning $ return ()) $ do
                 whenLoud $ outStrLn "%INTERRUPT"
                 interruptProcessGroupOf ghciProcess
@@ -141,7 +141,7 @@ execStream = ghciExec
 -- | Interrupt Ghci, stopping the current computation (if any),
 --   but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
-interrupt = ghciInterupt
+interrupt = ghciInterrupt
 
 -- | Obtain the progress handle behind a GHCi instance.
 process :: Ghci -> ProcessHandle
