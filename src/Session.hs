@@ -41,14 +41,15 @@ kill ghci = ignore $ do
     terminateProcess $ process ghci
 
 
-start :: Session -> String -> IO [Load]
+start :: Session -> String -> IO ([Load], [FilePath])
 start (Session ref) command = do
     val <- readIORef ref
     whenJust val $ void . forkIO . kill
     writeIORef ref Nothing
     (ghci, load) <- startGhci command Nothing (const outStrLn)
     writeIORef ref $ Just ghci
-    return load
+    return (load, [])
+
 
 underlying :: Session -> IO Ghci
 underlying (Session ref) = do
