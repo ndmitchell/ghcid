@@ -119,9 +119,13 @@ startGhci cmd directory echo0 = do
             whenM (fmap isNothing $ withLockTry isRunning $ return ()) $ do
                 whenLoud $ outStrLn "%INTERRUPT"
                 interruptProcessGroupOf ghciProcess
-                syncReplay -- let the running person finish
+                -- let the person running ghciExec finish, since their sync messages
+                -- may have been the ones that got interrupted
+                syncReplay
+                -- now wait for the person doing ghciExec to have actually left the lock
                 withLock isRunning $ return ()
-                stop <- syncFresh -- now sync on a fresh message (in case they finished before)
+                -- there may have been two syncs sent, so now do a fresh sync to clear everything
+                stop <- syncFresh
                 void $ consume2 "Interrupt" $ \_ s -> return $ if stop s then Just () else Nothing
 
     let ghci = Ghci{..}
