@@ -19,8 +19,9 @@ import Data.List.Extra
 
 
 data Session = Session
-    {ghci :: IORef (Maybe Ghci)
-    ,command :: IORef (Maybe String)
+    {ghci :: IORef (Maybe Ghci) -- ^ The Ghci session, or Nothing if there is none
+    ,command :: IORef (Maybe String) -- ^ The last command passed to sessionStart
+    ,warnings :: IORef [Load] -- ^ The warnings from the last load
     }
 
 
@@ -36,6 +37,7 @@ withSession :: (Session -> IO a) -> IO a
 withSession f = do
     ghci <- newIORef Nothing
     command <- newIORef Nothing
+    warnings <- newIORef []
     ctrlC (f $ Session{..}) `finally` do
         whenJustM (readIORef ghci) $ \v -> do
             writeIORef ghci Nothing
@@ -55,9 +57,11 @@ sessionStart Session{..} cmd = do
     val <- readIORef ghci
     whenJust val $ void . forkIO . kill
     writeIORef ghci Nothing
-    (v, load) <- startGhci cmd Nothing (const outStrLn)
+    (v, messages) <- startGhci cmd Nothing (const outStrLn)
     writeIORef ghci $ Just v
-    return (mapMaybe tidyMessage load, nubOrd $ map loadFile load)
+    messages <- return $ mapMaybe tidyMessage messages
+    writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
+    return (messages, nubOrd $ map loadFile messages)
 
 sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
