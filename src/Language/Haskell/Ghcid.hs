@@ -136,12 +136,10 @@ startGhci cmd directory echo0 = do
 execStream :: Ghci -> String -> (Stream -> String -> IO ()) -> IO ()
 execStream = ghciExec
 
-
 -- | Interrupt Ghci, stopping the current computation (if any),
 --   but leaving the process open to new input.
 interrupt :: Ghci -> IO ()
 interrupt = ghciInterupt
-
 
 -- | Obtain the progress handle behind a GHCi instance.
 process :: Ghci -> ProcessHandle
