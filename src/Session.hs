@@ -14,6 +14,7 @@ import System.Process
 import Control.Exception.Extra
 import Control.Concurrent.Extra
 import Control.Monad.Extra
+import Data.Maybe
 import Data.List.Extra
 
 
@@ -56,7 +57,7 @@ sessionStart Session{..} cmd = do
     writeIORef ghci Nothing
     (v, load) <- startGhci cmd Nothing (const outStrLn)
     writeIORef ghci $ Just v
-    return (load, nubOrd $ map loadFile load)
+    return (mapMaybe tidyMessage load, nubOrd $ map loadFile load)
 
 sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
@@ -68,3 +69,14 @@ sessionUnderlying :: Session -> IO Ghci
 sessionUnderlying Session{..} = do
     v <- readIORef ghci
     maybe (fail "Underlying called before start") return v
+
+
+-- | Ignore entirely pointless messages and remove unnecessary lines.
+tidyMessage :: Load -> Maybe Load
+tidyMessage Message{loadSeverity=Warning, loadMessage=[_,x]}
+    | x == "    -O conflicts with --interactive; -O ignored." = Nothing
+tidyMessage m@Message{..}
+    = Just m{loadMessage = filter (\x -> not $ any (`isPrefixOf` x) bad) loadMessage}
+    where bad = ["      except perhaps to import instances from"
+                ,"    To import instances alone, use: import "]
+tidyMessage x = Just x
