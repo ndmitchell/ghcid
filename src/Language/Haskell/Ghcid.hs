@@ -87,12 +87,14 @@ startGhci cmd directory echo0 = do
                             Nothing -> rec
                             Just a -> return $ Just a
 
-    let consume2 :: (Stream -> String -> IO (Maybe a)) -> IO (Maybe (a,a))
-        consume2 finish = do
+    let consume2 :: String -> (Stream -> String -> IO (Maybe a)) -> IO (a,a)
+        consume2 msg finish = do
             res1 <- onceFork $ consume Stdout (finish Stdout)
             res2 <- consume Stderr (finish Stderr)
             res1 <- res1
-            return $ liftM2 (,) res1 res2
+            case liftM2 (,) res1 res2 of
+                Nothing -> throwIO $ UnexpectedExit cmd msg
+                Just v -> return v
 
 
     -- held while interrupting, and briefly held when starting an exec
@@ -108,10 +110,8 @@ startGhci cmd directory echo0 = do
                 whenLoud $ outStrLn $ "%GHCINP: " ++ command
                 hPutStrLn inp command
                 stop <- syncFresh
-                res <- consume2 $ \strm s ->
+                void $ consume2 command $ \strm s ->
                     if stop s then return $ Just () else do echo strm s; return Nothing
-                when (res == Nothing) $
-                    throwIO $ UnexpectedExit cmd command
             when (isNothing res) $
                 fail "Ghcid.exec, computation is already running, must be used single-threaded"
 
@@ -122,9 +122,7 @@ startGhci cmd directory echo0 = do
                 syncReplay -- let the running person finish
                 withLock isRunning $ return ()
                 stop <- syncFresh -- now sync on a fresh message (in case they finished before)
-                res <- consume2 $ \_ s -> return $ if stop s then Just () else Nothing
-                when (res == Nothing) $
-                    throwIO $ UnexpectedExit cmd "Interrupt"
+                void $ consume2 "Interrupt" $ \_ s -> return $ if stop s then Just () else Nothing
 
     let ghci = Ghci{..}
     r <- parseLoad <$> execBuffer ghci "" echo0
