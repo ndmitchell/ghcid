@@ -164,8 +164,8 @@ runGhcid session waiter restart command outputfiles test size titles output = do
                 outStrLn $ "%MESSAGES: " ++ show messages
                 outStrLn $ "%LOADED: " ++ show loaded
 
-            when (null wait && isNothing warnings) $ do
-                putStrLn $ "\nNo files loaded, did not start GHCi properly.\nCommand: " ++ command
+            when (null wait) $ do
+                putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
                 exitFailure
 
             -- only keep old warnings from files that are still loaded, but did not reload
