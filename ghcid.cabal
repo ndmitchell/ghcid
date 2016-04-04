@@ -23,9 +23,9 @@ source-repository head
     location: https://github.com/ndmitchell/ghcid.git
 
 library
-  hs-source-dirs:  src
-  default-language: Haskell2010
-  build-depends:
+    hs-source-dirs:  src
+    default-language: Haskell2010
+    build-depends:
         base >= 4,
         filepath,
         time,
@@ -34,74 +34,76 @@ library
         process >= 1.1,
         cmdargs >= 0.10,
         terminal-size >= 0.3
-  if os(windows)
-    build-depends: Win32
-  else
-    build-depends: unix
-  other-modules:
-                   Paths_ghcid,
-                   Language.Haskell.Ghcid.Types,
-                   Language.Haskell.Ghcid.Parser,
-                   Language.Haskell.Ghcid.Terminal,
-                   Language.Haskell.Ghcid.Util
-  exposed-modules: Language.Haskell.Ghcid
+    if os(windows)
+        build-depends: Win32
+    else
+        build-depends: unix
+
+    exposed-modules:
+        Language.Haskell.Ghcid
+    other-modules:
+        Paths_ghcid,
+        Language.Haskell.Ghcid.Types,
+        Language.Haskell.Ghcid.Parser,
+        Language.Haskell.Ghcid.Terminal,
+        Language.Haskell.Ghcid.Util
 
 executable ghcid
-  hs-source-dirs: src
-  default-language: Haskell2010
-  ghc-options: -main-is Ghcid.main -threaded
-  main-is: Ghcid.hs
-  build-depends:
-      base == 4.*,
-      filepath,
-      time,
-      directory,
-      containers,
-      fsnotify,
-      extra >= 1.2,
-      process >= 1.1,
-      cmdargs >= 0.10,
-      ansi-terminal,
-      terminal-size >= 0.3
-  if os(windows)
-    build-depends: Win32
-  else
-    build-depends: unix
-  other-modules:
-                   Language.Haskell.Ghcid.Types,
-                   Language.Haskell.Ghcid.Parser,
-                   Language.Haskell.Ghcid.Terminal,
-                   Language.Haskell.Ghcid.Util,
-                   Language.Haskell.Ghcid,
-                   Session,
-                   Wait
+    hs-source-dirs: src
+    default-language: Haskell2010
+    ghc-options: -main-is Ghcid.main -threaded
+    main-is: Ghcid.hs
+    build-depends:
+        base == 4.*,
+        filepath,
+        time,
+        directory,
+        containers,
+        fsnotify,
+        extra >= 1.2,
+        process >= 1.1,
+        cmdargs >= 0.10,
+        ansi-terminal,
+        terminal-size >= 0.3
+    if os(windows)
+        build-depends: Win32
+    else
+        build-depends: unix
+    other-modules:
+        Language.Haskell.Ghcid.Types,
+        Language.Haskell.Ghcid.Parser,
+        Language.Haskell.Ghcid.Terminal,
+        Language.Haskell.Ghcid.Util,
+        Language.Haskell.Ghcid,
+        Session,
+        Wait
 
 test-suite ghcid_test
-  type:            exitcode-stdio-1.0
-  ghc-options:     -rtsopts -main-is Test.main -threaded -with-rtsopts=-K1K
-  default-language: Haskell2010
-  build-depends:
-    base >= 4,
-    filepath,
-    time,
-    directory,
-    process,
-    containers,
-    fsnotify,
-    extra >= 1.2,
-    ansi-terminal,
-    terminal-size >= 0.3,
-    cmdargs,
-    tasty,
-    tasty-hunit
-  if os(windows)
-    build-depends: Win32
-  else
-    build-depends: unix
-  hs-source-dirs:  src
-  main-is:         Test.hs
-  other-modules:
-                   Test.Parser,
-                   Test.HighLevel,
-                   Test.Util,
-                   Test.Polling
+    type:            exitcode-stdio-1.0
+    hs-source-dirs:  src
+    main-is:         Test.hs
+    ghc-options:     -rtsopts -main-is Test.main -threaded -with-rtsopts=-K1K
+    default-language: Haskell2010
+    build-depends:
+        base >= 4,
+        filepath,
+        time,
+        directory,
+        process,
+        containers,
+        fsnotify,
+        extra >= 1.2,
+        ansi-terminal,
+        terminal-size >= 0.3,
+        cmdargs,
+        tasty,
+        tasty-hunit
+    if os(windows)
+        build-depends: Win32
+    else
+        build-depends: unix
+    other-modules:
+        Test.Parser,
+        Test.HighLevel,
+        Test.Util,
+        Test.Polling
