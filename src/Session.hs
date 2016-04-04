@@ -3,7 +3,7 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, withSession, sessionUnderlying,
+    Session, withSession,
     sessionStart, sessionRestart, sessionReload,
     sessionExecAsync,
     ) where
@@ -114,12 +114,6 @@ sessionExecAsync Session{..} cmd done = do
         old <- modifyVar running $ \b -> return (False, b)
         -- don't fire Done if someone interrupted us
         when old done
-
-
-sessionUnderlying :: Session -> IO Ghci
-sessionUnderlying Session{..} = do
-    Just ghci <- readIORef ghci
-    return ghci
 
 
 -- | Ignore entirely pointless messages and remove unnecessary lines.
