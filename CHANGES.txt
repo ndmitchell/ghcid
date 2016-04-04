@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #38, implement loading with stack
     Add process, quit and execStream to the API
     #29, add interrupt function
     Add Data instances for the types
