@@ -8,7 +8,7 @@ module Session(
     sessionExecAsync,
     ) where
 
-import Language.Haskell.Ghcid as G
+import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Util
 import Data.IORef
 import System.Time.Extra
