@@ -4,10 +4,8 @@
 -- | The application entry point
 module Ghcid(main, runGhcid) where
 
-import Control.Applicative
 import Control.Exception
 import Control.Monad.Extra
-import Control.Concurrent.Extra
 import Data.List.Extra
 import Data.Maybe
 import Data.Tuple.Extra
@@ -27,7 +25,6 @@ import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Wait
-import Prelude
 
 
 -- | Command line options
@@ -145,33 +142,15 @@ runGhcid session waiter restart command outputfiles test size titles output = do
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
     restartTimes <- mapM getModTime restart
-    nextWait <- waitFiles waiter
-    (messages, _) <- sessionStart session command
-    ghci <- sessionUnderlying session
     curdir <- getCurrentDirectory
 
-    -- fire, given a waiter, the messages, and the warnings from last time
-    let fire nextWait messages warnings = do
-            messages <- return $ mapMaybe tidyMessage messages
-
-            loaded <- map snd <$> showModules ghci
+    -- fire, given a waiter, the messages/loaded
+    let fire nextWait (messages, loaded) = do
             let loadedCount = length loaded
-            -- some may have reloaded, but caused an error, and thus not be in the loaded set
-            let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
-
-            let wait = nubOrd $ loaded ++ reloaded
             whenLoud $ do
                 outStrLn $ "%MESSAGES: " ++ show messages
                 outStrLn $ "%LOADED: " ++ show loaded
 
-            when (null wait) $ do
-                putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
-                exitFailure
-
-            -- only keep old warnings from files that are still loaded, but did not reload
-            let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
-            -- newest warnings always go first, so the file you hit save on most recently has warnings first
-            messages <- return $ messages ++ filter validWarn (fromMaybe [] warnings)
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
             test <- return $ if countErrors == 0 then test else Nothing
@@ -189,45 +168,30 @@ runGhcid session waiter restart command outputfiles test size titles output = do
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
-            when (null wait) $ do
+            when (null loaded) $ do
                 putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
-                interrupt ghci
                 exitFailure
             whenJust test $ \t -> do
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
-                forkIO $ do
-                    res <- exec ghci t
+                sessionExecAsync session t $ do
                     whenLoud $ outStrLn "%TESTING: Completed"
-                    outputFill (Just (loadedCount, messages)) $ fromMaybe res $ stripSuffix ["*** Exception: ExitSuccess"] res
-                    -- setSGR [Reset]
-                    updateTitle ""
-                return ()
+                    updateTitle "(test done)"
 
-            reason <- nextWait $ restart ++ wait
-            when (isJust test) $ interrupt ghci
+            reason <- nextWait $ restart ++ loaded
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
-                let warnings = [m | m@Message{..} <- messages, loadSeverity == Warning]
-                messages <- reload ghci
-                fire nextWait messages $ Just warnings
+                fire nextWait =<< sessionReload session
             else do
                 runGhcid session waiter restart command outputfiles test size titles output
 
-    fire nextWait messages Nothing
-
-
-
--- | Ignore entirely pointless messages and remove unnecessary lines.
-tidyMessage :: Load -> Maybe Load
-tidyMessage Message{loadSeverity=Warning, loadMessage=[_,x]}
-    | x == "    -O conflicts with --interactive; -O ignored." = Nothing
-tidyMessage m@Message{..}
-    = Just m{loadMessage = filter (\x -> not $ any (`isPrefixOf` x) bad) loadMessage}
-    where bad = ["      except perhaps to import instances from"
-                ,"    To import instances alone, use: import "]
-tidyMessage x = Just x
+    nextWait <- waitFiles waiter
+    (messages, loaded) <- sessionStart session command
+    when (null loaded) $ do
+        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
+        exitFailure
+    fire nextWait (messages, loaded)
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
