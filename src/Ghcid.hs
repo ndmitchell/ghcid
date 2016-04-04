@@ -160,7 +160,7 @@ runGhcid session waiter restart command outputfiles test size titles output = do
 
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
-            test <- return $ if countErrors == 0 then test else Nothing
+            test <- return $ if countErrors == 0 && countWarnings == 0 then test else Nothing
 
             when titles $ setWindowIcon $
                 if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
