@@ -35,9 +35,9 @@ ctrlC :: IO a -> IO a
 ctrlC = join . onceFork
 
 
--- | The function 'withGhci' expects to be run on the main thread,
+-- | The function 'withSession' expects to be run on the main thread,
 --   but the inner function will not. This ensures Ctrl-C is handled
---   properly.
+--   properly and any spawned Ghci processes will be aborted.
 withSession :: (Session -> IO a) -> IO a
 withSession f = do
     ghci <- newIORef Nothing
@@ -58,6 +58,8 @@ kill ghci = ignore $ do
     terminateProcess $ process ghci
 
 
+-- | Spawn a new Ghci process at a given command line. Returns the load messages, plus
+--   the list of files that were observed (both those loaded and those that failed to load).
 sessionStart :: Session -> String -> IO ([Load], [FilePath])
 sessionStart Session{..} cmd = do
     modifyVar_ running $ const $ return False
@@ -72,12 +74,17 @@ sessionStart Session{..} cmd = do
     writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
     return (messages, nubOrd $ map loadFile messages)
 
+
+-- | Call 'sessionStart' at the previous command.
 sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
     Just cmd <- readIORef command
     sessionStart session cmd
 
 
+-- | Reload, returning the same information as 'sessionStart'. In particular, any
+--   information that GHCi doesn't repeat (warnings from loaded modules) will be
+--   added back in.
 sessionReload :: Session -> IO ([Load], [FilePath])
 sessionReload session@Session{..} = do
     -- kill anything async, set stuck if you didn't succeed
@@ -103,6 +110,8 @@ sessionReload session@Session{..} = do
         return (messages, nubOrd $ loaded ++ reloaded)
 
 
+-- | Run an exec operation asynchronously. Should not be a @:reload@ or similar.
+--   Will be automatically aborted if it takes too long.
 sessionExecAsync :: Session -> String -> IO () -> IO ()
 sessionExecAsync Session{..} cmd done = do
     Just ghci <- readIORef ghci
