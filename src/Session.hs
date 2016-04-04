@@ -26,7 +26,7 @@ data Session = Session
     {ghci :: IORef (Maybe Ghci) -- ^ The Ghci session, or Nothing if there is none
     ,command :: IORef (Maybe String) -- ^ The last command passed to sessionStart
     ,warnings :: IORef [Load] -- ^ The warnings from the last load
-    ,running :: Var Bool
+    ,running :: Var Bool -- ^ Am I actively running an async command
     }
 
 
