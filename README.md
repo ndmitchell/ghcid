@@ -6,7 +6,7 @@ _Acknowledgements:_ This project incorporates significant work from [JPMoresmau]
 
 ### Using it
 
-Run `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid --height=8 --topmost "--command=ghci Main.hs"`. The `height` is the number of lines you are going to resize your console window to (defaults to height of the console). The `topmost` is to make the window sit above all others, which only works on Windows. The `command` is how you start your project in `ghci`. If you omit `--command` then it will default to `ghci` if you have a `.ghci` file in the current directory, otherwise it will default to `cabal repl`.
+Run `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid --height=8 --topmost "--command=ghci Main.hs"`. The `height` is the number of lines you are going to resize your console window to (defaults to height of the console). The `topmost` is to make the window sit above all others, which only works on Windows. The `command` is how you start your project in `ghci`. If you omit `--command` then it will default to `stack ghci` if you have the `stack.yaml` file and `.stack-work` directory, default to `ghci` if you have a `.ghci` file in the current directory, and otherwise default to `cabal repl`.
 
 Personally, I always create a `.ghci` file at the root of all my projects, which usually [reads something like](https://github.com/ndmitchell/ghcid/blob/master/.ghci):
 
@@ -35,4 +35,3 @@ Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 
 * _This isn't as good as full IDE._ I've gone for simplicity over features. It's a point in the design space, but not necessarily the best point in the design space for you. For "real" IDEs see [the Haskell wiki](http://www.haskell.org/haskellwiki/IDEs).
 * _If I delete a file and put it back it gets stuck._ Yes, that's a [bug in GHCi](https://ghc.haskell.org/trac/ghc/ticket/9648). If you see GHCi getting confused just kill `ghcid` and start it again.
-* _It doesn't work with Stack._ Pass `-c "stack ghci"`. Work is ongoing to improve the Stack integration (mostly waiting on features/changes/fixes on the Stack side).
