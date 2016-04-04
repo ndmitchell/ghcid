@@ -108,7 +108,9 @@ sessionExecAsync Session{..} cmd done = do
     Just ghci <- readIORef ghci
     modifyVar_ running $ const $ return True
     void $ forkIO $ do
-        execStream ghci cmd $ const outStrLn
+        execStream ghci cmd $ \_ msg ->
+            when (msg /= "*** Exception: ExitSuccess") $
+                outStrLn msg
         old <- modifyVar running $ \b -> return (False, b)
         -- don't fire Done if someone interrupted us
         when old done
