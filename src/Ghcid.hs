@@ -169,7 +169,7 @@ runGhcid session waiter restart command outputfiles test size titles output = do
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
-                       " " ++ extra ++ "- " ++ takeFileName curdir
+                       " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++ takeFileName curdir
 
             updateTitle $ if isJust test then "(running test) " else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
