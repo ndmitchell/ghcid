@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+    #56, allow --restart to take directories
     #38, implement loading with stack
     Add process, quit and execStream to the API
     #29, add interrupt function
