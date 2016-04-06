@@ -1,5 +1,6 @@
 Changelog for GHCiD
 
+0.6.1
     Add --reload to add files that reload, but do not restart
     #56, allow --restart to take directories
 0.6
