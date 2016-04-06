@@ -36,6 +36,7 @@ data Options = Options
     ,width :: Maybe Int
     ,topmost :: Bool
     ,notitle :: Bool
+    ,reload :: [FilePath]
     ,restart :: [FilePath]
     ,directory :: FilePath
     ,outputfile :: [FilePath]
@@ -52,6 +53,7 @@ options = cmdArgsMode $ Options
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,notitle = False &= help "Don't update the shell title/icon"
     ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
+    ,reload = [] &= typFile &= help "Reload if any of these files change (defaults to none)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     } &= verbosity &=
@@ -126,7 +128,7 @@ main = withWindowIcon $ withSession $ \session -> do
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid session waiter (nubOrd restart) command outputfile test height (not notitle) $ \xs -> do
+                runGhcid session waiter (nubOrd restart) (nubOrd reload) command outputfile test height (not notitle) $ \xs -> do
                     outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                         when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                         putStr $ concatMap ((:) '\n' . snd) x
@@ -137,8 +139,8 @@ main = withWindowIcon $ withSession $ \session -> do
 data Style = Plain | Bold deriving Eq
 
 
-runGhcid :: Session -> Waiter -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid session waiter restart command outputfiles test size titles output = do
+runGhcid :: Session -> Waiter -> [FilePath] -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
+runGhcid session waiter restart reload command outputfiles test size titles output = do
     let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -169,7 +171,7 @@ runGhcid session waiter restart command outputfiles test size titles output = do
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
-                       " " ++ extra ++ "- " ++ takeFileName curdir
+                       " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++ takeFileName curdir
 
             updateTitle $ if isJust test then "(running test) " else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
@@ -184,14 +186,14 @@ runGhcid session waiter restart command outputfiles test size titles output = do
                     whenLoud $ outStrLn "%TESTING: Completed"
                     updateTitle "(test done)"
 
-            reason <- nextWait $ restart ++ loaded
+            reason <- nextWait $ restart ++ reload ++ loaded
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
             else do
-                runGhcid session waiter restart command outputfiles test size titles output
+                runGhcid session waiter restart reload command outputfiles test size titles output
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command

@@ -1,5 +1,7 @@
 Changelog for GHCiD
 
+    Add --reload to add files that reload, but do not restart
+    #56, allow --restart to take directories
 0.6
     #38, implement loading with stack
     Add process, quit and execStream to the API

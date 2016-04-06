@@ -7,11 +7,11 @@ module Wait(Waiter, withWaiterPoll, withWaiterNotify, waitFiles) where
 import Control.Concurrent.Extra
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Control.Monad
+import Control.Monad.Extra
 import Data.List.Extra
 import System.FilePath
 import Control.Exception.Extra
-import System.Directory
+import System.Directory.Extra
 import Data.Time.Clock
 import Data.String
 import Data.Maybe
@@ -49,6 +49,8 @@ waitFiles waiter = do
     base <- getCurrentTime
     return $ \files -> handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
+        files <- fmap concat $ forM files $ \file ->
+            ifM (doesDirectoryExist file) (listFiles file) (return [file])
         case waiter of
             WaiterPoll -> return ()
             WaiterNotify manager kick mp -> do

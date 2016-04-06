@@ -8,3 +8,4 @@
 # Use 'stack init' on a fresh checkout to generate your own stack.yaml file
 # for easy building.
 /stack.yaml
+/issues
