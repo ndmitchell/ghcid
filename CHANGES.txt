@@ -1,4 +1,4 @@
-Changelog for GHCiD
+Changelog for ghcid
 
 0.6.1
     Add --reload to add files that reload, but do not restart
