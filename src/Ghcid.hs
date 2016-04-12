@@ -52,8 +52,8 @@ options = cmdArgsMode $ Options
     ,width = Nothing &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,notitle = False &= help "Don't update the shell title/icon"
-    ,restart = [] &= typFile &= help "Restart the command if any of these files change (defaults to .ghci or .cabal)"
-    ,reload = [] &= typFile &= help "Reload if any of these files change (defaults to none)"
+    ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file)"
+    ,reload = [] &= typ "PATH" &= help "Reload when the given file or directory contents change (defaults to none)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     } &= verbosity &=
