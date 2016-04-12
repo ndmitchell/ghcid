@@ -9,6 +9,8 @@ import System.FilePath
 import Data.Char
 import Data.List.Extra
 import Data.Tuple.Extra
+import Control.Applicative
+import Prelude
 
 import Language.Haskell.Ghcid.Types
 
