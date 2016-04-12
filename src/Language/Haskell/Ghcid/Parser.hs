@@ -8,6 +8,7 @@ module Language.Haskell.Ghcid.Parser(
 import System.FilePath
 import Data.Char
 import Data.List.Extra
+import Data.Tuple.Extra
 
 import Language.Haskell.Ghcid.Types
 
@@ -31,7 +32,7 @@ parseLoad  = nubOrd . f
             f rest
         f (x:xs)
             | not $ " " `isPrefixOf` x
-            , (file,':':rest) <- break (== ':') x
+            , Just (file,rest) <- breakFileColon x
             , takeExtension file `elem` [".hs",".lhs"]
             , (pos,rest2) <- span (\c -> c == ':' || isDigit c) rest
             , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos
@@ -51,3 +52,9 @@ parseLoad  = nubOrd . f
               [Message Error m (0,0) [] | m <- nubOrd ms] ++ f rest
         f (_:xs) = f xs
         f [] = []
+
+
+-- A filename, followed by a colon - be careful to handle Windows drive letters, see #61
+breakFileColon :: String -> Maybe (FilePath, String)
+breakFileColon (x:':':xs) | isLetter x = first ([x,':']++) <$> stripInfix ":" xs
+breakFileColon xs = stripInfix ":" xs
