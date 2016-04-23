@@ -50,7 +50,7 @@ waitFiles waiter = do
     return $ \files -> handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
         files <- fmap concat $ forM files $ \file ->
-            ifM (doesDirectoryExist file) (listFiles file) (return [file])
+            ifM (doesDirectoryExist file) (listFilesInside (return . not . isPrefixOf "." . takeFileName) file) (return [file])
         case waiter of
             WaiterPoll -> return ()
             WaiterNotify manager kick mp -> do
