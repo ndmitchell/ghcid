@@ -57,8 +57,8 @@ startGhci cmd directory echo0 = do
             hPutStrLn inp x
 
     -- Some programs (e.g. stack) might use stdin before starting ghci (see #57)
-    -- Send them some empty lines
-    replicateM 3 $ hPutStrLn inp ""
+    -- Send them an empty line
+    hPutStrLn inp ""
 
     -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
     -- string and filter that out.
