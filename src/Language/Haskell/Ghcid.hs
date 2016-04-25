@@ -52,6 +52,9 @@ startGhci cmd directory echo0 = do
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
     hSetBuffering inp LineBuffering
+    let writeInp x = do
+            whenLoud $ outStrLn $ "%STDIN: " ++ x
+            hPutStrLn inp x
 
     -- Some programs (e.g. stack) might use stdin before starting ghci (see #57)
     -- Send them some empty lines
@@ -68,7 +71,7 @@ startGhci cmd directory echo0 = do
     let syncReplay = do
             i <- readVar syncCount
             let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
-            hPutStrLn inp $ "Prelude.putStrLn " ++ show msg ++ "\nPrelude.error " ++ show msg
+            writeInp $ "Prelude.putStrLn " ++ show msg ++ "\nPrelude.error " ++ show msg
             return $ isInfixOf msg
     let syncFresh = do
             modifyVar_ syncCount $ return . succ
@@ -108,8 +111,7 @@ startGhci cmd directory echo0 = do
     let ghciExec command echo = do
             withLock isInterrupting $ return ()
             res <- withLockTry isRunning $ do
-                whenLoud $ outStrLn $ "%GHCINP: " ++ command
-                hPutStrLn inp command
+                writeInp command
                 stop <- syncFresh
                 void $ consume2 command $ \strm s ->
                     if stop s then return $ Just () else do echo strm s; return Nothing
@@ -143,8 +145,8 @@ startGhci cmd directory echo0 = do
             modifyIORef (if strm == Stdout then stdout else stderr) (s:)
             when ("GHCi, version " `isPrefixOf` s) $ do
                 writeIORef sync =<< syncFresh
-                hPutStrLn inp $ ":set prompt " ++ ghcid_prefix
-                hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+                writeInp $ ":set prompt " ++ ghcid_prefix
+                writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
             echo0 strm s
             return Nothing
     r <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
