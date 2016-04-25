@@ -111,18 +111,22 @@ sessionReload session@Session{..} = do
 
 
 -- | Run an exec operation asynchronously. Should not be a @:reload@ or similar.
---   Will be automatically aborted if it takes too long.
-sessionExecAsync :: Session -> String -> IO () -> IO ()
+--   Will be automatically aborted if it takes too long. Only fires done if not aborted.
+--   Argument to done is the final stderr line.
+sessionExecAsync :: Session -> String -> (String -> IO ()) -> IO ()
 sessionExecAsync Session{..} cmd done = do
     Just ghci <- readIORef ghci
+    stderr <- newIORef ""
     modifyVar_ running $ const $ return True
     void $ forkIO $ do
-        execStream ghci cmd $ \_ msg ->
-            when (msg /= "*** Exception: ExitSuccess") $
+        execStream ghci cmd $ \strm msg ->
+            when (msg /= "*** Exception: ExitSuccess") $ do
+                when (strm == Stderr) $ writeIORef stderr msg
                 outStrLn msg
         old <- modifyVar running $ \b -> return (False, b)
         -- don't fire Done if someone interrupted us
-        when old done
+        stderr <- readIORef stderr
+        when old $ done stderr
 
 
 -- | Ignore entirely pointless messages and remove unnecessary lines.

@@ -191,9 +191,13 @@ runGhcid session waiter restart reload command outputfiles test warnings size ti
                 exitFailure
             whenJust test $ \t -> do
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
-                sessionExecAsync session t $ do
+                sessionExecAsync session t $ \stderr -> do
                     whenLoud $ outStrLn "%TESTING: Completed"
-                    updateTitle "(test done)"
+                    if "*** Exception: " `isPrefixOf` stderr then do
+                        updateTitle "(test failed)"
+                        setWindowIcon IconError
+                     else
+                        updateTitle "(test done)"
 
             reason <- nextWait $ restart ++ reload ++ loaded
             outputFill Nothing $ "Reloading..." : map ("  " ++) reason

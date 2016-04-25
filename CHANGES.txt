@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #63, detect test failures and update the titlebar/icon
     #66, add --warnings to run tests even in there are warnings
     #62, find stack.yaml in the parent directory
     Make --verbose echo all things sent to stdin
