@@ -144,6 +144,9 @@ startGhci cmd directory echo0 = do
          else do
             modifyIORef (if strm == Stdout then stdout else stderr) (s:)
             when ("GHCi, version " `isPrefixOf` s) $ do
+                -- the thing before me may have done its own Haskell compiling
+                writeIORef stdout []
+                writeIORef stderr []
                 writeIORef sync =<< syncFresh
                 writeInp $ ":set prompt " ++ ghcid_prefix
                 writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
