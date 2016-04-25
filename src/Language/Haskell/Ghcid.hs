@@ -156,6 +156,7 @@ startGhci cmd directory echo0 = do
             echo0 strm s
             return Nothing
     r <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
+    execStream ghci "" echo0
     return (ghci, r)
 
 
