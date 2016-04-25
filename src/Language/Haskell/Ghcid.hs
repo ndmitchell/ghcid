@@ -157,9 +157,9 @@ execBuffer :: Ghci -> String -> (Stream -> String -> IO ()) -> IO [String]
 execBuffer ghci cmd echo = do
     stdout <- newIORef []
     stderr <- newIORef []
-    execStream ghci cmd $ \i s -> do
-        modifyIORef (if i == Stdout then stdout else stderr) (s:)
-        echo i s
+    execStream ghci cmd $ \strm s -> do
+        modifyIORef (if strm == Stdout then stdout else stderr) (s:)
+        echo strm s
     reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
 
 -- | Send a command, get lines of result. Must be called single-threaded.
