@@ -61,8 +61,6 @@ startGhci cmd directory echo0 = do
     -- string and filter that out.
     let ghcid_prefix = "#~GHCID-START~#"
     let removePrefix = dropPrefixRepeatedly ghcid_prefix
-    hPutStrLn inp $ ":set prompt " ++ ghcid_prefix
-    hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
 
     -- At various points I need to ensure everything the user is waiting for has completed
     -- So I send messages on stdout/stderr and wait for them to arrive
@@ -133,7 +131,24 @@ startGhci cmd directory echo0 = do
                 void $ consume2 "Interrupt" $ \_ s -> return $ if stop s then Just () else Nothing
 
     let ghci = Ghci{..}
-    r <- parseLoad <$> execBuffer ghci "" echo0
+
+    -- Now wait for 'GHCi, version' to appear before sending anything real, required for #57
+    stdout <- newIORef []
+    stderr <- newIORef []
+    sync <- newIORef $ const False
+    consume2 "" $ \strm s -> do
+        stop <- readIORef sync
+        if stop s then
+            return $ Just ()
+         else do
+            modifyIORef (if strm == Stdout then stdout else stderr) (s:)
+            when ("GHCi, version " `isPrefixOf` s) $ do
+                writeIORef sync =<< syncFresh
+                hPutStrLn inp $ ":set prompt " ++ ghcid_prefix
+                hPutStrLn inp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+            echo0 strm s
+            return Nothing
+    r <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
     return (ghci, r)
 
 

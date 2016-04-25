@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #57, support wrappers that access stdin first (e.g. stack)
     #67, make --reload/--restart recurse through directories
     #61, deal with drive letters in files (for stack on Windows)
     #58, improve the --help message
