@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #62, find stack.yaml in the parent directory
     Make --verbose echo all things sent to stdin
     #57, support wrappers that access stdin first (e.g. stack)
     #67, make --reload/--restart recurse through directories
