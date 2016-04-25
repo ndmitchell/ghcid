@@ -56,6 +56,10 @@ startGhci cmd directory echo0 = do
             whenLoud $ outStrLn $ "%STDIN: " ++ x
             hPutStrLn inp x
 
+    -- Some programs (e.g. stack) might use stdin before starting ghci (see #57)
+    -- Send them some empty lines
+    replicateM 3 $ hPutStrLn inp ""
+
     -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
     -- string and filter that out.
     let ghcid_prefix = "#~GHCID-START~#"
@@ -138,9 +142,9 @@ startGhci cmd directory echo0 = do
         if stop s then
             return $ Just ()
          else do
+            -- there may be some initial prompts on stdout before I set the prompt properly
+            s <- return $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
             modifyIORef (if strm == Stdout then stdout else stderr) (s:)
-            when (" * Choosing from the candidate above" `isPrefixOf` s) $
-                writeInp "" -- Stack is reading from stdin, skip the question - see #57
             when ("GHCi, version " `isPrefixOf` s) $ do
                 -- the thing before me may have done its own Haskell compiling
                 writeIORef stdout []
