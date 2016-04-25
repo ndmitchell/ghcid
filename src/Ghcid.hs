@@ -34,6 +34,7 @@ data Options = Options
     {command :: String
     ,arguments :: [String]
     ,test :: Maybe String
+    ,warnings :: Bool
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
@@ -50,8 +51,9 @@ options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,arguments = [] &= args &= typ "MODULE"
     ,test = Nothing &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
+    ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
-    ,width = Nothing &= help "Number of columns to use (defaults to console width)"
+    ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,notitle = False &= help "Don't update the shell title/icon"
     ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file)"
@@ -135,7 +137,7 @@ main = withWindowIcon $ withSession $ \session -> do
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid session waiter (nubOrd restart) (nubOrd reload) command outputfile test height (not notitle) $ \xs -> do
+                runGhcid session waiter (nubOrd restart) (nubOrd reload) command outputfile test warnings height (not notitle) $ \xs -> do
                     outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                         when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                         putStr $ concatMap ((:) '\n' . snd) x
@@ -146,8 +148,8 @@ main = withWindowIcon $ withSession $ \session -> do
 data Style = Plain | Bold deriving Eq
 
 
-runGhcid :: Session -> Waiter -> [FilePath] -> [FilePath] -> String -> [FilePath] -> Maybe String -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid session waiter restart reload command outputfiles test size titles output = do
+runGhcid :: Session -> Waiter -> [FilePath] -> [FilePath] -> String -> [FilePath] -> Maybe String -> Bool -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
+runGhcid session waiter restart reload command outputfiles test warnings size titles output = do
     let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -169,7 +171,7 @@ runGhcid session waiter restart reload command outputfiles test size titles outp
 
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
-            test <- return $ if countErrors == 0 && countWarnings == 0 then test else Nothing
+            test <- return $ if countErrors == 0 && (warnings || countWarnings == 0) then test else Nothing
 
             when titles $ setWindowIcon $
                 if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
@@ -200,7 +202,7 @@ runGhcid session waiter restart reload command outputfiles test size titles outp
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
             else do
-                runGhcid session waiter restart reload command outputfiles test size titles output
+                runGhcid session waiter restart reload command outputfiles test warnings size titles output
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command
