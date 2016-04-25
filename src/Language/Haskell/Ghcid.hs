@@ -144,6 +144,7 @@ startGhci cmd directory echo0 = do
          else do
             -- there may be some initial prompts on stdout before I set the prompt properly
             s <- return $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
+            whenLoud $ outStrLn $ "%STDOUT2: " ++ s
             modifyIORef (if strm == Stdout then stdout else stderr) (s:)
             when ("GHCi, version " `isPrefixOf` s) $ do
                 -- the thing before me may have done its own Haskell compiling
