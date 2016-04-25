@@ -98,7 +98,6 @@ startGhci cmd directory echo0 = do
                 Nothing -> throwIO $ UnexpectedExit cmd msg
                 Just v -> return v
 
-
     -- held while interrupting, and briefly held when starting an exec
     -- ensures exec values queue up behind an ongoing interrupt and no two interrupts run at once
     isInterrupting <- newLock
