@@ -42,7 +42,7 @@ pollingTest  = testCase "Scripted Test" $ do
         try_ $ system "chmod og-w . .ghci"
 
         withSession $ \session -> withWaiterPoll $ \waiter -> bracket (
-          forkIO $ runGhcid session waiter [] [] "ghci" [] Nothing False (return (100, 50)) False $ \msg ->
+          forkIO $ runGhcid session waiter [] [] "ghci" [] Nothing False False (return (100, 50)) False $ \msg ->
             unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
           ) killThread $ \_ -> do
             require requireAllGood
