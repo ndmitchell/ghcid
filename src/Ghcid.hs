@@ -53,7 +53,7 @@ options = cmdArgsMode $ Options
     ,arguments = [] &= args &= typ "MODULE"
     ,test = Nothing &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
-    ,nostatus = False &= name "S" &= help "Suppress status messages"
+    ,nostatus = False &= name "S" &= explicit &= name "no-status" &= help "Suppress status messages"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"

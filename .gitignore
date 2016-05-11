@@ -3,7 +3,6 @@
 /.project
 /cabal.sandbox.config
 tags
-/tags
 /.cabal-sandbox
 /.stack-work
 # Use 'stack init' on a fresh checkout to generate your own stack.yaml file
