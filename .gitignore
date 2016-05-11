@@ -2,6 +2,7 @@
 /.dist-buildwrapper
 /.project
 /cabal.sandbox.config
+tags
 /tags
 /.cabal-sandbox
 /.stack-work
