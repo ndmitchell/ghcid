@@ -108,7 +108,7 @@ autoOptions o@Options{..}
                                 ["--no-load" | ".ghci" `elem` files] ++
                                 map ("--ghci-options=" ++) opts
                             else
-                                "stack exec --test --" : opts
+                                "stack exec --test -- ghci" : opts
                 in f flags $ "stack.yaml":cabal
               | ".ghci" `elem` files -> f ("ghci":opts) [".ghci"]
               | cabal /= [] -> f (if arguments == [] then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
