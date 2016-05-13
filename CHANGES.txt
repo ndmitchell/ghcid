@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+0.6.4
     #69, fix up for stack project with file arguments
 0.6.3
     #68, add --no-status to avoid printing the reloading message
