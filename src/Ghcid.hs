@@ -102,7 +102,7 @@ autoOptions o@Options{..}
         let cabal = filter ((==) ".cabal" . takeExtension) files
         let opts = ["-fno-code" | isNothing test]
         return $ case () of
-            _ | cabal /= [], isStack "." || isStack ".." -> -- stack file might be parent, see #62
+            _ | isStack "." || isStack ".." -> -- stack file might be parent, see #62
                 let flags = if null arguments then
                                 "stack ghci --test" :
                                 ["--no-load" | ".ghci" `elem` files] ++
