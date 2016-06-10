@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #74, make sure Cygwin terminals flush output properly
     If the test exits then exit ghcid
 0.6.4
     #69, fix up for stack project with file arguments

@@ -123,6 +123,9 @@ autoOptions o@Options{..}
 
 main :: IO ()
 main = withWindowIcon $ withSession $ \session -> do
+    -- On certain Cygwin terminals stdout defaults to BlockBuffering
+    hSetBuffering stdout LineBuffering
+    hSetBuffering stderr NoBuffering
     opts <- cmdArgsRun options
     withCurrentDirectory (directory opts) $ do
         opts@Options{..} <- autoOptions opts
@@ -195,6 +198,7 @@ runGhcid session waiter restart reload command outputfiles test warnings nostatu
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
                 sessionExecAsync session t $ \stderr -> do
                     whenLoud $ outStrLn "%TESTING: Completed"
+                    hFlush stdout -- may not have been a terminating newline from test output
                     if "*** Exception: " `isPrefixOf` stderr then do
                         updateTitle "(test failed)"
                         setWindowIcon IconError
