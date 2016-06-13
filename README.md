@@ -37,3 +37,4 @@ Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 * _If I delete a file and put it back it gets stuck._ Yes, that's a [bug in GHCi](https://ghc.haskell.org/trac/ghc/ticket/9648). If you see GHCi getting confused just kill `ghcid` and start it again.
 * _I want to run my tests when files change._ You can pass any `ghci` expression with the `--test` flag, e.g. `--test=:main`, which will be run whenever the code is warning free (or pass `--warnings` for when the code is merely error free).
 * _I want to run arbitrary commands when arbitrary files change._ This project reloads `ghci` when files loaded by `ghci` change. If you want a more general mechanism something like [Steel Overseer](https://github.com/schell/steeloverseer) will probably work better.
+* _I want syntax highlighting in the error messages._ One option is to use Neovim or Emacs and run the terminal in a buffer whose file type is set to Haskell.
