@@ -2,11 +2,12 @@
 module Test(main) where
 
 import Test.Tasty
-import Test.Parser
-import Test.HighLevel
-import Test.Util
-import Test.Polling
 import System.IO
+
+import Test.Util
+import Test.Parser
+import Test.API
+import Test.Polling
 
 main :: IO ()
 main = do
@@ -17,6 +18,6 @@ tests :: TestTree
 tests = testGroup "Tests"
     [utilsTests
     ,parserTests
+    ,apiTests
     ,pollingTest
-    ,highLevelTests
     ]

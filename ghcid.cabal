@@ -104,6 +104,6 @@ test-suite ghcid_test
         build-depends: unix
     other-modules:
         Test.Parser
-        Test.HighLevel
+        Test.API
         Test.Util
         Test.Polling
