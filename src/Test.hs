@@ -7,7 +7,7 @@ import System.IO
 import Test.Util
 import Test.Parser
 import Test.API
-import Test.Polling
+import Test.Ghcid
 
 main :: IO ()
 main = do
@@ -19,5 +19,5 @@ tests = testGroup "Tests"
     [utilsTests
     ,parserTests
     ,apiTests
-    ,pollingTest
+    ,ghcidTest
     ]

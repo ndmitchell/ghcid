@@ -1,6 +1,6 @@
 
 -- | Test behavior of the executable, polling files for changes
-module Test.Polling(pollingTest) where
+module Test.Ghcid(ghcidTest) where
 
 import Control.Concurrent
 import Control.Exception.Extra
@@ -21,8 +21,8 @@ import Session
 import Wait
 import Language.Haskell.Ghcid.Util
 
-pollingTest :: TestTree
-pollingTest  = testCase "Scripted Test" $ do
+ghcidTest :: TestTree
+ghcidTest = testCase "Ghcid Test" $ do
     setVerbosity Loud
     tdir <- fmap (</> ".ghcid") getTemporaryDirectory
     try_ $ removeDirectoryRecursive tdir

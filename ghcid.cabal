@@ -106,4 +106,4 @@ test-suite ghcid_test
         Test.Parser
         Test.API
         Test.Util
-        Test.Polling
+        Test.Ghcid
