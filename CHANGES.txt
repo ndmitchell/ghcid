@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #79, support multiple --test flags
     #71, improve multi-project stack support
 0.6.4
     #69, fix up for stack project with file arguments

@@ -33,7 +33,7 @@ import Wait
 data Options = Options
     {command :: String
     ,arguments :: [String]
-    ,test :: Maybe String
+    ,test :: [String]
     ,warnings :: Bool
     ,nostatus :: Bool
     ,height :: Maybe Int
@@ -51,7 +51,7 @@ options :: Mode (CmdArgs Options)
 options = cmdArgsMode $ Options
     {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,arguments = [] &= args &= typ "MODULE"
-    ,test = Nothing &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
+    ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,nostatus = False &= name "S" &= explicit &= name "no-status" &= help "Suppress status messages"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
@@ -100,7 +100,7 @@ autoOptions o@Options{..}
                 doesFileExist (dir </> "stack.yaml") &&^ doesDirectoryExist (dir </> ".stack-work")
 
         let cabal = filter ((==) ".cabal" . takeExtension) files
-        let opts = ["-fno-code" | isNothing test]
+        let opts = ["-fno-code" | null test]
         return $ case () of
             _ | isStack "." || isStack ".." -> -- stack file might be parent, see #62
                 let flags = if null arguments then
@@ -138,8 +138,9 @@ main = withWindowIcon $ withSession $ \session -> do
                 -- so putStrLn width 'x' uses up two lines
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
-            handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid session waiter (nubOrd restart) (nubOrd reload) command outputfile test warnings nostatus height (not notitle) $ \xs -> do
+            handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $ do
+                let mtest = if null test then Nothing else Just $ intercalate "\n" test
+                runGhcid session waiter (nubOrd restart) (nubOrd reload) command outputfile mtest warnings nostatus height (not notitle) $ \xs -> do
                     outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                         when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                         putStr $ concatMap ((:) '\n' . snd) x
