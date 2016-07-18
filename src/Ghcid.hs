@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
-module Ghcid(main, runGhcid) where
+module Ghcid(main, RunGhcid(..), runGhcid) where
 
 import Control.Exception
 import System.IO.Error
@@ -142,20 +142,40 @@ main = withWindowIcon $ withSession $ \session -> do
                 return (f width 80 (pred . fst), f height 8 snd)
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $ do
-                let mtest = if null test then Nothing else Just $ intercalate "\n" test
-                runGhcid session waiter (nubOrd restart) (nubOrd reload) command outputfile mtest warnings nostatus height (not notitle) $ \xs -> do
-                    outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
-                        when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
-                        putStr $ concatMap ((:) '\n' . snd) x
-                        when (s == Bold) $ setSGR []
-                    hFlush stdout -- must flush, since we don't finish with a newline
+                let run = RunGhcid
+                        {runRestart = nubOrd restart
+                        ,runReload = nubOrd reload
+                        ,runCommand = command
+                        ,runOutput = outputfile
+                        ,runTest = if null test then Nothing else Just $ intercalate "\n" test
+                        ,runTestWithWarnings = warnings
+                        ,runShowStatus = not nostatus
+                        ,runShowTitles = not notitle}
+                let output xs = do
+                        outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
+                            when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
+                            putStr $ concatMap ((:) '\n' . snd) x
+                            when (s == Bold) $ setSGR []
+                        hFlush stdout -- must flush, since we don't finish with a newline
+                runGhcid session waiter height output run
 
 
 data Style = Plain | Bold deriving Eq
 
+data RunGhcid = RunGhcid
+    {runRestart :: [FilePath]
+    ,runReload :: [FilePath]
+    ,runCommand :: String
+    ,runOutput :: [FilePath]
+    ,runTest :: Maybe String
+    ,runTestWithWarnings :: Bool
+    ,runShowStatus :: Bool
+    ,runShowTitles :: Bool
+    }
 
-runGhcid :: Session -> Waiter -> [FilePath] -> [FilePath] -> String -> [FilePath] -> Maybe String -> Bool -> Bool -> IO (Int,Int) -> Bool -> ([(Style,String)] -> IO ()) -> IO ()
-runGhcid session waiter restart reload command outputfiles test warnings nostatus size titles output = do
+
+runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> RunGhcid -> IO ()
+runGhcid session waiter size output run@RunGhcid{..} = do
     let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- size
@@ -165,7 +185,7 @@ runGhcid session waiter restart reload command outputfiles test warnings nostatu
                 | m@Message{} <- maybe [] snd load]
             output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
-    restartTimes <- mapM getModTime restart
+    restartTimes <- mapM getModTime runRestart
     curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages/loaded
@@ -177,12 +197,12 @@ runGhcid session waiter restart reload command outputfiles test warnings nostatu
 
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
-            test <- return $ if countErrors == 0 && (warnings || countWarnings == 0) then test else Nothing
+            test <- return $ if countErrors == 0 && (runTestWithWarnings || countWarnings == 0) then runTest else Nothing
 
-            when titles $ setWindowIcon $
+            when runShowTitles $ setWindowIcon $
                 if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
 
-            let updateTitle extra = when titles $ setTitle $
+            let updateTitle extra = when runShowTitles $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
@@ -190,7 +210,7 @@ runGhcid session waiter restart reload command outputfiles test warnings nostatu
 
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
-            forM_ outputfiles $ \file ->
+            forM_ runOutput $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
             when (null loaded) $ do
                 putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
@@ -206,19 +226,19 @@ runGhcid session waiter restart reload command outputfiles test warnings nostatu
                      else
                         updateTitle "(test done)"
 
-            reason <- nextWait $ restart ++ reload ++ loaded
-            unless nostatus $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
-            restartTimes2 <- mapM getModTime restart
+            reason <- nextWait $ runRestart ++ runReload ++ loaded
+            when runShowStatus $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
+            restartTimes2 <- mapM getModTime runRestart
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
             else do
-                runGhcid session waiter restart reload command outputfiles test warnings nostatus size titles output
+                runGhcid session waiter size output run
 
     nextWait <- waitFiles waiter
-    (messages, loaded) <- sessionStart session command
+    (messages, loaded) <- sessionStart session runCommand
     when (null loaded) $ do
-        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
+        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ runCommand
         exitFailure
     fire nextWait (messages, loaded)
 

@@ -9,7 +9,7 @@ import Data.Char
 import Data.List.Extra
 import System.FilePath
 import System.Directory.Extra
-import System.Process
+import System.Process(system)
 import System.Console.CmdArgs
 import System.Time.Extra
 
@@ -40,9 +40,18 @@ pollingTest  = testCase "Scripted Test" $ do
         -- otherwise GHC warns about .ghci being accessible by others
         try_ $ system "chmod og-w . .ghci"
 
+        let run = RunGhcid
+                {runRestart = []
+                ,runReload = []
+                ,runCommand = "ghci"
+                ,runOutput = []
+                ,runTest = Nothing
+                ,runTestWithWarnings = False
+                ,runShowStatus = False
+                ,runShowTitles = False}
+        let output msg = unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
         withSession $ \session -> withWaiterPoll $ \waiter -> bracket (
-          forkIO $ runGhcid session waiter [] [] "ghci" [] Nothing False False (return (100, 50)) False $ \msg ->
-            unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
+          forkIO $ runGhcid session waiter (return (100, 50)) output run
           ) killThread $ \_ -> do
             require requireAllGood
             testScript require
