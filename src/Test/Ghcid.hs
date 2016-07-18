@@ -40,7 +40,7 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
             ,runTestWithWarnings = False
             ,runShowStatus = False
             ,runShowTitles = False}
-    let output = putMVarNow ref . map snd
+    let output = putMVarNow ref . filter (/= "") . map snd
     withSession $ \session -> withWaiterNotify $ \waiter -> bracket
         (forkIO $ runGhcid session waiter (return (100, 50)) output run)
         killThread $ \_ -> do
@@ -61,28 +61,22 @@ takeMVarDelay x i = do
         Nothing -> sleep 0.1 >> takeMVarDelay x (i-0.1)
         Just v -> return v
 
---(===) :: (Eq a, Show a) => a -> a -> IO ()
---(===) a b = unless (a == b) $ error $ "Mismatch\nLHS: " ++ show a ++ "\nRHS: " ++ show b
 
--- | The all good message
+-- | The all good message, something like "All good (2 modules)"
 requireAllGood :: [String] -> IO ()
-requireAllGood got = map (take (length allGoodMessage)) (filter (not . null) got) @?= [allGoodMessage]
-
---requireNonIndents :: [String] -> [String] -> IO ()
---requireNonIndents want got = [x | x@(c:_) <- got, not $ isSpace c] @?= want
---
---requirePrefix :: [String] -> [String] -> IO ()
---requirePrefix want got = take (length want) got @?= want
+requireAllGood got =
+    all (allGoodMessage `isPrefixOf`) got @?
+        "Expected all good message, got " ++ show got
 
 -- | Since different versions of GHCi give different messages, we only try to find what we require anywhere in the obtained messages
 requireSimilar :: [String] -> [String] -> IO ()
-requireSimilar want got = let
-  allGot = ignoreSpacesAndWeird $ concat got
-  in all (`isInfixOf` allGot) (map ignoreSpacesAndWeird want) @? (show (filter (not . null) got) ++ " does not contain " ++ show want)
+requireSimilar want got = do
+    -- Spacing and quotes tend to be different on different GHCi versions
+    let simple = lower . filter (\x -> isLetter x || isDigit x || x == ':')
+        got2 = simple $ unwords got
+    all (`isInfixOf` got2) (map simple got) @?
+        "Expected " ++ show want ++ ", got " ++ show got
 
--- | Spacing and quotes tend to be different on different GHCi versions
-ignoreSpacesAndWeird :: String -> String
-ignoreSpacesAndWeird = lower . filter (\x -> isLetter x || isDigit x || x == ':')
 
 ---------------------------------------------------------------------
 -- ACTUAL TEST SUITE
