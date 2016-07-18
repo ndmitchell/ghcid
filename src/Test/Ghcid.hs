@@ -27,7 +27,6 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
             res <- takeMVarDelay ref 5
             predi res
             outStr "."
-    -- t <- myThreadId
     writeFile "Main.hs" "main = print 1"
     writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
     -- otherwise GHC warns about .ghci being accessible by others
