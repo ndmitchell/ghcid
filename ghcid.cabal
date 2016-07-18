@@ -70,12 +70,12 @@ executable ghcid
     else
         build-depends: unix
     other-modules:
-        Language.Haskell.Ghcid.Types,
-        Language.Haskell.Ghcid.Parser,
-        Language.Haskell.Ghcid.Terminal,
-        Language.Haskell.Ghcid.Util,
-        Language.Haskell.Ghcid,
-        Session,
+        Language.Haskell.Ghcid.Types
+        Language.Haskell.Ghcid.Parser
+        Language.Haskell.Ghcid.Terminal
+        Language.Haskell.Ghcid.Util
+        Language.Haskell.Ghcid
+        Session
         Wait
 
 test-suite ghcid_test
@@ -103,7 +103,7 @@ test-suite ghcid_test
     else
         build-depends: unix
     other-modules:
-        Test.Parser,
-        Test.HighLevel,
-        Test.Util,
+        Test.Parser
+        Test.HighLevel
+        Test.Util
         Test.Polling
