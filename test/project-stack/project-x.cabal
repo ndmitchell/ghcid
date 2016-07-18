@@ -1,0 +1,10 @@
+build-type:         Simple
+name:               project-x
+version:            0
+
+library
+    hs-source-dirs: src
+    build-depends: base
+
+    exposed-modules:
+        ProjectX

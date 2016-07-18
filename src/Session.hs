@@ -118,7 +118,8 @@ sessionExecAsync Session{..} cmd done = do
     Just ghci <- readIORef ghci
     stderr <- newIORef ""
     modifyVar_ running $ const $ return True
-    void $ forkIO $ do
+    caller <- myThreadId
+    void $ flip forkFinally (either (throwTo caller) (const $ return ())) $ do
         execStream ghci cmd $ \strm msg ->
             when (msg /= "*** Exception: ExitSuccess") $ do
                 when (strm == Stderr) $ writeIORef stderr msg
