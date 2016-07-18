@@ -10,7 +10,6 @@ import Data.List.Extra
 import System.FilePath
 import System.Directory.Extra
 import System.Process(system)
-import System.Console.CmdArgs
 import System.Time.Extra
 
 import Test.Tasty
@@ -23,7 +22,6 @@ import Language.Haskell.Ghcid.Util
 
 ghcidTest :: TestTree
 ghcidTest = testCase "Ghcid Test" $ do
-    setVerbosity Loud
     tdir <- fmap (</> ".ghcid") getTemporaryDirectory
     try_ $ removeDirectoryRecursive tdir
     createDirectoryIfMissing True tdir
