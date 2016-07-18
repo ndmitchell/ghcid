@@ -21,10 +21,9 @@ import Language.Haskell.Ghcid.Util
 
 ghcidTest :: TestTree
 ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory dir $ do
-    ref <- newEmptyMVar
-    let require predi = do
-            res <- takeMVarDelay ref 5
-            predi res
+    var <- newEmptyMVar
+    let require p = p =<< takeMVarTimeout var 5
+
     writeFile "Main.hs" "main = print 1"
     writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
     -- otherwise GHC warns about .ghci being accessible by others
@@ -40,7 +39,7 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
             ,runTestWithWarnings = False
             ,runShowStatus = False
             ,runShowTitles = False}
-    let output = putMVarNow ref . filter (/= "") . map snd
+    let output = putMVarNow var . filter (/= "") . map snd
     withSession $ \session -> withWaiterNotify $ \waiter -> bracket
         (forkIO $ runGhcid session waiter (return (100, 50)) output run)
         killThread $ \_ -> do
@@ -51,15 +50,15 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do
     b <- tryPutMVar ref x
-    unless b $ error "Had a message and a new one arrived"
+    unless b $ fail "Had a message and a new one arrived"
 
-takeMVarDelay :: MVar a -> Double -> IO a
+takeMVarTimeout :: MVar a -> Seconds -> IO a
 -- using timeout makes the directory notification stuff block, so have to busy wait
-takeMVarDelay _ i | i <= 0 = error "timed out"
-takeMVarDelay x i = do
+takeMVarTimeout _ i | i <= 0 = fail "timed out"
+takeMVarTimeout x i = do
     b <- tryTakeMVar x
     case b of
-        Nothing -> sleep 0.1 >> takeMVarDelay x (i-0.1)
+        Nothing -> sleep 0.1 >> takeMVarTimeout x (i-0.1)
         Just v -> return v
 
 
@@ -123,4 +122,3 @@ testScript require = do
     renameFile "Util2.hs" "Util.hs"
     require requireAllGood
     -- after this point GHC bugs mean nothing really works too much
-
