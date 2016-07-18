@@ -9,7 +9,6 @@ import Data.Char
 import Data.List.Extra
 import System.Directory.Extra
 import System.IO.Extra
-import System.Process(system)
 import System.Time.Extra
 
 import Test.Tasty
@@ -29,7 +28,8 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
     writeFile "Main.hs" "main = print 1"
     writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
     -- otherwise GHC warns about .ghci being accessible by others
-    try_ $ system "chmod og-w . .ghci"
+    p <- getPermissions ".ghci"
+    setPermissions ".ghci" $ setOwnerWritable False p
 
     let run = RunGhcid
             {runRestart = []
