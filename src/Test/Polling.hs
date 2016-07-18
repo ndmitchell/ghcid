@@ -49,18 +49,13 @@ pollingTest  = testCase "Scripted Test" $ do
                 ,runTestWithWarnings = False
                 ,runShowStatus = False
                 ,runShowTitles = False}
-        let output msg = unless (isLoading $ map snd msg) $ putMVarNow ref $ map snd msg
+        let output = putMVarNow ref . map snd
         withSession $ \session -> withWaiterPoll $ \waiter -> bracket (
           forkIO $ runGhcid session waiter (return (100, 50)) output run
           ) killThread $ \_ -> do
             require requireAllGood
             testScript require
             outStrLn "\nSuccess"
-
-isLoading :: [String] -> Bool
-isLoading ("Reloading...":_) = True
-isLoading (x:_) | "Loading" `isPrefixOf` x && "..." `isSuffixOf` x = True
-isLoading _ = False
 
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do
