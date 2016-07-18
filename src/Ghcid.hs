@@ -185,7 +185,7 @@ runGhcid session waiter restart reload command outputfiles test warnings nostatu
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
                        " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++ takeFileName curdir
 
-            updateTitle $ if isJust test then "(running test) " else ""
+            updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfiles $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
