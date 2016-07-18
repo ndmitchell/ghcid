@@ -7,8 +7,8 @@ import Control.Exception.Extra
 import Control.Monad
 import Data.Char
 import Data.List.Extra
-import System.FilePath
 import System.Directory.Extra
+import System.IO.Extra
 import System.Process(system)
 import System.Time.Extra
 
@@ -21,39 +21,35 @@ import Wait
 import Language.Haskell.Ghcid.Util
 
 ghcidTest :: TestTree
-ghcidTest = testCase "Ghcid Test" $ do
-    tdir <- fmap (</> ".ghcid") getTemporaryDirectory
-    try_ $ removeDirectoryRecursive tdir
-    createDirectoryIfMissing True tdir
-    withCurrentDirectory tdir $ do
-        ref <- newEmptyMVar
-        let require predi = do
-                res <- takeMVarDelay ref 5
-                predi res
-                outStr "."
-                sleep 1
-        -- t <- myThreadId
-        writeFile "Main.hs" "main = print 1"
-        writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
-        -- otherwise GHC warns about .ghci being accessible by others
-        try_ $ system "chmod og-w . .ghci"
+ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory dir $ do
+    ref <- newEmptyMVar
+    let require predi = do
+            res <- takeMVarDelay ref 5
+            predi res
+            outStr "."
+            sleep 1
+    -- t <- myThreadId
+    writeFile "Main.hs" "main = print 1"
+    writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
+    -- otherwise GHC warns about .ghci being accessible by others
+    try_ $ system "chmod og-w . .ghci"
 
-        let run = RunGhcid
-                {runRestart = []
-                ,runReload = []
-                ,runCommand = "ghci"
-                ,runOutput = []
-                ,runTest = Nothing
-                ,runTestWithWarnings = False
-                ,runShowStatus = False
-                ,runShowTitles = False}
-        let output = putMVarNow ref . map snd
-        withSession $ \session -> withWaiterPoll $ \waiter -> bracket (
-          forkIO $ runGhcid session waiter (return (100, 50)) output run
-          ) killThread $ \_ -> do
-            require requireAllGood
-            testScript require
-            outStrLn "\nSuccess"
+    let run = RunGhcid
+            {runRestart = []
+            ,runReload = []
+            ,runCommand = "ghci"
+            ,runOutput = []
+            ,runTest = Nothing
+            ,runTestWithWarnings = False
+            ,runShowStatus = False
+            ,runShowTitles = False}
+    let output = putMVarNow ref . map snd
+    withSession $ \session -> withWaiterPoll $ \waiter -> bracket (
+      forkIO $ runGhcid session waiter (return (100, 50)) output run
+      ) killThread $ \_ -> do
+        require requireAllGood
+        testScript require
+        outStrLn "\nSuccess"
 
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do
