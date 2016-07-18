@@ -41,7 +41,7 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
             ,runShowStatus = False
             ,runShowTitles = False}
     let output = putMVarNow ref . map snd
-    withSession $ \session -> withWaiterPoll $ \waiter -> bracket
+    withSession $ \session -> withWaiterNotify $ \waiter -> bracket
         (forkIO $ runGhcid session waiter (return (100, 50)) output run)
         killThread $ \_ -> do
             require requireAllGood
