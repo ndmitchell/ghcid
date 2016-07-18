@@ -41,12 +41,12 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
             ,runShowStatus = False
             ,runShowTitles = False}
     let output = putMVarNow ref . map snd
-    withSession $ \session -> withWaiterPoll $ \waiter -> bracket (
-      forkIO $ runGhcid session waiter (return (100, 50)) output run
-      ) killThread $ \_ -> do
-        require requireAllGood
-        testScript require
-        outStrLn "\nSuccess"
+    withSession $ \session -> withWaiterPoll $ \waiter -> bracket
+        (forkIO $ runGhcid session waiter (return (100, 50)) output run)
+        killThread $ \_ -> do
+            require requireAllGood
+            testScript require
+            outStrLn "\nSuccess"
 
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do
