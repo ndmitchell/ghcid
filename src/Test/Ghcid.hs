@@ -54,6 +54,7 @@ putMVarNow ref x = do
     unless b $ error "Had a message and a new one arrived"
 
 takeMVarDelay :: MVar a -> Double -> IO a
+-- using timeout makes the directory notification stuff block, so have to busy wait
 takeMVarDelay _ i | i <= 0 = error "timed out"
 takeMVarDelay x i = do
     b <- tryTakeMVar x
