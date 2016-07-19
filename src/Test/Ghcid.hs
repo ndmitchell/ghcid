@@ -106,18 +106,18 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
         write "Util.hs" "module Util where\nx"
         require ["Util.hs:2:1","Parse error: naked expression at top level"]
         write "Util.hs" "module Util() where\nx = 1"
-        require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
+        require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
 
         -- check warnings persist properly
         write "Main.hs" "import Util\nx"
         require ["Main.hs:2:1","Parse error: naked expression at top level"
-                ,"Util.hs:2:1","Warning: Defined but not used: `x'"]
+                ,"Util.hs:2:1","Warning:","Defined but not used: `x'"]
         write "Main.hs" "import Util\nmain = print 2"
-        require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
+        require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
         write "Main.hs" "main = print 3"
         require [allGoodMessage]
         write "Main.hs" "import Util\nmain = print 4"
-        require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
+        require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
         write "Util.hs" "module Util where"
         require [allGoodMessage]
 
