@@ -2,4 +2,4 @@
 import System.Process.Extra
 
 main = do
-    system_ "ghcid_test"
+    system_ "dist/build/ghcid_test/ghcid_test"
