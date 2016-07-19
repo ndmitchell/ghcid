@@ -150,11 +150,20 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
 
 dotGhciTest :: TestTree
 dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
-    withGhcid [] $ \require -> do
+    write "test.txt" ""
+    withGhcid ["--test=:test"] $ \require -> do
         require [allGoodMessage]
+        sleep 1 -- time to write out the test
+        readFile "test.txt" >>= (@?= "X") -- the test writes out X
+        append "Test.hs" "\n"
+        require [allGoodMessage]
+        sleep 1 -- time to write out the test
+        readFile "test.txt" >>= (@?= "XX")
         print =<< readFile ".ghci"
         write ".ghci" ":set -fwarn-unused-imports\n:load Root Paths.hs Test"
         require ["The import of Paths_foo is redundant"]
+        sleep 1 -- time to write out the test
+        readFile "test.txt" >>= (@?= "XX") -- but shouldn't run on warning
 
 
 cabalTest :: TestTree

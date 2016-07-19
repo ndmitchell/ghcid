@@ -1,4 +1,4 @@
 
 module Test(main) where
 
-main = print "Test.main"
+main = appendFile "test.txt" "X"
