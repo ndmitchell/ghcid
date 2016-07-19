@@ -22,7 +22,6 @@ import System.IO
 import System.IO.Unsafe
 
 import Paths_ghcid
-import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
