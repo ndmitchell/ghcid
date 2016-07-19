@@ -151,6 +151,7 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
 dotGhciTest :: TestTree
 dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
     write "test.txt" ""
+    ignore $ void $ system "chmod go-w .ghci"
     withGhcid ["--test=:test"] $ \require -> do
         require [allGoodMessage]
         sleep 1 -- time to write out the test
