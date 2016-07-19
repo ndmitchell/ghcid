@@ -1,5 +1,5 @@
 build-type:         Simple
-name:               project-x
+name:               bar
 version:            0
 
 library
@@ -7,4 +7,4 @@ library
     build-depends: base
 
     exposed-modules:
-        ProjectX
+        Lib

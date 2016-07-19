@@ -28,6 +28,7 @@ ghcidTest :: TestTree
 ghcidTest = testGroup "Ghcid test"
     [basicTest
     ,dotGhciTest
+    ,cabalTest
     ]
 
 
@@ -148,3 +149,10 @@ dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
         print =<< readFile ".ghci"
         write ".ghci" ":set -fwarn-unused-imports\n:load Root Paths.hs Test"
         require ["The import of Paths_foo is redundant"]
+
+
+cabalTest :: TestTree
+cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
+    system_ "cabal configure"
+    withGhcid [] $ \require -> do
+        require [allGoodMessage]
