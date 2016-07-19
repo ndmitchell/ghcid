@@ -4,11 +4,13 @@ module Test.Ghcid(ghcidTest) where
 
 import Control.Concurrent
 import Control.Exception.Extra
-import Control.Monad
+import Control.Monad.Extra
 import Data.Char
 import Data.List.Extra
 import System.Directory.Extra
+import System.FilePath
 import System.IO.Extra
+import System.IO.Unsafe
 import System.Process(system)
 import System.Time.Extra
 import System.Info.Extra
@@ -24,7 +26,9 @@ import Language.Haskell.Ghcid.Util
 ghcidTest :: TestTree
 ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory dir $ do
     var <- newEmptyMVar
-    let require p = p =<< takeMVarTimeout var 5
+    let require p = do
+            p =<< takeMVarTimeout var 5
+            sleepFileTime
 
     writeFile "Main.hs" "main = print 1"
     writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
@@ -47,6 +51,27 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
             require requireAllGood
             testScript require
             outStrLn "\nSuccess"
+
+
+{-# NOINLINE sleepFileTime #-}
+-- | Sleep for the amount of time for getModificationTime to observe the time has changed
+sleepFileTime :: IO ()
+sleepFileTime = unsafePerformIO $ withTempDir $ \dir -> do
+    let file = dir </> "calibrate.txt"
+    writeFile file ""
+
+    -- with 10 measurements can get a bit slow, see Shake issue tracker #451
+    -- if it rounds to a second then 1st will be a fraction, but 2nd will be full second
+    mtime <- fmap maximum $ forM [1..2] $ \i -> fmap fst $ duration $ do
+        writeFile file $ show i
+        t1 <- getModificationTime file
+        flip loopM 0 $ \j -> do
+            writeFile file $ show (i,j)
+            t2 <- getModificationTime file
+            return $ if t1 == t2 then Left $ j+1 else Right ()
+    putStrLn $ "Longest file modification time lag was " ++ show (ceiling (mtime * 1000)) ++ "ms"
+    return $ sleep $ min 1 $ mtime * 2
+
 
 putMVarNow :: MVar a -> a -> IO ()
 putMVarNow ref x = do
