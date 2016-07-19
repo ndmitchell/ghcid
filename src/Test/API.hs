@@ -5,7 +5,9 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import System.FilePath
 import System.IO.Extra
+import System.Time.Extra
 import Language.Haskell.Ghcid
+import Language.Haskell.Ghcid.Util
 
 
 apiTests :: TestTree
@@ -25,6 +27,7 @@ apiTests = testGroup "API test"
         exec ghci "a + 1" >>= (@?= ["124"])
         reload ghci >>= (@?= [])
 
+        sleep =<< getModTimeResolution
         writeFile (dir </> "File.hs") "module A where\na = 456"
         exec ghci "a + 1" >>= (@?= ["124"])
         reload ghci >>= (@?= [Loading "A" "File.hs"])
