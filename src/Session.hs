@@ -44,7 +44,7 @@ withSession f = do
     command <- newIORef Nothing
     warnings <- newIORef []
     running <- newVar False
-    ctrlC (f $ Session{..}) `finally` do
+    ctrlC (f Session{..}) `finally` do
         modifyVar_ running $ const $ return False
         whenJustM (readIORef ghci) $ \v -> do
             writeIORef ghci Nothing
