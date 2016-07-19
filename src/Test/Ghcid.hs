@@ -11,7 +11,8 @@ import System.Directory.Extra
 import System.IO.Extra
 import System.Time.Extra
 import Data.Version.Extra
-import System.Process.Extra(systemOutput_)
+import System.Environment
+import System.Process.Extra
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -33,18 +34,9 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
 
     writeFile "Main.hs" "main = print 1"
 
-    let run = RunGhcid
-            {runRestart = []
-            ,runReload = []
-            ,runCommand = "ghci -fwarn-unused-binds Main.hs"
-            ,runOutput = []
-            ,runTest = Nothing
-            ,runTestWithWarnings = False
-            ,runShowStatus = False
-            ,runShowTitles = False}
     let output = putMVarNow var . filter (/= "") . map snd
     withSession $ \session -> withWaiterNotify $ \waiter -> bracket
-        (forkIO $ runGhcid session waiter (return (100, 50)) output run)
+        (forkIO $ withArgs ["-c\"ghci -fwarn-unused-binds Main.hs\""] $ mainWithTerminal (return (100, 50)) output)
         killThread $ \_ -> do
             require requireAllGood
             testScript require
