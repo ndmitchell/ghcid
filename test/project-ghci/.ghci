@@ -1,2 +1,0 @@
-:set -fno-warn-unused-imports
-:load Root Paths.hs Test
