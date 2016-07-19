@@ -25,35 +25,23 @@ import Prelude
 
 ghcidTest :: TestTree
 ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory dir $ do
-    var <- newEmptyMVar
+    chan <- newChan
     let require p = do
-            p =<< takeMVarTimeout var 5
+            t <- timeout 5 $ readChan chan
+            case t of
+                Nothing -> fail "require failed"
+                Just v -> p v
             sleep =<< getModTimeResolution
 
     writeFile "Main.hs" "main = print 1"
 
-    let output = putMVarNow var . filter (/= "") . map snd
+    let output = writeChan chan . filter (/= "") . map snd
     bracket
         (forkIO $ withArgs ["-c\"ghci -fwarn-unused-binds Main.hs\"","--notitle","--no-status"] $ mainWithTerminal (return (100, 50)) output)
         killThread $ \_ -> do
             require requireAllGood
             testScript require
             outStrLn "\nSuccess"
-
-
-putMVarNow :: MVar a -> a -> IO ()
-putMVarNow ref x = do
-    b <- tryPutMVar ref x
-    unless b $ fail "Had a message and a new one arrived"
-
-takeMVarTimeout :: MVar a -> Seconds -> IO a
--- using timeout makes the directory notification stuff block, so have to busy wait
-takeMVarTimeout _ i | i <= 0 = fail "timed out"
-takeMVarTimeout x i = do
-    b <- tryTakeMVar x
-    case b of
-        Nothing -> sleep 0.1 >> takeMVarTimeout x (i-0.1)
-        Just v -> return v
 
 
 -- | The all good message, something like "All good (2 modules)"
