@@ -20,6 +20,9 @@ import Ghcid
 import Session
 import Wait
 import Language.Haskell.Ghcid.Util
+import Data.Functor
+import Prelude
+
 
 ghcidTest :: TestTree
 ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory dir $ do
