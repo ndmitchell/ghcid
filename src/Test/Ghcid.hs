@@ -50,9 +50,9 @@ withGhcid :: [String] -> (([String] -> IO ()) -> IO a) -> IO a
 withGhcid args script = do
     chan <- newChan
     let require want = do
-            t <- timeout 5 $ readChan chan
+            t <- timeout 30 $ readChan chan
             case t of
-                Nothing -> fail "require failed"
+                Nothing -> fail $ "Require failed to produce results in time, expected: " ++ show want
                 Just got -> assertApproxInfix want got
             sleep =<< getModTimeResolution
 
