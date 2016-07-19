@@ -85,6 +85,11 @@ write file x = do
     print ("writeFile",file,x)
     writeFile file x
 
+append :: FilePath -> String -> IO ()
+append file x = do
+    print ("appendFile",file,x)
+    appendFile file x
+
 rename :: FilePath -> FilePath -> IO ()
 rename from to = do
     print ("renameFile",from,to)
@@ -162,3 +167,5 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
 
     withGhcid [] $ \require -> do
         require [allGoodMessage]
+        append "src/Literate.lhs" "> x"
+        require ["src/Literate.lhs:5:3","Parse error:"]

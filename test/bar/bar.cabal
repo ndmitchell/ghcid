@@ -7,4 +7,5 @@ library
     build-depends: base
 
     exposed-modules:
-        Lib
+        Haskell
+        Literate
