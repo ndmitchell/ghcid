@@ -7,5 +7,6 @@ library
     build-depends: base
 
     exposed-modules:
+        Boot
         Haskell
         Literate
