@@ -27,6 +27,9 @@ import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Wait
 
+import Data.Functor
+import Prelude
+
 
 -- | Command line options
 data Options = Options
