@@ -218,9 +218,8 @@ quit ghci =  do
 --   within 5 seconds it just terminates the process.
 stopGhci :: Ghci -> IO ()
 stopGhci ghci = do
-    forkIO $ quit ghci
     forkIO $ do
         -- if nicely doesn't work, kill ghci as the process level
         sleep 5
         terminateProcess $ process ghci
-    void $ waitForProcess $ process ghci
+    quit ghci
