@@ -37,7 +37,6 @@ freshDir act = withTempDir $ \tdir -> withCurrentDirectory tdir act
 copyDir :: FilePath -> IO a -> IO ()
 copyDir dir act = do
     b <- doesDirectoryExist dir
-    dir <- canonicalizePath dir
     if not b then putStrLn $ "Couldn't run test because test is missing, " ++ dir else void $ do
         withTempDir $ \tdir -> do
             xs <- withCurrentDirectory dir $ listFilesRecursive "."
