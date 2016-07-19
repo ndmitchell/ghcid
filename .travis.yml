@@ -6,10 +6,5 @@ env:
  - GHCVER=8.0.1
  - GHCVER=head
 
-matrix:
-  allow_failures:
-   - env: GHCVER=8.0.1 # GHC bug https://ghc.haskell.org/trac/ghc/ticket/11596
-   - env: GHCVER=head  # GHC bug https://ghc.haskell.org/trac/ghc/ticket/11596
-
 script:
  - wget https://raw.github.com/ndmitchell/neil/master/travis.sh -O - --no-check-certificate --quiet | sh
