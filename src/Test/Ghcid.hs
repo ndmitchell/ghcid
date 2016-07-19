@@ -18,8 +18,6 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Ghcid
-import Session
-import Wait
 import Language.Haskell.Ghcid.Util
 import Data.Functor
 import Prelude
@@ -35,8 +33,8 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
     writeFile "Main.hs" "main = print 1"
 
     let output = putMVarNow var . filter (/= "") . map snd
-    withSession $ \session -> withWaiterNotify $ \waiter -> bracket
         (forkIO $ withArgs ["-c\"ghci -fwarn-unused-binds Main.hs\""] $ mainWithTerminal (return (100, 50)) output)
+    bracket
         killThread $ \_ -> do
             require requireAllGood
             testScript require
