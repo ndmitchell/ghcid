@@ -42,10 +42,14 @@ withGhcid args script = do
             sleep =<< getModTimeResolution
 
     let output = writeChan chan . filter (/= "") . map snd
-    bracket
-        (forkIO $ withArgs (["--notitle","--no-status"]++args) $
-                      mainWithTerminal (return (100, 50)) output)
+    done <- newBarrier
+    res <- bracket
+        (flip forkFinally (const $ signalBarrier done ()) $
+            withArgs (["--notitle","--no-status"]++args) $
+                mainWithTerminal (return (100, 50)) output)
         killThread $ \_ -> script require
+    waitBarrier done
+    return res
 
 
 -- | Since different versions of GHCi give different messages, we only try to find what
