@@ -100,18 +100,18 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
     withGhcid ["-cghci -fwarn-unused-binds Main.hs"] $ \require -> do
         require [allGoodMessage]
         write "Main.hs" "x"
-        require ["Main.hs:1:1"," Parse error: naked expression at top level"]
+        require ["Main.hs:1:1"," Parse error:"]
         write "Util.hs" "module Util where"
         write "Main.hs" "import Util\nmain = print 1"
         require [allGoodMessage]
         write "Util.hs" "module Util where\nx"
-        require ["Util.hs:2:1","Parse error: naked expression at top level"]
+        require ["Util.hs:2:1","Parse error:"]
         write "Util.hs" "module Util() where\nx = 1"
         require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
 
         -- check warnings persist properly
         write "Main.hs" "import Util\nx"
-        require ["Main.hs:2:1","Parse error: naked expression at top level"
+        require ["Main.hs:2:1","Parse error:"
                 ,"Util.hs:2:1","Warning:","Defined but not used: `x'"]
         write "Main.hs" "import Util\nmain = print 2"
         require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
