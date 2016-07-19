@@ -184,15 +184,15 @@ data RunGhcid = RunGhcid
 
 
 runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> RunGhcid -> IO ()
-runGhcid session waiter size output run@RunGhcid{..} = do
+runGhcid session waiter termSize termOutput run@RunGhcid{..} = do
     let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
-            (width, height) <- size
+            (width, height) <- termSize
             let n = height - length msg
             load <- return $ take (if isJust load then n else 0) $ prettyOutput (maybe 0 fst load)
                 [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
-            output $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
+            termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
     restartTimes <- mapM getModTime runRestart
     curdir <- getCurrentDirectory
@@ -242,7 +242,7 @@ runGhcid session waiter size output run@RunGhcid{..} = do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
             else do
-                runGhcid session waiter size output run
+                runGhcid session waiter termSize termOutput run
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session runCommand
