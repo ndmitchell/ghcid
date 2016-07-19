@@ -39,7 +39,7 @@ parseLoad  = nubOrd . f
             , (pos,rest) <- span (\c -> c == ':' || isDigit c) rest
             , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos
             , (msg,las) <- span (isPrefixOf " ") xs
-            , rest <- trimStart rest
+            , rest <- trimStart $ unwords $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower rest then Warning else Error
             = Message sev file (p1,p2) (x:msg) : f las
         f (x:xs)
