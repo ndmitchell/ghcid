@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
-module Ghcid(main, mainWithTerminal, RunGhcid(..), runGhcid) where
+module Ghcid(main, mainWithTerminal) where
 
 import Control.Exception
 import System.IO.Error
