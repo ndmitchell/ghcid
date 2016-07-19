@@ -33,8 +33,8 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
     writeFile "Main.hs" "main = print 1"
 
     let output = putMVarNow var . filter (/= "") . map snd
-        (forkIO $ withArgs ["-c\"ghci -fwarn-unused-binds Main.hs\""] $ mainWithTerminal (return (100, 50)) output)
     bracket
+        (forkIO $ withArgs ["-c\"ghci -fwarn-unused-binds Main.hs\"","--notitle","--no-status"] $ mainWithTerminal (return (100, 50)) output)
         killThread $ \_ -> do
             require requireAllGood
             testScript require
