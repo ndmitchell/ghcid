@@ -2,7 +2,7 @@
 -- | Test behavior of the executable, polling files for changes
 module Test.Ghcid(ghcidTest) where
 
-import Control.Concurrent
+import Control.Concurrent.Extra
 import Control.Exception.Extra
 import Control.Monad.Extra
 import Data.Char
@@ -13,6 +13,7 @@ import System.Time.Extra
 import Data.Version.Extra
 import System.Environment
 import System.Process.Extra
+import System.FilePath
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -24,11 +25,26 @@ import Prelude
 
 
 ghcidTest :: TestTree
-ghcidTest = basicTest
+ghcidTest = testGroup "Ghcid test"
+    [basicTest
+    ,dotGhciTest
+    ]
 
 
 freshDir :: IO a -> IO a
 freshDir act = withTempDir $ \tdir -> withCurrentDirectory tdir act
+
+copyDir :: FilePath -> IO a -> IO ()
+copyDir dir act = do
+    b <- doesDirectoryExist dir
+    dir <- canonicalizePath dir
+    if not b then putStrLn $ "Couldn't run test because test is missing, " ++ dir else void $ do
+        withTempDir $ \tdir -> do
+            xs <- withCurrentDirectory dir $ listFilesRecursive "."
+            forM_ xs $ \x -> do
+                createDirectoryIfMissing True $ takeDirectory $ tdir </> x
+                copyFile (dir </> x) (tdir </> x)
+            withCurrentDirectory tdir act
 
 
 withGhcid :: [String] -> (([String] -> IO ()) -> IO a) -> IO a
@@ -124,3 +140,9 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
             require [allGoodMessage]
 
         -- after this point GHC bugs mean nothing really works too much
+
+
+dotGhciTest :: TestTree
+dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
+    withGhcid [] $ \require ->
+        require [allGoodMessage]
