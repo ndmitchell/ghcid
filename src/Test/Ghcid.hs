@@ -90,9 +90,7 @@ takeMVarTimeout x i = do
 
 -- | The all good message, something like "All good (2 modules)"
 requireAllGood :: [String] -> IO ()
-requireAllGood got =
-    all (allGoodMessage `isPrefixOf`) got @?
-        "Expected all good message, got " ++ show got
+requireAllGood = requireSimilar [allGoodMessage]
 
 -- | Since different versions of GHCi give different messages, we only try to find what we require anywhere in the obtained messages
 requireSimilar :: [String] -> [String] -> IO ()
