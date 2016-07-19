@@ -56,41 +56,50 @@ assertApproxInfix want got = do
         "Expected " ++ show want ++ ", got " ++ show got
 
 
+write :: FilePath -> String -> IO ()
+write file x = do
+    print ("writeFile",file,x)
+    writeFile file x
+
+rename :: FilePath -> FilePath -> IO ()
+rename from to = do
+    print ("renameFile",from,to)
+    renameFile from to
+
+
+
 ---------------------------------------------------------------------
 -- ACTUAL TEST SUITE
 
 testScript :: ([String] -> IO ()) -> IO ()
 testScript require = do
-    writeFile <- return $ \name x -> do print ("writeFile",name,x); writeFile name x
-    renameFile <- return $ \from to -> do print ("renameFile",from,to); renameFile from to
-
-    writeFile "Main.hs" "x"
+    write "Main.hs" "x"
     require ["Main.hs:1:1"," Parse error: naked expression at top level"]
-    writeFile "Util.hs" "module Util where"
-    writeFile "Main.hs" "import Util\nmain = print 1"
+    write "Util.hs" "module Util where"
+    write "Main.hs" "import Util\nmain = print 1"
     require [allGoodMessage]
-    writeFile "Util.hs" "module Util where\nx"
+    write "Util.hs" "module Util where\nx"
     require ["Util.hs:2:1","Parse error: naked expression at top level"]
-    writeFile "Util.hs" "module Util() where\nx = 1"
+    write "Util.hs" "module Util() where\nx = 1"
     require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
 
     -- check warnings persist properly
-    writeFile "Main.hs" "import Util\nx"
+    write "Main.hs" "import Util\nx"
     require ["Main.hs:2:1","Parse error: naked expression at top level"
             ,"Util.hs:2:1","Warning: Defined but not used: `x'"]
-    writeFile "Main.hs" "import Util\nmain = print 2"
+    write "Main.hs" "import Util\nmain = print 2"
     require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
-    writeFile "Main.hs" "main = print 3"
+    write "Main.hs" "main = print 3"
     require [allGoodMessage]
-    writeFile "Main.hs" "import Util\nmain = print 4"
+    write "Main.hs" "import Util\nmain = print 4"
     require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
-    writeFile "Util.hs" "module Util where"
+    write "Util.hs" "module Util where"
     require [allGoodMessage]
 
     -- check recursive modules work
-    writeFile "Util.hs" "module Util where\nimport Main"
+    write "Util.hs" "module Util where\nimport Main"
     require ["imports form a cycle","Main.hs","Util.hs"]
-    writeFile "Util.hs" "module Util where"
+    write "Util.hs" "module Util where"
     require [allGoodMessage]
 
     ghcVer <- readVersion <$> systemOutput_ "ghc --numeric-version"
@@ -99,9 +108,9 @@ testScript require = do
     when (ghcVer < makeVersion [8]) $ do
         -- note that due to GHC bug #9648 and #11596 this doesn't work with newer GHC
         -- see https://ghc.haskell.org/trac/ghc/ticket/11596
-        renameFile "Util.hs" "Util2.hs"
+        rename "Util.hs" "Util2.hs"
         require ["Main.hs:1:8:","Could not find module `Util'"]
-        renameFile "Util2.hs" "Util.hs"
+        rename "Util2.hs" "Util.hs"
         require [allGoodMessage]
 
     -- after this point GHC bugs mean nothing really works too much
