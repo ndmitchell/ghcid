@@ -128,7 +128,9 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
     hSetBuffering stderr NoBuffering
     opts <- cmdArgsRun options
     withCurrentDirectory (directory opts) $ do
-        opts@Options{..} <- autoOptions opts
+        opts <- autoOptions opts
+        opts <- return $ opts{restart = nubOrd $ restart opts, reload = nubOrd $ reload opts}
+        let Options{..} = opts
         when topmost terminalTopmost
 
         termSize <- return $ case (width, height) of
@@ -143,8 +145,8 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $ do
                 let run = RunGhcid
-                        {runRestart = nubOrd restart
-                        ,runReload = nubOrd reload
+                        {runRestart = restart
+                        ,runReload = reload
                         ,runCommand = command
                         ,runOutput = outputfile
                         ,runTest = if null test then Nothing else Just $ intercalate "\n" test
