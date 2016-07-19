@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
-module Ghcid(main, RunGhcid(..), runGhcid) where
+module Ghcid(main, mainWithTerminal, RunGhcid(..), runGhcid) where
 
 import Control.Exception
 import System.IO.Error
@@ -121,8 +121,9 @@ autoOptions o@Options{..}
                  | otherwise = x
 
 
-main :: IO ()
-main = withWindowIcon $ withSession $ \session -> do
+-- | Like 'main', but run with a fake terminal for testing
+mainWithTerminal :: IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
+mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -> do
     -- On certain Cygwin terminals stdout defaults to BlockBuffering
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr NoBuffering
@@ -133,13 +134,10 @@ main = withWindowIcon $ withSession $ \session -> do
         height <- return $ case (width, height) of
             (Just w, Just h) -> return (w,h)
             _ -> do
-                term <- fmap (fmap $ Term.width &&& Term.height) Term.size
-                whenLoud $ do
-                    outStrLn $ "%CONSOLE: width = " ++ maybe "?" (show . fst) term ++ ", height = " ++ maybe "?" (show . snd) term
-                let f user def sel = fromMaybe (maybe def sel term) user
-                -- if we write to the end of the window then it wraps automatically
+                term <- termSize
+                -- if we write to the final column of the window then it wraps automatically
                 -- so putStrLn width 'x' uses up two lines
-                return (f width 80 (pred . fst), f height 8 snd)
+                return (fromMaybe (pred $ fst term) width, fromMaybe (snd term) height)
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $ do
                 let run = RunGhcid
@@ -151,13 +149,21 @@ main = withWindowIcon $ withSession $ \session -> do
                         ,runTestWithWarnings = warnings
                         ,runShowStatus = not nostatus
                         ,runShowTitles = not notitle}
-                let output xs = do
-                        outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
-                            when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
-                            putStr $ concatMap ((:) '\n' . snd) x
-                            when (s == Bold) $ setSGR []
-                        hFlush stdout -- must flush, since we don't finish with a newline
-                runGhcid session waiter height output run
+                runGhcid session waiter height termOutput run
+
+
+
+main :: IO ()
+main = mainWithTerminal termSize termOutput
+    where
+        termSize = maybe (80, 8) (Term.width &&& Term.height) <$> Term.size
+
+        termOutput xs = do
+            outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
+                when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
+                putStr $ concatMap ((:) '\n' . snd) x
+                when (s == Bold) $ setSGR []
+            hFlush stdout -- must flush, since we don't finish with a newline
 
 
 data Style = Plain | Bold deriving Eq
