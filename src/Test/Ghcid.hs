@@ -24,7 +24,15 @@ import Prelude
 
 
 ghcidTest :: TestTree
-ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory dir $ do
+ghcidTest = basicTest
+
+
+freshDir :: IO a -> IO a
+freshDir act = withTempDir $ \dir -> withCurrentDirectory dir act
+
+
+withGhcid :: [String] -> (([String] -> IO ()) -> IO a) -> IO a
+withGhcid args script = do
     chan <- newChan
     let require want = do
             t <- timeout 5 $ readChan chan
@@ -33,16 +41,11 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
                 Just got -> assertApproxInfix want got
             sleep =<< getModTimeResolution
 
-    writeFile "Main.hs" "main = print 1"
-
     let output = writeChan chan . filter (/= "") . map snd
     bracket
-        (forkIO $ withArgs ["-cghci -fwarn-unused-binds Main.hs","--notitle","--no-status"] $
+        (forkIO $ withArgs (["--notitle","--no-status"]++args) $
                       mainWithTerminal (return (100, 50)) output)
-        killThread $ \_ -> do
-            require [allGoodMessage]
-            testScript require
-            outStrLn "\nSuccess"
+        killThread $ \_ -> script require
 
 
 -- | Since different versions of GHCi give different messages, we only try to find what
@@ -71,46 +74,49 @@ rename from to = do
 ---------------------------------------------------------------------
 -- ACTUAL TEST SUITE
 
-testScript :: ([String] -> IO ()) -> IO ()
-testScript require = do
-    write "Main.hs" "x"
-    require ["Main.hs:1:1"," Parse error: naked expression at top level"]
-    write "Util.hs" "module Util where"
-    write "Main.hs" "import Util\nmain = print 1"
-    require [allGoodMessage]
-    write "Util.hs" "module Util where\nx"
-    require ["Util.hs:2:1","Parse error: naked expression at top level"]
-    write "Util.hs" "module Util() where\nx = 1"
-    require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
+basicTest :: TestTree
+basicTest = testCase "Ghcid Test" $ freshDir $ do
+    write "Main.hs" "main = print 1"
+    withGhcid ["-cghci -fwarn-unused-binds Main.hs"] $ \require -> do
+        require [allGoodMessage]
+        write "Main.hs" "x"
+        require ["Main.hs:1:1"," Parse error: naked expression at top level"]
+        write "Util.hs" "module Util where"
+        write "Main.hs" "import Util\nmain = print 1"
+        require [allGoodMessage]
+        write "Util.hs" "module Util where\nx"
+        require ["Util.hs:2:1","Parse error: naked expression at top level"]
+        write "Util.hs" "module Util() where\nx = 1"
+        require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
 
-    -- check warnings persist properly
-    write "Main.hs" "import Util\nx"
-    require ["Main.hs:2:1","Parse error: naked expression at top level"
-            ,"Util.hs:2:1","Warning: Defined but not used: `x'"]
-    write "Main.hs" "import Util\nmain = print 2"
-    require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
-    write "Main.hs" "main = print 3"
-    require [allGoodMessage]
-    write "Main.hs" "import Util\nmain = print 4"
-    require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
-    write "Util.hs" "module Util where"
-    require [allGoodMessage]
-
-    -- check recursive modules work
-    write "Util.hs" "module Util where\nimport Main"
-    require ["imports form a cycle","Main.hs","Util.hs"]
-    write "Util.hs" "module Util where"
-    require [allGoodMessage]
-
-    ghcVer <- readVersion <$> systemOutput_ "ghc --numeric-version"
-
-    -- check renaming files works
-    when (ghcVer < makeVersion [8]) $ do
-        -- note that due to GHC bug #9648 and #11596 this doesn't work with newer GHC
-        -- see https://ghc.haskell.org/trac/ghc/ticket/11596
-        rename "Util.hs" "Util2.hs"
-        require ["Main.hs:1:8:","Could not find module `Util'"]
-        rename "Util2.hs" "Util.hs"
+        -- check warnings persist properly
+        write "Main.hs" "import Util\nx"
+        require ["Main.hs:2:1","Parse error: naked expression at top level"
+                ,"Util.hs:2:1","Warning: Defined but not used: `x'"]
+        write "Main.hs" "import Util\nmain = print 2"
+        require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
+        write "Main.hs" "main = print 3"
+        require [allGoodMessage]
+        write "Main.hs" "import Util\nmain = print 4"
+        require ["Util.hs:2:1","Warning: Defined but not used: `x'"]
+        write "Util.hs" "module Util where"
         require [allGoodMessage]
 
-    -- after this point GHC bugs mean nothing really works too much
+        -- check recursive modules work
+        write "Util.hs" "module Util where\nimport Main"
+        require ["imports form a cycle","Main.hs","Util.hs"]
+        write "Util.hs" "module Util where"
+        require [allGoodMessage]
+
+        ghcVer <- readVersion <$> systemOutput_ "ghc --numeric-version"
+
+        -- check renaming files works
+        when (ghcVer < makeVersion [8]) $ do
+            -- note that due to GHC bug #9648 and #11596 this doesn't work with newer GHC
+            -- see https://ghc.haskell.org/trac/ghc/ticket/11596
+            rename "Util.hs" "Util2.hs"
+            require ["Main.hs:1:8:","Could not find module `Util'"]
+            rename "Util2.hs" "Util.hs"
+            require [allGoodMessage]
+
+        -- after this point GHC bugs mean nothing really works too much
