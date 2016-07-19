@@ -114,6 +114,7 @@ testScript require = do
     -- check renaming files works
     when (ghcVer < makeVersion [8]) $ do
         -- note that due to GHC bug #9648 and #11596 this doesn't work with newer GHC
+        -- see https://ghc.haskell.org/trac/ghc/ticket/11596
         renameFile "Util.hs" "Util2.hs"
         require $ requireSimilar ["Main.hs:1:8:","Could not find module `Util'"]
         renameFile "Util2.hs" "Util.hs"
