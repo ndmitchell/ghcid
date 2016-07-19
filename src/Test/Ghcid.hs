@@ -144,5 +144,8 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
 
 dotGhciTest :: TestTree
 dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
-    withGhcid [] $ \require ->
+    withGhcid [] $ \require -> do
         require [allGoodMessage]
+        print =<< readFile ".ghci"
+        write ".ghci" ":set -fwarn-unused-imports\n:load Root Paths.hs Test"
+        require ["The import of Paths_foo is redundant"]
