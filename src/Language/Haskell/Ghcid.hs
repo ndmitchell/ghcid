@@ -71,7 +71,8 @@ startGhci cmd directory echo0 = do
     let syncReplay = do
             i <- readVar syncCount
             let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
-            writeInp $ "Prelude.putStrLn " ++ show msg ++ "\nPrelude.error " ++ show msg
+            writeInp $ "INTERNAL_GHCID.putStrLn " ++ show msg ++ "\n" ++
+                       "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ show msg
             return $ isInfixOf msg
     let syncFresh = do
             modifyVar_ syncCount $ return . succ
@@ -150,9 +151,10 @@ startGhci cmd directory echo0 = do
                 -- the thing before me may have done its own Haskell compiling
                 writeIORef stdout []
                 writeIORef stderr []
-                writeIORef sync =<< syncFresh
+                writeInp "import qualified System.IO as INTERNAL_GHCID"
                 writeInp $ ":set prompt " ++ ghcid_prefix
                 writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+                writeIORef sync =<< syncFresh
             echo0 strm s
             return Nothing
     r <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)

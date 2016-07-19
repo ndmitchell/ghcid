@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    Better support for dealing with GHC 8.0 call stack messages
     #79, support multiple --test flags
     #71, improve multi-project stack support
     #74, make sure Cygwin terminals flush output properly
