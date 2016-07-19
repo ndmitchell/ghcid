@@ -37,7 +37,8 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
 
     let output = writeChan chan . filter (/= "") . map snd
     bracket
-        (forkIO $ withArgs ["-c\"ghci -fwarn-unused-binds Main.hs\"","--notitle","--no-status"] $ mainWithTerminal (return (100, 50)) output)
+        (forkIO $ withArgs ["-cghci -fwarn-unused-binds Main.hs","--notitle","--no-status"] $
+                      mainWithTerminal (return (100, 50)) output)
         killThread $ \_ -> do
             require requireAllGood
             testScript require
