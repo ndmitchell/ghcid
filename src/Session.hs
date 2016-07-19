@@ -31,8 +31,9 @@ data Session = Session
 
 
 -- | Ensure an action runs off the main thread, so can't get hit with Ctrl-C exceptions.
+--   Disabled because it plays havoc with tests and cleaning up quickly enough.
 ctrlC :: IO a -> IO a
-ctrlC = join . onceFork
+ctrlC = id -- join . onceFork
 
 
 -- | The function 'withSession' expects to be run on the main thread,
