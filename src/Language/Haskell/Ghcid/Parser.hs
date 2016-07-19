@@ -36,11 +36,11 @@ parseLoad  = nubOrd . f
             | not $ " " `isPrefixOf` x
             , Just (file,rest) <- breakFileColon x
             , takeExtension file `elem` [".hs",".lhs"]
-            , (pos,rest2) <- span (\c -> c == ':' || isDigit c) rest
+            , (pos,rest) <- span (\c -> c == ':' || isDigit c) rest
             , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos
             , (msg,las) <- span (isPrefixOf " ") xs
-            , rest3 <- trimStart rest2
-            , sev <- if "warning:" `isPrefixOf` lower rest3 then Warning else Error
+            , rest <- trimStart rest
+            , sev <- if "warning:" `isPrefixOf` lower rest then Warning else Error
             = Message sev file (p1,p2) (x:msg) : f las
         f (x:xs)
             | Just file <- stripPrefix "<no location info>: can't find file: " x
