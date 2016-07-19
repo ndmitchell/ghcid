@@ -10,9 +10,8 @@ import Data.List.Extra
 import System.Directory.Extra
 import System.IO.Extra
 import System.Time.Extra
-import System.Info.Extra
 import Data.Version.Extra
-import System.Process.Extra(system, systemOutput_)
+import System.Process.Extra(systemOutput_)
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -30,14 +29,11 @@ ghcidTest = testCase "Ghcid Test" $ withTempDir $ \dir -> withCurrentDirectory d
             sleep =<< getModTimeResolution
 
     writeFile "Main.hs" "main = print 1"
-    writeFile ".ghci" ":set -fwarn-unused-binds \n:load Main"
-    -- otherwise GHC warns about .ghci being accessible by others
-    unless isWindows $ void $ try_ $ system "chmod og-w . .ghci"
 
     let run = RunGhcid
             {runRestart = []
             ,runReload = []
-            ,runCommand = "ghci"
+            ,runCommand = "ghci -fwarn-unused-binds Main.hs"
             ,runOutput = []
             ,runTest = Nothing
             ,runTestWithWarnings = False
