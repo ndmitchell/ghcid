@@ -28,7 +28,7 @@ ghcidTest = basicTest
 
 
 freshDir :: IO a -> IO a
-freshDir act = withTempDir $ \dir -> withCurrentDirectory dir act
+freshDir act = withTempDir $ \tdir -> withCurrentDirectory tdir act
 
 
 withGhcid :: [String] -> (([String] -> IO ()) -> IO a) -> IO a
