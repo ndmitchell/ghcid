@@ -130,30 +130,19 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
     withCurrentDirectory (directory opts) $ do
         opts <- autoOptions opts
         opts <- return $ opts{restart = nubOrd $ restart opts, reload = nubOrd $ reload opts}
-        let Options{..} = opts
-        when topmost terminalTopmost
+        when (topmost opts) terminalTopmost
 
-        termSize <- return $ case (width, height) of
+        termSize <- return $ case (width opts, height opts) of
             (Just w, Just h) -> return (w,h)
-            _ -> do
+            (w, h) -> do
                 term <- termSize
                 -- if we write to the final column of the window then it wraps automatically
                 -- so putStrLn width 'x' uses up two lines
-                return (fromMaybe (pred $ fst term) width, fromMaybe (snd term) height)
-
+                return (fromMaybe (pred $ fst term) w, fromMaybe (snd term) h)
 
         withWaiterNotify $ \waiter ->
-            handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $ do
-                let run = RunGhcid
-                        {runRestart = restart
-                        ,runReload = reload
-                        ,runCommand = command
-                        ,runOutput = outputfile
-                        ,runTest = if null test then Nothing else Just $ intercalate "\n" test
-                        ,runTestWithWarnings = warnings
-                        ,runShowStatus = not nostatus
-                        ,runShowTitles = not notitle}
-                runGhcid session waiter termSize termOutput run
+            handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
+                runGhcid session waiter termSize termOutput opts
 
 
 
@@ -172,20 +161,9 @@ main = mainWithTerminal termSize termOutput
 
 data Style = Plain | Bold deriving Eq
 
-data RunGhcid = RunGhcid
-    {runRestart :: [FilePath]
-    ,runReload :: [FilePath]
-    ,runCommand :: String
-    ,runOutput :: [FilePath]
-    ,runTest :: Maybe String
-    ,runTestWithWarnings :: Bool
-    ,runShowStatus :: Bool
-    ,runShowTitles :: Bool
-    }
 
-
-runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> RunGhcid -> IO ()
-runGhcid session waiter termSize termOutput run@RunGhcid{..} = do
+runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> Options -> IO ()
+runGhcid session waiter termSize termOutput opts@Options{..} = do
     let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
             (width, height) <- termSize
@@ -195,7 +173,7 @@ runGhcid session waiter termSize termOutput run@RunGhcid{..} = do
                 | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
-    restartTimes <- mapM getModTime runRestart
+    restartTimes <- mapM getModTime restart
     curdir <- getCurrentDirectory
 
     -- fire, given a waiter, the messages/loaded
@@ -207,12 +185,14 @@ runGhcid session waiter termSize termOutput run@RunGhcid{..} = do
 
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
-            test <- return $ if countErrors == 0 && (runTestWithWarnings || countWarnings == 0) then runTest else Nothing
+            test <- return $
+                if null test || countErrors /= 0 || (countWarnings /= 0 && not warnings) then Nothing
+                else Just $ intercalate "\n" test
 
-            when runShowTitles $ setWindowIcon $
+            unless notitle $ setWindowIcon $
                 if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
 
-            let updateTitle extra = when runShowTitles $ setTitle $
+            let updateTitle extra = unless notitle $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
@@ -220,7 +200,7 @@ runGhcid session waiter termSize termOutput run@RunGhcid{..} = do
 
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
-            forM_ runOutput $ \file ->
+            forM_ outputfile $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
             when (null loaded) $ do
                 putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
@@ -236,19 +216,19 @@ runGhcid session waiter termSize termOutput run@RunGhcid{..} = do
                      else
                         updateTitle "(test done)"
 
-            reason <- nextWait $ runRestart ++ runReload ++ loaded
-            when runShowStatus $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
-            restartTimes2 <- mapM getModTime runRestart
+            reason <- nextWait $ restart ++ reload ++ loaded
+            unless nostatus $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
+            restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
             else do
-                runGhcid session waiter termSize termOutput run
+                runGhcid session waiter termSize termOutput opts
 
     nextWait <- waitFiles waiter
-    (messages, loaded) <- sessionStart session runCommand
+    (messages, loaded) <- sessionStart session command
     when (null loaded) $ do
-        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ runCommand
+        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
         exitFailure
     fire nextWait (messages, loaded)
 
