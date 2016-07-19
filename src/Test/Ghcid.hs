@@ -160,6 +160,5 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
          (proc "cabal" $ "configure":db){env = Just $ filter ((/=) "GHC_PACKAGE_PATH" . fst) env}
     ExitSuccess <- waitForProcess pid
 
-    system_ "cabal configure"
     withGhcid [] $ \require -> do
         require [allGoodMessage]
