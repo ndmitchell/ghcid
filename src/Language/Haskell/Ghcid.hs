@@ -208,9 +208,8 @@ quit :: Ghci -> IO ()
 quit ghci =  do
     interrupt ghci
     handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
-    -- Add ignore because sometimes I get a message about an invalid handle,
-    -- and I've got no idea why - but exceptions here probably mean the thing already died.
-    -- Windows only, and Appveyor only.
+    -- Be aware that waitForProcess has a race condition, see https://github.com/haskell/process/issues/46.
+    -- Therefore just ignore the exception anyway, its probably already terminated.
     ignore $
         void $ waitForProcess $ process ghci
 
