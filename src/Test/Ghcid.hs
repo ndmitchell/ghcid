@@ -9,9 +9,10 @@ import Data.Char
 import Data.List.Extra
 import System.Directory.Extra
 import System.IO.Extra
-import System.Process(system)
 import System.Time.Extra
 import System.Info.Extra
+import Data.Version.Extra
+import System.Process.Extra(system, systemOutput_)
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -117,10 +118,14 @@ testScript require = do
     writeFile "Util.hs" "module Util where"
     require requireAllGood
 
+    ghcVer <- readVersion <$> systemOutput_ "ghc --numeric-version"
+
     -- check renaming files works
-    -- note that due to GHC bug #9648 we can't save down a new file
-    renameFile "Util.hs" "Util2.hs"
-    require $ requireSimilar ["Main.hs:1:8:","Could not find module `Util'"]
-    renameFile "Util2.hs" "Util.hs"
-    require requireAllGood
+    when (ghcVer < makeVersion [8]) $ do
+        -- note that due to GHC bug #9648 and #11596 this doesn't work with newer GHC
+        renameFile "Util.hs" "Util2.hs"
+        require $ requireSimilar ["Main.hs:1:8:","Could not find module `Util'"]
+        renameFile "Util2.hs" "Util.hs"
+        require requireAllGood
+
     -- after this point GHC bugs mean nothing really works too much
