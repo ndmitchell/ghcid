@@ -131,13 +131,16 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
     withCurrentDirectory (directory opts) $ do
         opts@Options{..} <- autoOptions opts
         when topmost terminalTopmost
-        height <- return $ case (width, height) of
+
+        termSize <- return $ case (width, height) of
             (Just w, Just h) -> return (w,h)
             _ -> do
                 term <- termSize
                 -- if we write to the final column of the window then it wraps automatically
                 -- so putStrLn width 'x' uses up two lines
                 return (fromMaybe (pred $ fst term) width, fromMaybe (snd term) height)
+
+
         withWaiterNotify $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $ do
                 let run = RunGhcid
@@ -149,7 +152,7 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
                         ,runTestWithWarnings = warnings
                         ,runShowStatus = not nostatus
                         ,runShowTitles = not notitle}
-                runGhcid session waiter height termOutput run
+                runGhcid session waiter termSize termOutput run
 
 
 
