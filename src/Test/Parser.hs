@@ -38,6 +38,10 @@ testParseLoad = testCase "Load Parsing" $ parseLoad
     ,"C:\\GHCi.hs:82:1: warning: Defined but not used: \8216foo\8217" -- GHC 7.12 uses lowercase
     ,"src\\Haskell.hs:4:23:"
     ,"    Warning: {-# SOURCE #-} unnecessary in import of  `Boot'"
+    ,"src\\Boot.hs-boot:2:8:"
+    ,"    File name does not match module name:"
+    ,"    Saw: `BootX'"
+    ,"    Expected: `Boot'"
     ] @?=
     [Loading "GHCi" "GHCi.hs"
     ,Message {loadSeverity = Error, loadFile = "GHCi.hs", loadFilePos = (70,1), loadMessage = ["GHCi.hs:70:1: Parse error: naked expression at top level"]}
@@ -45,4 +49,5 @@ testParseLoad = testCase "Load Parsing" $ parseLoad
     ,Message {loadSeverity = Warning, loadFile = "GHCi.hs", loadFilePos = (81,1), loadMessage = ["GHCi.hs:81:1: Warning: Defined but not used: `foo'"]}
     ,Message {loadSeverity = Warning, loadFile = "C:\\GHCi.hs", loadFilePos = (82,1), loadMessage = ["C:\\GHCi.hs:82:1: warning: Defined but not used: \8216foo\8217"]}
     ,Message {loadSeverity = Warning, loadFile = "src\\Haskell.hs", loadFilePos = (4,23), loadMessage = ["src\\Haskell.hs:4:23:","    Warning: {-# SOURCE #-} unnecessary in import of  `Boot'"]}
+    ,Message {loadSeverity = Error, loadFile = "src\\Boot.hs-boot", loadFilePos = (2,8), loadMessage = ["src\\Boot.hs-boot:2:8:","    File name does not match module name:","    Saw: `BootX'","    Expected: `Boot'"]}
     ]
