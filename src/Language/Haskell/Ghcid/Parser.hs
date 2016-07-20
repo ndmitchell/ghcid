@@ -35,7 +35,7 @@ parseLoad  = nubOrd . f
         f (x:xs)
             | not $ " " `isPrefixOf` x
             , Just (file,rest) <- breakFileColon x
-            , takeExtension file `elem` [".hs",".lhs"]
+            , takeExtension file `elem` [".hs",".lhs",".hs-boot",".lhs-boot"]
             , (pos,rest) <- span (\c -> c == ':' || isDigit c) rest
             , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos
             , (msg,las) <- span (isPrefixOf " ") xs
