@@ -177,5 +177,8 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
 
     withGhcid [] $ \require -> do
         require [allGoodMessage]
+        orig <- readFile' "src/Literate.lhs"
         append "src/Literate.lhs" "> x"
         require ["src/Literate.lhs:5:3","Parse error:"]
+        write "src/Literate.lhs" orig
+        require [allGoodMessage]
