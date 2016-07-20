@@ -1,6 +1,6 @@
 
 module Haskell(extension) where
 
-import {-# SOURCE #-} Boot()
+import {-# SOURCE #-} qualified Boot
 
 extension = ".hs"

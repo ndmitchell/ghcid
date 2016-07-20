@@ -1,6 +1,6 @@
 
 module Boot(extension) where
 
-import Haskell()
+import qualified Haskell
 
 extension = ".hs-boot"
