@@ -19,7 +19,6 @@ import System.Directory.Extra
 import System.Exit
 import System.FilePath
 import System.IO
-import System.IO.Unsafe
 
 import Paths_ghcid
 import Language.Haskell.Ghcid.Terminal
@@ -98,16 +97,14 @@ autoOptions o@Options{..}
         files <- getDirectoryContents "."
 
         -- use unsafePerformIO to get nicer pattern matching for logic (read-only operations)
-        let isStack dir = unsafePerformIO $ flip catchIOError (const $ return False) $
+        let isStack dir = flip catchIOError (const $ return False) $
                 doesFileExist (dir </> "stack.yaml") &&^ doesDirectoryExist (dir </> ".stack-work")
+        stack <- isStack "." ||^ isStack ".." -- stack file might be parent, see #62
 
         let cabal = filter ((==) ".cabal" . takeExtension) files
         let opts = ["-fno-code" | null test]
-        print ("isStack", isStack ".")
-        (print =<<) $ let dir = "." in flip catchIOError (const $ return False) $
-                doesFileExist (dir </> "stack.yaml") &&^ doesDirectoryExist (dir </> ".stack-work")
         return $ case () of
-            _ | isStack "." || isStack ".." -> -- stack file might be parent, see #62
+            _ | stack ->
                 let flags = if null arguments then
                                 "stack ghci --test" :
                                 ["--no-load" | ".ghci" `elem` files] ++
