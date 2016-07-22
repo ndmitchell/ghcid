@@ -196,7 +196,6 @@ stackTest :: TestTree
 stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenStack $ do
     system_ "stack init"
     createDirectoryIfMissing True ".stack-work"
-    print =<< getDirectoryContents "."
 
     withGhcid [] $ \require -> do
         require [allGoodMessage]
