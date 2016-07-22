@@ -30,6 +30,7 @@ ghcidTest = testGroup "Ghcid test"
     [basicTest
     ,dotGhciTest
     ,cabalTest
+    ,stackTest
     ]
 
 
@@ -46,6 +47,14 @@ copyDir dir act = do
                 createDirectoryIfMissing True $ takeDirectory $ tdir </> x
                 copyFile (dir </> x) (tdir </> x)
             withCurrentDirectory tdir act
+
+
+whenStack :: IO a -> IO ()
+whenStack act = do
+    v <- findExecutable "stack"
+    case v of
+        Nothing -> putStrLn "Couldn't run test because stack is missing"
+        Just _ -> void act
 
 
 withGhcid :: [String] -> (([String] -> IO ()) -> IO a) -> IO a
@@ -182,3 +191,18 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
         require ["src/Literate.lhs:5:3","Parse error:"]
         write "src/Literate.lhs" orig
         require [allGoodMessage]
+
+stackTest :: TestTree
+stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenStack $ do
+    system_ "stack init"
+    system_ "stack build"
+
+    withGhcid [] $ \require -> do
+        require [allGoodMessage]
+        append "src/Literate.lhs" "> x"
+        require ["src/Literate.lhs:5:3","Parse error:"]
+
+    withGhcid ["src/Boot.hs"] $ \require -> do
+        require [allGoodMessage]
+        writeFile "src/Boot.hs" "X"
+        require ["src/Boot.hs:1:1","Parse error:"]
