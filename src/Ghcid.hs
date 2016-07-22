@@ -103,6 +103,9 @@ autoOptions o@Options{..}
 
         let cabal = filter ((==) ".cabal" . takeExtension) files
         let opts = ["-fno-code" | null test]
+        print ("isStack", isStack ".")
+        (print =<<) $ let dir = "." in flip catchIOError (const $ return False) $
+                doesFileExist (dir </> "stack.yaml") &&^ doesDirectoryExist (dir </> ".stack-work")
         return $ case () of
             _ | isStack "." || isStack ".." -> -- stack file might be parent, see #62
                 let flags = if null arguments then
