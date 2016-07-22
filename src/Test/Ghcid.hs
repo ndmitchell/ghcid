@@ -195,7 +195,7 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
 stackTest :: TestTree
 stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenStack $ do
     system_ "stack init"
-    system_ "stack build"
+    createDirectoryIfMissing True ".stack-work"
 
     withGhcid [] $ \require -> do
         require [allGoodMessage]

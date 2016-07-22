@@ -23,5 +23,4 @@ test_script:
 - stack init
 - stack setup > nul
 - echo "" | stack --no-terminal build
-- set STACK_ROOT=
 - echo "" | stack --no-terminal test
