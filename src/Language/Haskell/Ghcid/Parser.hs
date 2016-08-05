@@ -39,7 +39,7 @@ parseLoad  = nubOrd . f
              -- take position, including span if present
             , (pos,rest) <- span (\c -> c == ':' || c == '-' || isDigit c) rest
             -- separate line and column, ignoring span (we want the start point only)
-            , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) $ takeWhile (\c->c /= '-') pos 
+            , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) $ takeWhile (/= '-') pos
             , (msg,las) <- span (isPrefixOf " ") xs
             , rest <- trimStart $ unwords $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower rest then Warning else Error
