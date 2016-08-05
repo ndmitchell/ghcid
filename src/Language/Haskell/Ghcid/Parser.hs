@@ -36,8 +36,10 @@ parseLoad  = nubOrd . f
             | not $ " " `isPrefixOf` x
             , Just (file,rest) <- breakFileColon x
             , takeExtension file `elem` [".hs",".lhs",".hs-boot",".lhs-boot"]
-            , (pos,rest) <- span (\c -> c == ':' || isDigit c) rest
-            , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) pos
+             -- take position, including span if present
+            , (pos,rest) <- span (\c -> c == ':' || c == '-' || isDigit c) rest
+            -- separate line and column, ignoring span (we want the start point only)
+            , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) $ takeWhile (\c->c /= '-') pos 
             , (msg,las) <- span (isPrefixOf " ") xs
             , rest <- trimStart $ unwords $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower rest then Warning else Error
