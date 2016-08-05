@@ -37,9 +37,9 @@ parseLoad  = nubOrd . f
             , Just (file,rest) <- breakFileColon x
             , takeExtension file `elem` [".hs",".lhs",".hs-boot",".lhs-boot"]
              -- take position, including span if present
-            , (pos,rest) <- span (\c -> c == ':' || c == '-' || isDigit c) rest
+            , (pos,rest) <- span (\c -> c == ':' || c == '-' ||  isSpan c || isDigit c) rest
             -- separate line and column, ignoring span (we want the start point only)
-            , [p1,p2] <- map read $ words $ map (\c -> if c == ':' then ' ' else c) $ takeWhile (\c->c /= '-') pos 
+            , [p1,p2] <- map read $ words $ map (\c -> if c == ':' ||  isSpan c then ' ' else c) $ takeWhile (\c->c /= '-') pos 
             , (msg,las) <- span (isPrefixOf " ") xs
             , rest <- trimStart $ unwords $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower rest then Warning else Error
@@ -56,7 +56,7 @@ parseLoad  = nubOrd . f
               [Message Error m (0,0) [] | m <- nubOrd ms] ++ f rest
         f (_:xs) = f xs
         f [] = []
-
+        isSpan c = c== ',' || c == '(' || c == ')'
 
 -- A filename, followed by a colon - be careful to handle Windows drive letters, see #61
 breakFileColon :: String -> Maybe (FilePath, String)
