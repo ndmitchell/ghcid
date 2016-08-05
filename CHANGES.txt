@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #82, properly deal with warning messages including spans
     #78, support boot files better
     Better support for dealing with GHC 8.0 call stack messages
     #79, support multiple --test flags
