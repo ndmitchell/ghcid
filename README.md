@@ -31,6 +31,12 @@ Or, if everything is good, you see:
 
 Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 
+### Ghcid Integration
+
+There are a few tools that integrate Ghcid into editors:
+
+* [neovim-ghcid](https://github.com/cloudhead/neovim-ghcid)
+
 ### FAQ
 
 * _This isn't as good as full IDE._ I've gone for simplicity over features. It's a point in the design space, but not necessarily the best point in the design space for you. For "real" IDEs see [the Haskell wiki](http://www.haskell.org/haskellwiki/IDEs).
