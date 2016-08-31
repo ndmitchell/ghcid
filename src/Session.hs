@@ -62,7 +62,7 @@ kill :: Ghci -> IO ()
 kill ghci = ignore $ do
     timeout 5 $ do
         debugShutdown "Before quit"
-        quit ghci
+        ignore $ quit ghci
         debugShutdown "After quit"
     debugShutdown "Before terminateProcess"
     terminateProcess $ process ghci
