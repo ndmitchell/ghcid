@@ -35,6 +35,7 @@ data Session = Session
 ctrlC :: IO a -> IO a
 ctrlC = id -- join . onceFork
 
+debugShutdown x = when False $ print ("DEBUG SHUTDOWN", x)
 
 -- | The function 'withSession' expects to be run on the main thread,
 --   but the inner function will not. This ensures Ctrl-C is handled
@@ -45,18 +46,27 @@ withSession f = do
     command <- newIORef Nothing
     warnings <- newIORef []
     running <- newVar False
+    debugShutdown "Starting session"
     ctrlC (f Session{..}) `finally` do
+        debugShutdown "Start finally"
         modifyVar_ running $ const $ return False
         whenJustM (readIORef ghci) $ \v -> do
             writeIORef ghci Nothing
+            debugShutdown "Calling kill"
             ctrlC $ kill v
+        debugShutdown "Finish finally"
 
 
 -- | Kill. Wait just long enough to ensure you've done the job, but not to see the results.
 kill :: Ghci -> IO ()
 kill ghci = ignore $ do
-    timeout 5 $ quit ghci
+    timeout 5 $ do
+        debugShutdown "Before quit"
+        quit ghci
+        debugShutdown "After quit"
+    debugShutdown "Before terminateProcess"
     terminateProcess $ process ghci
+    debugShutdown "After terminateProcess"
 
 
 -- | Spawn a new Ghci process at a given command line. Returns the load messages, plus
