@@ -37,7 +37,8 @@ import Prelude
 data Ghci = Ghci
     {ghciProcess :: ProcessHandle
     ,ghciInterrupt :: IO ()
-    ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()}
+    ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()
+    }
 
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
