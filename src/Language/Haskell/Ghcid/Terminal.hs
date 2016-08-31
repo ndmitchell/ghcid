@@ -24,11 +24,16 @@ wM_GETICON = 0x007F :: WindowMessage
 iCON_BIG = 1
 iCON_SMALL = 0
 
+#ifdef x86_64_HOST_ARCH
+#define CALLCONV ccall
+#else
+#define CALLCONV stdcall
+#endif
 
-foreign import stdcall unsafe "windows.h GetConsoleWindow"
+foreign import CALLCONV unsafe "windows.h GetConsoleWindow"
     getConsoleWindow :: IO HWND
 
-foreign import stdcall unsafe "windows.h SetWindowPos"
+foreign import CALLCONV unsafe "windows.h SetWindowPos"
     setWindowPos :: HWND -> HWND -> Int -> Int -> Int -> Int -> Word32 -> IO Bool
 #endif
 
