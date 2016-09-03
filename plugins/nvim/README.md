@@ -1,3 +1,4 @@
+# Ghcid neovim plugin
 
 Provides instant haskell error feedback inside of neovim.
 This should be a lot faster than running neomake with ghc-mod, and
