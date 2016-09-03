@@ -16,7 +16,7 @@ also a lot simpler.
 
   If you're using vim-plug, then add the following line to your list of plugins:
 
-      Plug 'ndmitchell/ghcid' { 'rtp': 'plugins/nvim' }
+      Plug 'ndmitchell/ghcid', { 'rtp': 'plugins/nvim' }
 
   Alternatively, copy the files in this folder to to your vim directory.
 
