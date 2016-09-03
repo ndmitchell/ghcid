@@ -1,4 +1,6 @@
-Ghcid editor support. See the individual plugin directories for instructions on how to install.
+# Ghcid editor support
+
+See the individual plugin directories for instructions on how to install.
 
 ### Contributing
 
