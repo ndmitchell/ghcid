@@ -33,9 +33,9 @@ Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 
 ### Ghcid Integration
 
-There are a few tools that integrate Ghcid into editors:
+There are a few tools that integrate Ghcid into editors, see the plugins[1] folder for currently supported integrations.
 
-* [neovim-ghcid](https://github.com/cloudhead/neovim-ghcid)
+[1](plugins/)
 
 ### FAQ
 
