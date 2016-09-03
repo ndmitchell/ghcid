@@ -18,15 +18,19 @@ also a lot simpler.
 
       Plug 'ndmitchell/ghcid', { 'rtp': 'plugins/nvim' }
 
-  Alternatively, copy the files in this folder to to your vim directory.
+  For vundle, add the following:
+
+      Plugin 'ndmitchell/ghcid', { 'rtp': 'plugins/vim/' }
+
+  Alternatively, copy the files in this folder to to your .vim directory.
 
 ### Usage
 
-  ':Ghcid' runs ghcid inside a neovim terminal buffer and populates
+  `:Ghcid` runs ghcid inside a neovim terminal buffer and populates
   the quickfix list with any errors or warnings.
 
   After every file save, the quickfix list is updated with the output
   of ghcid.
 
-  ':GhcidKill' kills the ghcid job.
+  `:GhcidKill` kills the ghcid job.
 
