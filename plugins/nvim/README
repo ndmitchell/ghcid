@@ -1,33 +1,26 @@
 
-
-              neovim-ghcid
-
-
-Provides instant haskell error feedback inside of neovim, via ghcid[1].
+Provides instant haskell error feedback inside of neovim.
 This should be a lot faster than running neomake with ghc-mod, and
 also a lot simpler.
 
-[1]: https://github.com/ndmitchell/ghcid
+![Obligatory gif][1]
 
-. Obligatory gif
+[1]: https://github.com/cloudhead/images/raw/master/neovim-ghcid.gif
 
-  https://github.com/cloudhead/images/raw/master/neovim-ghcid.gif
-
-. Dependencies
+### Requirements
 
   * neovim >= 0.1.5 (https://github.com/neovim/neovim)
-  * ghcid >= 0.6.5 (https://github.com/ndmitchell/ghcid)
+  * ghcid >= 0.6.5
 
-. Installation
+### Installation
 
-  If you're using vim-plug, then add:
+  If you're using vim-plug, then add the following line to your list of plugins:
 
-      Plug 'cloudhead/neovim-ghcid'
+      Plug 'ndmitchell/ghcid' { 'rtp': 'plugins/nvim' }
 
-  to your init.vim. Alternatively, copy the files to your .config/nvim
-  folder.
+  Alternatively, copy the files in this folder to to your vim directory.
 
-. Usage
+### Usage
 
   ':Ghcid' runs ghcid inside a neovim terminal buffer and populates
   the quickfix list with any errors or warnings.
