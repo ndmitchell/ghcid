@@ -37,6 +37,7 @@ let s:ghcid_dirty = 0
 command! Ghcid     call s:ghcid()
 command! GhcidKill call s:ghcid_kill()
 
+sign define ghcid-warning text=⚠ texthl=WarningSign
 sign define ghcid-error text=× texthl=ErrorSign
 sign define ghcid-dummy
 
@@ -88,7 +89,7 @@ function! s:ghcid_update_status()
 
   let b:ghcid_status = 'Ghcid: All good'
   if nerrs > 0
-    let b:ghcid_status = 'Ghcid: ' . string(nerrs) . ' error(s)'
+    let b:ghcid_status = 'Ghcid: ' . string(nerrs) . ' messages(s)'
   endif
   setlocal statusline=%{b:ghcid_status}
 
@@ -132,7 +133,7 @@ function! s:ghcid_bufwrite() abort
 endfunction
 
 let s:ghcid_error_header_regexp=
-  \   '^\s*\([^\t\r\n:]\+\):\(\d\+\):\(\d\+\):'
+  \   '^\s*\([^\t\r\n:]\+\):\(\d\+\):\(\d\+\):\s*\(warning:\)\?'
 
 let s:ghcid_error_text_regexp=
   \   '\s\+\([^\t\r\n]\+\)'
@@ -154,6 +155,7 @@ function! s:ghcid_parse_error_header(str) abort
   let file = result[1]
   let lnum = result[2]
   let col  = result[3]
+  let warn = result[4]
 
   " Find buffer after making file path relative to cd.
   " If the buffer isn't valid, vim will use the 'filename' entry.
@@ -167,7 +169,8 @@ function! s:ghcid_parse_error_header(str) abort
   let entry = { 'type': 'E',
               \ 'filename': efile,
               \ 'lnum': str2nr(lnum),
-              \ 'col': str2nr(col) }
+              \ 'col': str2nr(col),
+              \ 'warning': !empty(warn) }
 
   let buf = bufnr(efile)
   if buf > 0
@@ -259,7 +262,7 @@ function! s:ghcid_update(ghcid, data) abort
       \ "place"
       \ s:ghcid_sign_id
       \ "line=" . error.lnum
-      \ "name=ghcid-error"
+      \ "name=" . (error.warning ? "ghcid-warning" : "ghcid-error")
       \ "file=" . error.filename
 
     let s:ghcid_sign_id += 1
