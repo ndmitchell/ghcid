@@ -42,7 +42,19 @@ sign define ghcid-dummy
 
 function! s:ghcid_init()
   if g:ghcid_signcolumn == 1
+    call s:ghcid_place_dummy_sign()
+  endif
+endfunction
+
+function! s:ghcid_place_dummy_sign()
+  if g:ghcid_signcolumn >= 1
     exe 'sign' 'place'  s:ghcid_dummy_sign_id  'line=9999' 'name=ghcid-dummy' 'buffer=' . bufnr('%')
+  endif
+endfunction
+
+function! s:ghcid_clear_dummy_sign()
+  if g:ghcid_signcolumn != 1
+    silent exe 'sign' 'unplace' s:ghcid_dummy_sign_id
   endif
 endfunction
 
@@ -184,6 +196,7 @@ function! s:ghcid_update(ghcid, data) abort
 
   if s:ghcid_dirty
     let s:ghcid_dirty = 0
+    call s:ghcid_place_dummy_sign()
     call s:ghcid_clear_signs()
   endif
 
@@ -197,6 +210,7 @@ function! s:ghcid_update(ghcid, data) abort
     call setqflist([])
     call s:ghcid_update_status()
     call s:ghcid_clear_signs()
+    call s:ghcid_clear_dummy_sign()
     return
   endif
 
