@@ -32,6 +32,7 @@ let s:ghcid_job_id = 0
 let s:ghcid_error_header = {}
 let s:ghcid_win_id = -1
 let s:ghcid_buf_id = -1
+let s:ghcid_dirty = 0
 
 command! Ghcid     call s:ghcid()
 command! GhcidKill call s:ghcid_kill()
@@ -111,8 +112,12 @@ function! s:ghcid_openwin()
   echo
 endfunction
 
-autocmd BufWritePost,FileChangedShellPost *.hs call s:ghcid_update_signs()
+autocmd BufWritePost,FileChangedShellPost *.hs call s:ghcid_bufwrite()
 autocmd BufEnter                          *.hs call s:ghcid_init()
+
+function! s:ghcid_bufwrite() abort
+  let s:ghcid_dirty = 1
+endfunction
 
 let s:ghcid_error_header_regexp=
   \   '^\s*\([^\t\r\n:]\+\):\(\d\+\):\(\d\+\):'
@@ -176,6 +181,11 @@ endfunction
 
 function! s:ghcid_update(ghcid, data) abort
   let data = copy(a:data)
+
+  if s:ghcid_dirty
+    let s:ghcid_dirty = 0
+    call s:ghcid_clear_signs()
+  endif
 
   " If we see 'All good', then there are no errors and we
   " can safely close the ghcid window and reset the qflist.
@@ -252,21 +262,6 @@ function! s:ghcid_clear_signs() abort
 
   " Clear the quickfix list.
   call setqflist([])
-endfunction
-
-function! s:ghcid_update_signs() abort
-  " FIXME: Sometimes, the list is cleared even though there are still errors,
-  " yet Ghcid will not send new input, so we're left with a state in which
-  " there is clearly an error in the console, but the qflist is empty. This
-  " is probably due to the fact that ghcid doesn't reload if it doesn't detect
-  " a change in the content. To reproduce: create an error in file A, and
-  " write file B.
-  call setqflist([])
-
-  if !s:ghcid_allgood()
-    return
-  endif
-  call s:ghcid_clear_signs()
 endfunction
 
 function! s:ghcid() abort
