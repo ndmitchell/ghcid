@@ -89,7 +89,7 @@ function! s:ghcid_update_status()
 
   let b:ghcid_status = 'Ghcid: All good'
   if nerrs > 0
-    let b:ghcid_status = 'Ghcid: ' . string(nerrs) . ' messages(s)'
+    let b:ghcid_status = 'Ghcid: ' . string(nerrs) . ' message(s)'
   endif
   setlocal statusline=%{b:ghcid_status}
 
