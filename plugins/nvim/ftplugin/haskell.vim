@@ -200,7 +200,9 @@ function! s:ghcid_update(ghcid, data) abort
 
   if s:ghcid_dirty
     let s:ghcid_dirty = 0
-    call s:ghcid_place_dummy_sign()
+    if !s:ghcid_allgood()
+      call s:ghcid_place_dummy_sign()
+    endif
     call s:ghcid_clear_signs()
   endif
 
