@@ -216,9 +216,8 @@ function! s:ghcid_update(ghcid, data) abort
       call s:ghcid_closewin()
     endif
     echo "Ghcid: OK"
-    call setqflist([])
-    call s:ghcid_update_status()
     call s:ghcid_clear_signs()
+    call s:ghcid_update_status()
     call s:ghcid_clear_dummy_sign()
     return
   endif
