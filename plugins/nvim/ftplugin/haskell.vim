@@ -138,6 +138,9 @@ let s:ghcid_error_header_regexp=
 let s:ghcid_error_text_regexp=
   \   '\s\+\([^\t\r\n]\+\)'
 
+let s:ghcid_reloading_regexp=
+  \   '^Reloading...'
+
 function! s:ghcid_parse_error_text(str) abort
   let result = matchlist(a:str, s:ghcid_error_text_regexp)
   if !len(result)
@@ -218,6 +221,11 @@ function! s:ghcid_update(ghcid, data) abort
     call s:ghcid_clear_signs()
     call s:ghcid_clear_dummy_sign()
     return
+  endif
+
+  " When ghcid reloads, clear all current errors.
+  if !empty(matchstr(join(data), s:ghcid_reloading_regexp))
+    call s:ghcid_clear_signs()
   endif
 
   " Try to parse an error header string. If it succeeds, set the top-level
