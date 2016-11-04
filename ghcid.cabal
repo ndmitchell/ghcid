@@ -1,4 +1,4 @@
-cabal-version:      >= 1.10
+cabal-version:      >= 1.18
 build-type:         Simple
 name:               ghcid
 version:            0.6.5
