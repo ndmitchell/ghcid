@@ -40,7 +40,7 @@ data Options = Options
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
-    ,notitle :: Bool
+    ,no_title :: Bool
     ,reload :: [FilePath]
     ,restart :: [FilePath]
     ,directory :: FilePath
@@ -58,7 +58,7 @@ options = cmdArgsMode $ Options
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
-    ,notitle = False &= help "Don't update the shell title/icon"
+    ,no_title = False &= help "Don't update the shell title/icon"
     ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file)"
     ,reload = [] &= typ "PATH" &= help "Reload when the given file or directory contents change (defaults to none)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
@@ -192,10 +192,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 if null test || countErrors /= 0 || (countWarnings /= 0 && not warnings) then Nothing
                 else Just $ intercalate "\n" test
 
-            unless notitle $ setWindowIcon $
+            unless no_title $ setWindowIcon $
                 if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
 
-            let updateTitle extra = unless notitle $ setTitle $
+            let updateTitle extra = unless no_title $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
                         (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
