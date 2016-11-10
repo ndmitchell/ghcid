@@ -36,7 +36,7 @@ data Options = Options
     ,arguments :: [String]
     ,test :: [String]
     ,warnings :: Bool
-    ,nostatus :: Bool
+    ,no_status :: Bool
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
@@ -54,7 +54,7 @@ options = cmdArgsMode $ Options
     ,arguments = [] &= args &= typ "MODULE"
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
-    ,nostatus = False &= name "S" &= explicit &= name "no-status" &= help "Suppress status messages"
+    ,no_status = False &= name "S" &= help "Suppress status messages"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
@@ -220,7 +220,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                         updateTitle "(test done)"
 
             reason <- nextWait $ restart ++ reload ++ loaded
-            unless nostatus $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
+            unless no_status $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
