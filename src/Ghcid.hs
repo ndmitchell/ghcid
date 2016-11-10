@@ -41,6 +41,7 @@ data Options = Options
     ,width :: Maybe Int
     ,topmost :: Bool
     ,no_title :: Bool
+    ,project :: String
     ,reload :: [FilePath]
     ,restart :: [FilePath]
     ,directory :: FilePath
@@ -59,6 +60,7 @@ options = cmdArgsMode $ Options
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,no_title = False &= help "Don't update the shell title/icon"
+    ,project = "" &= typ "NAME" &= help "Name of the project, defaults to current directory"
     ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file)"
     ,reload = [] &= typ "PATH" &= help "Reload when the given file or directory contents change (defaults to none)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
@@ -198,8 +200,9 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             let updateTitle extra = unless no_title $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
-                        (if countErrors > 0 && countWarnings > 0 then ", " else "") ++ f countWarnings "warning") ++
-                       " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++ takeFileName curdir
+                       (if countErrors >  0 && countWarnings >  0 then ", " else "") ++ f countWarnings "warning") ++
+                       " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++
+                       (if null project then takeFileName curdir else project)
 
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
