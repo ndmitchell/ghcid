@@ -27,6 +27,7 @@ data Session = Session
     ,command :: IORef (Maybe String) -- ^ The last command passed to sessionStart
     ,warnings :: IORef [Load] -- ^ The warnings from the last load
     ,running :: Var Bool -- ^ Am I actively running an async command
+    ,withThread :: ThreadId -- ^ Thread that called withSession
     }
 
 
@@ -42,6 +43,7 @@ withSession f = do
     warnings <- newIORef []
     running <- newVar False
     debugShutdown "Starting session"
+    withThread <- myThreadId
     f Session{..} `finally` do
         debugShutdown "Start finally"
         modifyVar_ running $ const $ return False
@@ -80,6 +82,14 @@ sessionStart Session{..} cmd = do
     outStrLn $ "Loading " ++ cmd ++ " ..."
     (v, messages) <- startGhci cmd Nothing $ const outStrLn
     writeIORef ghci $ Just v
+
+    -- install a handler
+    forkIO $ do
+        waitForProcess $ process v
+        whenJustM (readIORef ghci) $ \ghci ->
+            when (ghci == v) $ do
+                sleep 0.3 -- give anyone reading from the stream a chance to throw first
+                throwTo withThread $ ErrorCall $ "Command \"" ++ cmd ++ "\" exited unexpectedly"
 
     -- handle what the process returned
     messages <- return $ mapMaybe tidyMessage messages
