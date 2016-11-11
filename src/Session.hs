@@ -70,12 +70,18 @@ sessionStart :: Session -> String -> IO ([Load], [FilePath])
 sessionStart Session{..} cmd = do
     modifyVar_ running $ const $ return False
     writeIORef command $ Just cmd
+
+    -- cleanup any old instances
     whenJustM (readIORef ghci) $ \v -> do
         writeIORef ghci Nothing
         void $ forkIO $ kill v
+
+    -- start the new
     outStrLn $ "Loading " ++ cmd ++ " ..."
     (v, messages) <- startGhci cmd Nothing $ const outStrLn
     writeIORef ghci $ Just v
+
+    -- handle what the process returned
     messages <- return $ mapMaybe tidyMessage messages
     writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
     return (messages, nubOrd $ map loadFile messages)
