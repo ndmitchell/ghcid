@@ -70,9 +70,9 @@ sessionStart :: Session -> String -> IO ([Load], [FilePath])
 sessionStart Session{..} cmd = do
     modifyVar_ running $ const $ return False
     writeIORef command $ Just cmd
-    val <- readIORef ghci
-    whenJust val $ void . forkIO . kill
-    writeIORef ghci Nothing
+    whenJustM (readIORef ghci) $ \v -> do
+        writeIORef ghci Nothing
+        void $ forkIO $ kill v
     outStrLn $ "Loading " ++ cmd ++ " ..."
     (v, messages) <- startGhci cmd Nothing $ const outStrLn
     writeIORef ghci $ Just v
