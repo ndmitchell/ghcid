@@ -20,6 +20,7 @@ import Data.List.Extra
 import Data.Maybe
 import Data.IORef
 import Control.Applicative
+import Data.Unique
 
 import System.Console.CmdArgs.Verbosity
 
@@ -38,8 +39,11 @@ data Ghci = Ghci
     {ghciProcess :: ProcessHandle
     ,ghciInterrupt :: IO ()
     ,ghciExec :: String -> (Stream -> String -> IO ()) -> IO ()
+    ,ghciUnique :: Unique
     }
 
+instance Eq Ghci where
+    a == b = ghciUnique a == ghciUnique b
 
 -- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
 --   If you do not call 'stopGhci' then the underlying process may be leaked.
@@ -133,6 +137,7 @@ startGhci cmd directory echo0 = do
                 stop <- syncFresh
                 void $ consume2 "Interrupt" $ \_ s -> return $ if stop s then Just () else Nothing
 
+    ghciUnique <- newUnique
     let ghci = Ghci{..}
 
     -- Now wait for 'GHCi, version' to appear before sending anything real, required for #57

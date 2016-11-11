@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    Add Eq instance for Ghci
     #88, add a --project flag
     Rename --notitle flag to --no-title
 0.6.5
