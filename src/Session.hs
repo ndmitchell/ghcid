@@ -30,11 +30,6 @@ data Session = Session
     }
 
 
--- | Ensure an action runs off the main thread, so can't get hit with Ctrl-C exceptions.
---   Disabled because it plays havoc with tests and cleaning up quickly enough.
-ctrlC :: IO a -> IO a
-ctrlC = id -- join . onceFork
-
 debugShutdown x = when False $ print ("DEBUG SHUTDOWN", x)
 
 -- | The function 'withSession' expects to be run on the main thread,
@@ -47,13 +42,13 @@ withSession f = do
     warnings <- newIORef []
     running <- newVar False
     debugShutdown "Starting session"
-    ctrlC (f Session{..}) `finally` do
+    f Session{..} `finally` do
         debugShutdown "Start finally"
         modifyVar_ running $ const $ return False
         whenJustM (readIORef ghci) $ \v -> do
             writeIORef ghci Nothing
             debugShutdown "Calling kill"
-            ctrlC $ kill v
+            kill v
         debugShutdown "Finish finally"
 
 
