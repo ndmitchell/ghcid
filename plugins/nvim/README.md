@@ -23,7 +23,7 @@ also a lot simpler.
 
   For vundle, add the following:
 
-      Plugin 'ndmitchell/ghcid', { 'rtp': 'plugins/vim/' }
+      Plugin 'ndmitchell/ghcid', { 'rtp': 'plugins/nvim' }
 
   Then run `:PluginInstall`.
 
