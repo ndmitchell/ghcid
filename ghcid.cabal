@@ -42,10 +42,10 @@ library
     exposed-modules:
         Language.Haskell.Ghcid
     other-modules:
-        Paths_ghcid,
-        Language.Haskell.Ghcid.Types,
-        Language.Haskell.Ghcid.Parser,
-        Language.Haskell.Ghcid.Terminal,
+        Paths_ghcid
+        Language.Haskell.Ghcid.Types
+        Language.Haskell.Ghcid.Parser
+        Language.Haskell.Ghcid.Terminal
         Language.Haskell.Ghcid.Util
 
 executable ghcid
