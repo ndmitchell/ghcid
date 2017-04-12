@@ -32,8 +32,7 @@ library
         directory,
         extra >= 1.2,
         process >= 1.1,
-        cmdargs >= 0.10,
-        terminal-size >= 0.3
+        cmdargs >= 0.10
     if os(windows)
         build-depends: Win32
     else
