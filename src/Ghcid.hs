@@ -115,7 +115,7 @@ autoOptions o@Options{..}
                                 "stack exec --test -- ghci" : opts
                 in f flags $ "stack.yaml":cabal
               | ".ghci" `elem` files -> f ("ghci":opts) [".ghci"]
-              | cabal /= [] -> f (if arguments == [] then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
+              | cabal /= [] -> f (if null arguments then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
               | otherwise -> f ("ghci":opts) []
     where
         f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r}
@@ -209,7 +209,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             forM_ outputfile $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
             when (null loaded) $ do
-                putStrLn $ "No files loaded, nothing to wait for. Fix the last error and restart."
+                putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
             whenJust test $ \t -> do
                 whenLoud $ outStrLn $ "%TESTING: " ++ t
@@ -228,7 +228,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             if restartTimes == restartTimes2 then do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
-            else do
+            else
                 runGhcid session waiter termSize termOutput opts
 
     nextWait <- waitFiles waiter

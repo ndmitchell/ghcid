@@ -1,5 +1,5 @@
 
-module Paths_ghcid where
+module Paths_ghcid(version) where
 
 import Data.Version.Extra
 

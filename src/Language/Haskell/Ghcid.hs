@@ -124,7 +124,7 @@ startGhci cmd directory echo0 = do
             when (isNothing res) $
                 fail "Ghcid.exec, computation is already running, must be used single-threaded"
 
-    let ghciInterrupt = withLock isInterrupting $ do
+    let ghciInterrupt = withLock isInterrupting $
             whenM (fmap isNothing $ withLockTry isRunning $ return ()) $ do
                 whenLoud $ outStrLn "%INTERRUPT"
                 interruptProcessGroupOf ghciProcess
