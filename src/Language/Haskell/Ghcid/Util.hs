@@ -3,7 +3,7 @@
 module Language.Haskell.Ghcid.Util(
     dropPrefixRepeatedly,
     chunksOfWord,
-    outWith, outStrLn, outStr,
+    outWith, outStrLn,
     allGoodMessage,
     getModTime, getModTimeResolution
     ) where
@@ -37,11 +37,8 @@ lock = unsafePerformIO newLock
 outWith :: IO a -> IO a
 outWith = withLock lock
 
-outStr :: String -> IO ()
-outStr = outWith . putStr
-
 outStrLn :: String -> IO ()
-outStrLn s = outStr $ s ++ "\n"
+outStrLn = outWith . putStrLn
 
 
 -- | The message to show when no errors have been reported

@@ -4,7 +4,7 @@
 --   Not suitable for calling multithreaded.
 module Session(
     Session, withSession,
-    sessionStart, sessionRestart, sessionReload,
+    sessionStart, sessionReload,
     sessionExecAsync,
     ) where
 

@@ -1,2 +1,2 @@
 
-module Paths_foo where
+module Paths_foo() where

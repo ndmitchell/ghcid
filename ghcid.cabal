@@ -32,8 +32,7 @@ library
         directory,
         extra >= 1.2,
         process >= 1.1,
-        cmdargs >= 0.10,
-        terminal-size >= 0.3
+        cmdargs >= 0.10
     if os(windows)
         build-depends: Win32
     else
@@ -42,10 +41,9 @@ library
     exposed-modules:
         Language.Haskell.Ghcid
     other-modules:
-        Paths_ghcid,
-        Language.Haskell.Ghcid.Types,
-        Language.Haskell.Ghcid.Parser,
-        Language.Haskell.Ghcid.Terminal,
+        Paths_ghcid
+        Language.Haskell.Ghcid.Types
+        Language.Haskell.Ghcid.Parser
         Language.Haskell.Ghcid.Util
 
 executable ghcid
@@ -103,7 +101,15 @@ test-suite ghcid_test
     else
         build-depends: unix
     other-modules:
-        Test.Parser
+        Ghcid
+        Language.Haskell.Ghcid
+        Language.Haskell.Ghcid.Parser
+        Language.Haskell.Ghcid.Terminal
+        Language.Haskell.Ghcid.Types
+        Language.Haskell.Ghcid.Util
+        Session
         Test.API
-        Test.Util
         Test.Ghcid
+        Test.Parser
+        Test.Util
+        Wait
