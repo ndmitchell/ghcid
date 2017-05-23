@@ -300,7 +300,7 @@ function! s:ghcid() abort
     return
   endif
 
-  function! opts.on_exit(id, code)
+  function! opts.on_exit(id, code, event)
     if a:code != 0 && !s:ghcid_killcmd
       echoerr "Ghcid: Exited with status " . a:code
     endif
