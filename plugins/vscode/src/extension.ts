@@ -45,7 +45,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
                     sev = vscode.DiagnosticSeverity.Warning;
                 s = s.substr(i+1).trim();
             }
-            let msg = [].concat([s],xs.slice(1)).join('\r\n');
+            let msg = [].concat([s],xs.slice(1)).join('\n');
             return [pair(file, new vscode.Diagnostic(range, msg, sev))];
         };
         if (xs[0].startsWith("All good"))
@@ -56,7 +56,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
             return f(2,3,2,4);
         if (m = xs[0].match(r3))
             return f(2,3,4,5);
-        return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), xs.join('\r\n'))]];
+        return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), xs.join('\n'))]];
     }
     return [].concat(... split(lines(s)).map(parse));
 }
