@@ -2,7 +2,7 @@
 
 Integrates with Ghcid. Highly prototype. To use:
 
-* Run `ghcid -o ghcid.txt` which will produce a file `ghcid.txt` will updates every time the screen updates.
+* Run `ghcid -o ghcid.txt` which will produce a file `ghcid.txt` will updates every time the screen updates. Running the underling `ghci` with `-ferror-spans` will significantly improve the errors reported.
 * Open `ghcid.txt` in VS Code and have it as the active editor. From the VS Code extension, run the command (`Ctrl+Shift+P`) named "Watch Ghcid output". 
 
 Now your errors will be reflected in the problems pane.
