@@ -36,7 +36,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         var m : RegExpMatchArray;
         let f = (l1,c1,l2,c2) => {
             let range = new vscode.Range(parseInt(m[l1])-1,parseInt(m[c1])-1,parseInt(m[l2])-1,parseInt(m[c2]));
-            let file = vscode.Uri.file(path.join(dir, m[1]));
+            let file = vscode.Uri.file(path.isAbsolute(m[1]) ? m[1] : path.join(dir, m[1]));
             var s = xs[0].substring(m[0].length).trim();
             let i = s.indexOf(':');
             var sev = vscode.DiagnosticSeverity.Error;
