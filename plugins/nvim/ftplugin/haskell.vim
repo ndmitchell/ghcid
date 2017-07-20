@@ -88,7 +88,7 @@ function! s:ghcid_update_status()
     call s:ghcid_gotowin()
   endif
 
-  let b:ghcid_status = 'Ghcid: All good'
+  let b:ghcid_status = 'Ghcid'
   if nerrs > 0
     let b:ghcid_status = 'Ghcid: ' . string(nerrs) . ' message(s)'
   endif
