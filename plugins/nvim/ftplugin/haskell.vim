@@ -147,7 +147,8 @@ function! s:ghcid_parse_error_text(str) abort
   if !len(result)
     return
   endif
-  return result[1]
+  " Remove control characters and anything after.
+  return substitute(result[1], "[[:cntrl:]].\*$", "", "g")
 endfunction
 
 function! s:ghcid_parse_error_header(str) abort
@@ -185,18 +186,21 @@ function! s:ghcid_parse_error_header(str) abort
 endfunction
 
 function! s:ghcid_add_to_qflist(e)
-  " FIXME: New errors should replace old ones, and appended, instead of being
-  " ignored, since the order matters.
-  let qflist = getqflist()
-  for i in qflist
+  let old = getqflist()
+  let new = []
+
+  " Create a new qflist based on the old one, but don't include the error
+  " passed in. Effectively this replaces errors.
+  for i in old
     if has_key(i, 'bufnr') && has_key(a:e, 'bufnr') &&
       \ i.lnum == a:e.lnum && i.bufnr == a:e.bufnr &&
       \ i.col == a:e.col
-      return
+      continue
     endif
+
+    call insert(new, i)
   endfor
-  " Append to existing list.
-  call setqflist([a:e], 'a')
+  call setqflist(new + [a:e], 'r')
 endfunction
 
 function! s:ghcid_update(ghcid, data) abort
@@ -233,6 +237,10 @@ function! s:ghcid_update(ghcid, data) abort
   let error_header = s:ghcid_error_header
   if empty(error_header)
     while !empty(data)
+      " NOTE: It's possible that the error message is on the same line as the
+      " header, in which case it would be lost here. This doesn't seem to be
+      " a problem though as the error is eventually output on its own line,
+      " since ghcid's output is redundant.
       let error_header = s:ghcid_parse_error_header(data[0])
       let data = data[1:]
 
@@ -249,16 +257,25 @@ function! s:ghcid_update(ghcid, data) abort
     endif
   endif
 
-  " Try to parse the error text. If we got to this point, we have
-  " an error header and some data left to parse.
-  let error_text           = s:ghcid_parse_error_text(data[0])
-  let error                = copy(error_header)
-  let error.text           = error_text
-  let error.valid          = 1
-  let s:ghcid_error_header = {}
-  let data                 = data[1:]
+  let error = copy(error_header)
 
-  call s:ghcid_add_to_qflist(error)
+  while !empty(data)
+    " Try to parse the error text. If we got to this point, we have
+    " an error header and some data left to parse.
+    let error_text = s:ghcid_parse_error_text(data[0])
+    let data = data[1:]
+
+    if !empty(error_text)
+      let error.text = error_text
+      let error.valid = 1
+      let s:ghcid_error_header = {}
+      break
+    endif
+  endwhile
+
+  if has_key(error, 'valid')
+    call s:ghcid_add_to_qflist(error)
+  endif
   call s:ghcid_update_status()
 
   " Since we got here, we must have a valid error.
