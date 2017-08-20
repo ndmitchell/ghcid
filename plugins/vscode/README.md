@@ -2,10 +2,10 @@
 
 Integrates with Ghcid. Highly prototype. To use:
 
-* Run `ghcid -o ghcid.txt` which will produce a file `ghcid.txt` will updates every time the screen updates. Running the underling `ghci` with `-ferror-spans` will significantly improve the errors reported.
-* Open `ghcid.txt` in VS Code and have it as the active editor. From the VS Code extension, run the command (`Ctrl+Shift+P`) named "Watch Ghcid output". 
+* Run `ghcid -o ghcid.txt` which will produce a file `ghcid.txt` which updates every time `ghcid` updates. Running the underlying `ghci` with `-ferror-spans` will significantly improve the errors reported.
+* Open `ghcid.txt` in VS Code as the active editor. Run the VS Code command (`Ctrl+Shift+P`) named "Watch Ghcid output".
 
-Now your errors will be reflected in the problems pane.
+These steps cause the `ghcid` errors to appear in the VS Code Problems pane, and have red squiggles in the editor. Even though the errors are in the proper problems pane, I personally still prefer the output provided by the `ghcid` terminal, so still look at that.
 
 ## Features
 
