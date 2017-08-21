@@ -12,6 +12,7 @@ parserTests :: TestTree
 parserTests = testGroup "Parser tests"
     [testParseShowModules
     ,testParseLoad
+    ,testParseLoadGhc82
     ,testParseLoadSpans
     ]
 
@@ -51,6 +52,18 @@ testParseLoad = testCase "Load Parsing" $ parseLoad
     ,Message {loadSeverity = Warning, loadFile = "C:\\GHCi.hs", loadFilePos = (82,1), loadMessage = ["C:\\GHCi.hs:82:1: warning: Defined but not used: \8216foo\8217"]}
     ,Message {loadSeverity = Warning, loadFile = "src\\Haskell.hs", loadFilePos = (4,23), loadMessage = ["src\\Haskell.hs:4:23:","    Warning: {-# SOURCE #-} unnecessary in import of  `Boot'"]}
     ,Message {loadSeverity = Error, loadFile = "src\\Boot.hs-boot", loadFilePos = (2,8), loadMessage = ["src\\Boot.hs-boot:2:8:","    File name does not match module name:","    Saw: `BootX'","    Expected: `Boot'"]}
+    ]
+
+testParseLoadGhc82 :: TestTree
+testParseLoadGhc82 = testCase "GHC 8.2 Load Parsing" $ parseLoad
+    ["[18 of 24] Compiling Physics ( Physics.hs, interpreted )"
+    ,"Physics.hs:30:18: error: parse error on input ‘^*’"
+    ,"   |"
+    ,"30 |           dx = ' ^* delta"
+    ,"   |                  ^^"
+    ] @?=
+    [Loading "Physics" "Physics.hs"
+    ,Message {loadSeverity = Error, loadFile = "Physics.hs", loadFilePos = (30,18), loadMessage = ["Physics.hs:30:18: error: parse error on input ‘^*’" ,"   |" ,"30 |           dx = ' ^* delta" ,"   |                  ^^"]}
     ]
 
 -- | Test when error messages include spans (-ferror-spans)

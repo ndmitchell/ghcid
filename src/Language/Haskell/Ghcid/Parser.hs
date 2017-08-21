@@ -40,7 +40,7 @@ parseLoad  = nubOrd . f
             , (pos,rest) <- span (\c -> c == ':' || c == '-' || isSpan c || isDigit c) rest
             -- separate line and column, ignoring span (we want the start point only)
             , [p1,p2] <- map read $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') pos
-            , (msg,las) <- span (isPrefixOf " ") xs
+            , (msg,las) <- span isMessageBody xs
             , rest <- trimStart $ unwords $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower rest then Warning else Error
             = Message sev file (p1,p2) (x:msg) : f las
@@ -57,6 +57,12 @@ parseLoad  = nubOrd . f
         f (_:xs) = f xs
         f [] = []
         isSpan c = c== ',' || c == '(' || c == ')'
+
+-- After the file location, message bodies are indented (perhaps prefixed by a line number)
+isMessageBody :: String -> Bool
+isMessageBody xs = isPrefixOf " " xs || case break (=='|') xs of
+  (prefix, (_:_)) | all (\x -> isSpace x || isDigit x) prefix -> True
+  _ -> False
 
 -- A filename, followed by a colon - be careful to handle Windows drive letters, see #61
 breakFileColon :: String -> Maybe (FilePath, String)
