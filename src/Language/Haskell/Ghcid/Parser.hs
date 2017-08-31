@@ -61,7 +61,7 @@ parseLoad  = nubOrd . f
 -- After the file location, message bodies are indented (perhaps prefixed by a line number)
 isMessageBody :: String -> Bool
 isMessageBody xs = isPrefixOf " " xs || case break (=='|') xs of
-  (prefix, (_:_)) | all (\x -> isSpace x || isDigit x) prefix -> True
+  (prefix, _:_) | all (\x -> isSpace x || isDigit x) prefix -> True
   _ -> False
 
 -- A filename, followed by a colon - be careful to handle Windows drive letters, see #61
