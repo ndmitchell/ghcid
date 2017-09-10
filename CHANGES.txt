@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #104, add --ignore-loaded flag for use with -fobject-code
     #103, deal with new GHC error formatting
 0.6.6
     #89, exit sooner when the child process exits unexpectedly
