@@ -46,6 +46,7 @@ data Options = Options
     ,restart :: [FilePath]
     ,directory :: FilePath
     ,outputfile :: [FilePath]
+    ,ignoreLoaded :: Bool
     }
     deriving (Data,Typeable,Show)
 
@@ -65,6 +66,7 @@ options = cmdArgsMode $ Options
     ,reload = [] &= typ "PATH" &= help "Reload when the given file or directory contents change (defaults to none)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
+    ,ignoreLoaded = False &= explicit &= name "ignore-loaded" &= help "Keep going if no files are loaded. Requires --reload to be set."
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -178,6 +180,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
+    when (ignoreLoaded && null reload) $ do
+        putStrLn "--reload must be set when using --ignore-loaded"
+        exitFailure
+
     restartTimes <- mapM getModTime restart
     curdir <- getCurrentDirectory
 
@@ -208,7 +214,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
                 writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
-            when (null loaded) $ do
+            when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
             whenJust test $ \t -> do
@@ -233,7 +239,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command
-    when (null loaded) $ do
+    when (null loaded && not ignoreLoaded) $ do
         putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
         exitFailure
     fire nextWait (messages, loaded)
