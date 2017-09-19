@@ -113,12 +113,13 @@ endfunction
 function! s:ghcid_openwin()
   let buf = s:ghcid_bufnr()
 
+  exe 'keepalt' 'below' g:ghcid_lines . 'new'
   if buf > 0
-    exe 'keepalt' 'below' g:ghcid_lines . 'sp' bufname(buf)
+    exe 'buffer' buf
   else
-    exe 'keepalt' 'below' g:ghcid_lines . 'new'
     file ghcid
   endif
+
   let s:ghcid_win_id = win_getid()
   call s:ghcid_update_status()
   silent setlocal nobuflisted
