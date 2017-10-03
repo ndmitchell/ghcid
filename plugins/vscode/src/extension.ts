@@ -13,12 +13,22 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         return s.replace('\r','').split('\n').filter(x => x != "");
     }
 
-    // split into separate error messages, which all start at col 0 (no spaces)
+    // After the file location, message bodies are indented (perhaps prefixed by a line number)
+    function isMessageBody(x : string) {
+        if (x.startsWith(" "))
+            return true;
+        let sep = x.indexOf('|');
+        if (sep == -1)
+            return false;
+        return !isNaN(Number(x.substr(0, sep)));
+    }
+
+    // split into separate error messages, which all start at col 0 (no spaces) and are following by message bodies
     function split(xs : string[]) : string[][] {
         var cont = [];
         var res = [];
         for (let x of xs) {
-            if (x.startsWith(" "))
+            if (isMessageBody(x))
                 cont.push(x);
             else {
                 if (cont.length > 0) res.push(cont);
