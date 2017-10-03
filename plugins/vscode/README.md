@@ -20,5 +20,6 @@ Requires ghcid and a lot of tedious manual setup (the steps above).
 Run:
 
     npm install
-    vsce package
-    code --install-extension haskell-ghcid-0.0.1.vsix
+    node install vsce
+    ./node_modules/vsce/out/vsce package
+    code --install-extension haskell-ghcid-*.vsix
