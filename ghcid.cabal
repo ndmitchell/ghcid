@@ -107,6 +107,7 @@ test-suite ghcid_test
         Language.Haskell.Ghcid.Terminal
         Language.Haskell.Ghcid.Types
         Language.Haskell.Ghcid.Util
+        Paths_ghcid
         Session
         Test.API
         Test.Ghcid
