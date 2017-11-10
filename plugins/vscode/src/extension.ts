@@ -85,6 +85,22 @@ function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri
     return Array.from(seen.values()).sort((a,b) => a[0] - b[0]).map(x => pair(x[1],x[2]));
 }
 
+function watchOutput(file : string) : fs.FSWatcher {
+    let d = vscode.languages.createDiagnosticCollection('ghcid');
+    let last = [];
+    let go = () => {
+        let next = parseGhcidOutput(path.dirname(file), fs.readFileSync(file, "utf8"));
+        let next2 = next.map(x => pair(x[0], [x[1]]));
+        for (let x of last)
+            next2.push(pair(x[0], []));
+        d.set(groupDiagnostic(next2));
+        last = next;
+    };
+    let watcher = fs.watch(file, go);
+    go();
+    return watcher;
+}
+
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -95,31 +111,25 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Pointer to the last running watcher, so we can undo it
     var oldWatcher : fs.FSWatcher = null;
-
-    let disposable = vscode.commands.registerCommand('extension.watchGhcidOutput', () => {
-        try {
-            oldWatcher.close();
-            oldWatcher = null;
-            let d = vscode.languages.createDiagnosticCollection('ghcid');
-            let file = vscode.window.activeTextEditor.document.uri.fsPath;
-            let last = [];
-            let go = () => {
-                let next = parseGhcidOutput(path.dirname(file), fs.readFileSync(file, "utf8"));
-                let next2 = next.map(x => pair(x[0], [x[1]]));
-                for (let x of last)
-                    next2.push(pair(x[0], []));
-                d.set(groupDiagnostic(next2));
-                last = next;
-            };
-            oldWatcher = fs.watch(file, go);
-            go();
-        } catch (e) {
-            console.error("Ghcid extension failed: " + e);
-            throw e;
-        }
-    });
-    context.subscriptions.push(disposable);
     context.subscriptions.push({dispose: () => {if (oldWatcher != null) oldWatcher.close();}});
+
+    let add = (name : string, act : () => fs.FSWatcher) => {
+        let dispose = vscode.commands.registerCommand(name, () => {
+            try {
+                if (oldWatcher != null)
+                    oldWatcher.close();
+                oldWatcher = null;
+                oldWatcher = act();
+            }
+            catch (e) {
+                console.error("Ghcid extension failed in " + name + ": " + e);
+                throw e;
+            }
+        });
+        context.subscriptions.push(dispose);
+    }
+
+    add('extension.watchGhcidOutput', () => watchOutput(vscode.window.activeTextEditor.document.uri.fsPath));
 }
 
 // this method is called when your extension is deactivated
