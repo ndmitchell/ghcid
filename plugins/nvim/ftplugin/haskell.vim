@@ -338,6 +338,8 @@ function! s:ghcid(...) abort
   if s:ghcid_bufnr() <= 0
     call termopen(g:ghcid_command . " " .  join(s:ghcid_command_args, ' '), opts)
     silent normal! G
+    set norelativenumber
+    set nonumber
     let s:ghcid_job_id = b:terminal_job_id
   endif
 

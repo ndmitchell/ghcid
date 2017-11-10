@@ -10,33 +10,38 @@ also a lot simpler.
 
 ### Requirements
 
-  * neovim >= 0.1.5 (https://github.com/neovim/neovim)
+  * neovim >= 0.2.1 (https://github.com/neovim/neovim)
   * ghcid >= 0.6.5
 
 ### Installation
 
-  If you're using vim-plug, then add the following line to your list of plugins:
+If you're using vim-plug, then add the following line to your list of plugins:
 
-      Plug 'ndmitchell/ghcid', { 'rtp': 'plugins/nvim' }
+    Plug 'ndmitchell/ghcid', { 'rtp': 'plugins/nvim' }
 
-  Then run `:PlugInstall`.
+Then run `:PlugInstall`.
 
-  For vundle, add the following:
+For vundle, add the following:
 
-      Plugin 'ndmitchell/ghcid', { 'rtp': 'plugins/nvim' }
+    Plugin 'ndmitchell/ghcid', { 'rtp': 'plugins/nvim' }
 
-  Then run `:PluginInstall`.
+Then run `:PluginInstall`.
 
-  Alternatively, copy the files in this folder to to your .vim directory.
+Alternatively, copy the files in this folder to to your .vim directory.
 
 ### Usage
 
-  `:Ghcid` runs ghcid inside a neovim terminal buffer and populates
-  the quickfix list with any errors or warnings. You can call `:Ghcid`
-  to toggle the window.
+`:Ghcid` runs ghcid inside a neovim terminal buffer and populates
+the quickfix list with any errors or warnings. You can call `:Ghcid`
+to toggle the window.
 
-  After every file save, the quickfix list is updated with the output
-  of ghcid.
+After every file save, the quickfix list is updated with the output
+of ghcid.
 
-  `:GhcidKill` kills the ghcid job.
+`:GhcidKill` kills the ghcid job.
+
+If you need to pass arguments to ghcid, simply pass them to the command, for
+example:
+
+    :Ghcid -c cabal new-repl
 
