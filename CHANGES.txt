@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #110, work even if -v0 is passed to ghci
     Read additional arguments from .ghcid file if present
 0.6.7
     #104, add --ignore-loaded flag for use with -fobject-code
