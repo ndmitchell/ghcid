@@ -92,8 +92,14 @@ export function activate(context: vscode.ExtensionContext) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
+
+    // Pointer to the last running watcher, so we can undo it
+    var oldWatcher : fs.FSWatcher = null;
+
     let disposable = vscode.commands.registerCommand('extension.watchGhcidOutput', () => {
         try {
+            oldWatcher.close();
+            oldWatcher = null;
             let d = vscode.languages.createDiagnosticCollection('ghcid');
             let file = vscode.window.activeTextEditor.document.uri.fsPath;
             let last = [];
@@ -105,7 +111,7 @@ export function activate(context: vscode.ExtensionContext) {
                 d.set(groupDiagnostic(next2));
                 last = next;
             };
-            fs.watch(file, go);
+            oldWatcher = fs.watch(file, go);
             go();
         } catch (e) {
             console.error("Ghcid extension failed: " + e);
@@ -113,6 +119,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(disposable);
+    context.subscriptions.push({dispose: () => {if (oldWatcher != null) oldWatcher.close();}});
 }
 
 // this method is called when your extension is deactivated
