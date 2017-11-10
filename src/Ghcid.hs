@@ -251,7 +251,14 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command
     when (null loaded && not ignoreLoaded) $ do
-        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
+        putStrLn $ "\nNo files loaded, GHCi is not working properly.\
+                   \\nIs it possible you have settings suppressing module\
+                   \\noutput such as `:set -v0` in your .ghci config files?\
+                   \\nOutput when starting GHCi in your project should\
+                   \ include something like:\
+                   \\n\n[1 of 1] Compiling Lib ( /home/user/project/src/Lib.hs, interpreted )\
+                   \\n\nBut ghcid couldn't find it in the output.\
+                   \\n\nCommand: " ++ command
         exitFailure
     fire nextWait (messages, loaded)
 
