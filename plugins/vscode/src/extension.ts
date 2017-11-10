@@ -129,7 +129,15 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(dispose);
     }
 
-    add('extension.watchGhcidOutput', () => watchOutput(vscode.window.activeTextEditor.document.uri.fsPath));
+    add('extension.watchGhcidOutput', () => {
+        if (vscode.window.activeTextEditor) {
+            let file = vscode.window.activeTextEditor.document.uri.fsPath;
+            return watchOutput(file);
+        } else {
+            vscode.window.showWarningMessage("You must open the Ghcid output first.");
+            return null;
+        }
+    });
 }
 
 // this method is called when your extension is deactivated
