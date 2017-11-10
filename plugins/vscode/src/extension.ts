@@ -143,12 +143,13 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showWarningMessage("You must open a workspace first.")
             return null;
         }
+        let ext = os.type().startsWith("Windows") ? ".exe" : "";
         // hashing the rootPath ensures we create a finite number of temp files
         var hash = crypto.createHash('sha256').update(vscode.workspace.rootPath).digest('hex').substring(0, 20);
         let file = path.join(os.tmpdir(), "ghcid-" + hash + ".txt");
         context.subscriptions.push({dispose: () => {try {fs.unlinkSync(file);} catch (e) {};}});
         fs.writeFileSync(file, "");
-        vscode.window.createTerminal("ghcid","ghcid.exe",["--outputfile=" + file]).show();
+        vscode.window.createTerminal("ghcid","ghcid" + ext,["--outputfile=" + file]).show();
         return watchOutput(vscode.workspace.rootPath, file);
     });
 }
