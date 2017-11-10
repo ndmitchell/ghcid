@@ -14,11 +14,13 @@ import Data.Version
 import Session
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
+import System.Console.CmdArgs.Explicit
 import System.Console.ANSI
+import System.Environment
 import System.Directory.Extra
 import System.Exit
 import System.FilePath
-import System.IO
+import System.IO.Extra
 
 import Paths_ghcid
 import Language.Haskell.Ghcid.Terminal
@@ -126,6 +128,15 @@ autoOptions o@Options{..}
         escape x | ' ' `elem` x = "\"" ++ x ++ "\""
                  | otherwise = x
 
+-- | Use arguments from .ghcid if present
+withGhcidArgs :: IO a -> IO a
+withGhcidArgs act = do
+    b <- doesFileExist ".ghcid"
+    if not b then act else do
+        extra <- concatMap splitArgs . lines <$> readFile' ".ghcid"
+        orig <- getArgs
+        withArgs (extra ++ orig) act
+
 
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
@@ -133,7 +144,7 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
     -- On certain Cygwin terminals stdout defaults to BlockBuffering
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr NoBuffering
-    opts <- cmdArgsRun options
+    opts <- withGhcidArgs $ cmdArgsRun options
     withCurrentDirectory (directory opts) $ do
         opts <- autoOptions opts
         opts <- return $ opts{restart = nubOrd $ restart opts, reload = nubOrd $ reload opts}
