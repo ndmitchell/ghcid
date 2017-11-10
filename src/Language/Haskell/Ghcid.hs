@@ -159,7 +159,7 @@ startGhci cmd directory echo0 = do
                 writeIORef stderr []
                 writeInp "import qualified System.IO as INTERNAL_GHCID"
                 writeInp $ ":set prompt " ++ ghcid_prefix
-                writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+                writeInp ":set -v1 -fno-break-on-exception -fno-break-on-error" -- see #43
                 writeIORef sync =<< syncFresh
             echo0 strm s
             return Nothing
