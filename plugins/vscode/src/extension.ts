@@ -83,11 +83,11 @@ function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri
     return Array.from(seen.values()).sort((a,b) => a[0] - b[0]).map(x => pair(x[1],x[2]));
 }
 
-function watchOutput(file : string) : fs.FSWatcher {
+function watchOutput(root : string, file : string) : fs.FSWatcher {
     let d = vscode.languages.createDiagnosticCollection('ghcid');
     let last = [];
     let go = () => {
-        let next = parseGhcidOutput(path.dirname(file), fs.readFileSync(file, "utf8"));
+        let next = parseGhcidOutput(root, fs.readFileSync(file, "utf8"));
         let next2 = next.map(x => pair(x[0], [x[1]]));
         for (let x of last)
             next2.push(pair(x[0], []));
@@ -128,13 +128,12 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     add('extension.watchGhcidOutput', () => {
-        if (vscode.window.activeTextEditor) {
-            let file = vscode.window.activeTextEditor.document.uri.fsPath;
-            return watchOutput(file);
-        } else {
+        if (!vscode.window.activeTextEditor) {
             vscode.window.showWarningMessage("You must open the Ghcid output first.");
             return null;
         }
+        let file = vscode.window.activeTextEditor.document.uri.fsPath;
+        return watchOutput(path.dirname(file), file);
     });
 }
 
