@@ -13,13 +13,13 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.watchGhcid"
+        "onCommand:extension.watchGhcidOutput"
     ],
     "main": "./out/src/extension",
     "contributes": {
         "commands": [
             {
-                "command": "extension.watchGhcid",
+                "command": "extension.watchGhcidOutput",
                 "title": "Watch Ghcid output"
             }
         ]
