@@ -2,6 +2,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as child_process from 'child_process';
+import * as os from 'os';
+import * as crypto from 'crypto'
 
 function pair<a,b>(a : a, b : b) : [a,b] {return [a,b];}
 
@@ -134,6 +137,19 @@ export function activate(context: vscode.ExtensionContext) {
         }
         let file = vscode.window.activeTextEditor.document.uri.fsPath;
         return watchOutput(path.dirname(file), file);
+    });
+    add('extension.startGhcid', () => {
+        if (!vscode.workspace.rootPath) {
+            vscode.window.showWarningMessage("You must open a workspace first.")
+            return null;
+        }
+        // hashing the rootPath ensures we create a finite number of temp files
+        var hash = crypto.createHash('sha256').update(vscode.workspace.rootPath).digest('hex').substring(0, 20);
+        let file = path.join(os.tmpdir(), "ghcid-" + hash + ".txt");
+        context.subscriptions.push({dispose: () => {try {fs.unlinkSync(file);} catch (e) {};}});
+        fs.writeFileSync(file, "");
+        vscode.window.createTerminal("ghcid","ghcid.exe",["--outputfile=" + file]).show();
+        return watchOutput(vscode.workspace.rootPath, file);
     });
 }
 
