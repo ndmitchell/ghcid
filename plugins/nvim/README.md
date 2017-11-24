@@ -2,7 +2,7 @@
 
 Provides instant haskell error feedback inside of neovim.
 This should be a lot faster than running neomake with ghc-mod, and
-also a lot simpler.
+also a lot simpler. Developed and maintained by @cloudhead.
 
 ![Obligatory gif][1]
 
