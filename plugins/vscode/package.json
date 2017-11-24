@@ -9,9 +9,12 @@
     "engines": {
         "vscode": "^1.13.0"
     },
-    "categories": [
-        "Other"
-    ],
+    "license": "BSD-3-Clause",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/ndmitchell/ghcid.git"
+    },
+    "categories": ["Languages", "Linters"],
     "activationEvents": [
         "onCommand:extension.watchGhcidOutput",
         "onCommand:extension.startGhcid"
