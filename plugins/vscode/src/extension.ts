@@ -152,7 +152,14 @@ export function activate(context: vscode.ExtensionContext) {
         let file = path.join(os.tmpdir(), "ghcid-" + hash + ".txt");
         context.subscriptions.push({dispose: () => {try {fs.unlinkSync(file);} catch (e) {};}});
         fs.writeFileSync(file, "");
-        vscode.window.createTerminal("ghcid","ghcid" + ext,["--outputfile=" + file]).show();
+
+        let opts : vscode.TerminalOptions =
+            os.type().startsWith("Windows") ?
+                {shellPath: "cmd.exe", shellArgs: ["/k","ghcid"]} :
+                {shellPath: "ghcid", shellArgs: []};
+        opts.name = "ghcid";
+        opts.shellArgs.push("--outputfile=" + file);
+        vscode.window.createTerminal(opts).show();
         return watchOutput(vscode.workspace.rootPath, file);
     });
 }
