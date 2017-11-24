@@ -236,8 +236,9 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     if "*** Exception: " `isPrefixOf` stderr then do
                         updateTitle "(test failed)"
                         setWindowIcon IconError
-                     else
+                     else do
                         updateTitle "(test done)"
+                        whenNormal $ outStrLn "\n...done"
 
             reason <- nextWait $ restart ++ reload ++ loaded
             unless no_status $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
