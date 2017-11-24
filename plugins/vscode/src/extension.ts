@@ -112,14 +112,17 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Pointer to the last running watcher, so we can undo it
     var oldWatcher : fs.FSWatcher = null;
-    context.subscriptions.push({dispose: () => {if (oldWatcher != null) oldWatcher.close();}});
 
+    let cleanup = () => {
+        if (oldWatcher != null)
+            oldWatcher.close();
+        oldWatcher = null;
+    }
+    context.subscriptions.push({dispose: cleanup});
     let add = (name : string, act : () => fs.FSWatcher) => {
         let dispose = vscode.commands.registerCommand(name, () => {
             try {
-                if (oldWatcher != null)
-                    oldWatcher.close();
-                oldWatcher = null;
+                cleanup();
                 oldWatcher = act();
             }
             catch (e) {
