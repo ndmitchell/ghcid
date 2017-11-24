@@ -112,13 +112,18 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Pointer to the last running watcher, so we can undo it
     var oldWatcher : fs.FSWatcher = null;
+    var oldTerminal : vscode.Terminal = null;
 
     let cleanup = () => {
         if (oldWatcher != null)
             oldWatcher.close();
         oldWatcher = null;
+        if (oldTerminal != null)
+            oldTerminal.dispose();
+        oldTerminal = null;
     }
     context.subscriptions.push({dispose: cleanup});
+
     let add = (name : string, act : () => fs.FSWatcher) => {
         let dispose = vscode.commands.registerCommand(name, () => {
             try {
@@ -159,7 +164,8 @@ export function activate(context: vscode.ExtensionContext) {
                 {shellPath: "ghcid", shellArgs: []};
         opts.name = "ghcid";
         opts.shellArgs.push("--outputfile=" + file);
-        vscode.window.createTerminal(opts).show();
+        oldTerminal = vscode.window.createTerminal(opts);
+        oldTerminal.show();
         return watchOutput(vscode.workspace.rootPath, file);
     });
 }
