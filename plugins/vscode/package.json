@@ -16,16 +16,11 @@
     },
     "categories": ["Languages", "Linters"],
     "activationEvents": [
-        "onCommand:extension.watchGhcidOutput",
         "onCommand:extension.startGhcid"
     ],
     "main": "./out/src/extension",
     "contributes": {
         "commands": [
-            {
-                "command": "extension.watchGhcidOutput",
-                "title": "Watch Ghcid output"
-            },
             {
                 "command": "extension.startGhcid",
                 "title": "Start Ghcid"
