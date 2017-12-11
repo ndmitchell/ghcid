@@ -22,4 +22,5 @@ Run:
     npm install
     npm install -g vsce
     vsce package
+    rm haskell-ghcid-*.vsix
     code --install-extension haskell-ghcid-*.vsix
