@@ -151,7 +151,6 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showWarningMessage("You must open a workspace first.")
             return null;
         }
-        let ext = os.type().startsWith("Windows") ? ".exe" : "";
         // hashing the rootPath ensures we create a finite number of temp files
         var hash = crypto.createHash('sha256').update(vscode.workspace.rootPath).digest('hex').substring(0, 20);
         let file = path.join(os.tmpdir(), "ghcid-" + hash + ".txt");
