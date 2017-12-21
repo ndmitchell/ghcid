@@ -25,7 +25,17 @@
                 "command": "extension.startGhcid",
                 "title": "Start Ghcid"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "Ghcid configuration",
+            "properties": {
+                "ghcid.command": {
+                    "type": "string",
+                    "default": "ghcid",
+                    "description": "Ghcid command"
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
