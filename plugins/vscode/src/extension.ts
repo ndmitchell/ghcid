@@ -138,14 +138,6 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(dispose);
     }
 
-    add('extension.watchGhcidOutput', () => {
-        if (!vscode.window.activeTextEditor) {
-            vscode.window.showWarningMessage("You must open the Ghcid output first.");
-            return null;
-        }
-        let file = vscode.window.activeTextEditor.document.uri.fsPath;
-        return watchOutput(path.dirname(file), file);
-    });
     add('extension.startGhcid', () => {
         if (!vscode.workspace.rootPath) {
             vscode.window.showWarningMessage("You must open a workspace first.")
@@ -157,10 +149,12 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push({dispose: () => {try {fs.unlinkSync(file);} catch (e) {};}});
         fs.writeFileSync(file, "");
 
+        let ghcidCommand : string = vscode.workspace.getConfiguration('ghcid').get('command');
+
         let opts : vscode.TerminalOptions =
             os.type().startsWith("Windows") ?
-                {shellPath: "cmd.exe", shellArgs: ["/k","ghcid"]} :
-                {shellPath: "ghcid", shellArgs: []};
+                {shellPath: "cmd.exe", shellArgs: ["/k", ghcidCommand]} :
+                {shellPath: ghcidCommand, shellArgs: []};
         opts.name = "ghcid";
         opts.shellArgs.push("--outputfile=" + file);
         oldTerminal = vscode.window.createTerminal(opts);
