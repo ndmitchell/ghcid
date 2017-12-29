@@ -5,7 +5,7 @@ module Language.Haskell.Ghcid.Util(
     chunksOfWord,
     outWith, outStrLn,
     allGoodMessage,
-    getModTime, getModTimeResolution
+    getModTime, getModTimeResolution, getShortTime
     ) where
 
 import Control.Concurrent.Extra
@@ -16,6 +16,7 @@ import System.FilePath
 import Data.List.Extra
 import Data.Char
 import Data.Time.Clock
+import Data.Time.LocalTime
 import System.IO.Error
 import System.Directory
 import Control.Exception
@@ -61,6 +62,13 @@ getModTime file = handleJust
     (\_ -> return Nothing)
     (Just <$> getModificationTime file)
 
+-- | Get the current time in the current timezone in HH:MM format
+getShortTime :: IO String
+getShortTime = do
+  ZonedTime localTime _ <- getZonedTime
+  let LocalTime _ time = localTime
+  let TimeOfDay h m _ = time
+  return $ show h ++ ":" ++ show m
 
 
 -- | Get the smallest difference that can be reported by two modification times
