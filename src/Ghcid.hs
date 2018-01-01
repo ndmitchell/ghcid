@@ -186,7 +186,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         outputFill load msg = do
             (width, height) <- termSize
             let n = height - length msg
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput (maybe 0 fst load)
+            currTime <- getShortTime
+            load <- return $ take (if isJust load then n else 0) $ prettyOutput currTime (maybe 0 fst load)
                 [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
@@ -197,6 +198,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
     restartTimes <- mapM getModTime restart
     curdir <- getCurrentDirectory
+    currTime <- getShortTime
 
     -- fire, given a waiter, the messages/loaded
     let fire nextWait (messages, loaded) = do
@@ -216,7 +218,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
             let updateTitle extra = unless no_title $ setTitle $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
-                    in (if countErrors == 0 && countWarnings == 0 then allGoodMessage else f countErrors "error" ++
+                    in (if countErrors == 0 && countWarnings == 0 then allGoodMessage ++ ", at " ++ currTime else f countErrors "error" ++
                        (if countErrors >  0 && countWarnings >  0 then ", " else "") ++ f countWarnings "warning") ++
                        " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++
                        (if null project then takeFileName curdir else project)
@@ -224,7 +226,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
-                writeFile file $ unlines $ map snd $ prettyOutput loadedCount $ filter isMessage messages
+                writeFile file $ unlines $ map snd $ prettyOutput currTime loadedCount $ filter isMessage messages
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -258,8 +260,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Int -> [Load] -> [(Style,String)]
-prettyOutput loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ")")]
-prettyOutput loaded xs = concat $ msg1:msgs
+prettyOutput :: String -> Int -> [Load] -> [(Style,String)]
+prettyOutput currTime loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")")]
+prettyOutput _ loaded xs = concat $ msg1:msgs
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
