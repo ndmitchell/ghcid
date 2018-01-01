@@ -28,7 +28,7 @@ library
     build-depends:
         base >= 4,
         filepath,
-        time,
+        time >= 1.5,
         directory,
         extra >= 1.2,
         process >= 1.1,
@@ -54,7 +54,7 @@ executable ghcid
     build-depends:
         base == 4.*,
         filepath,
-        time,
+        time >= 1.5,
         directory,
         containers,
         fsnotify,
@@ -86,7 +86,7 @@ test-suite ghcid_test
     build-depends:
         base >= 4,
         filepath,
-        time,
+        time >= 1.5,
         directory,
         process,
         containers,
