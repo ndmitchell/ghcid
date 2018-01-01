@@ -1,18 +1,18 @@
 Changelog for ghcid
 
     After the test completes write a message
-0.6.8
+0.6.8, released 2017-11-10
     #110, work even if -v0 is passed to ghci
     Read additional arguments from .ghcid file if present
-0.6.7
+0.6.7, released 2017-09-17
     #104, add --ignore-loaded flag for use with -fobject-code
     #103, deal with new GHC error formatting
-0.6.6
+0.6.6, released 2016-11-11
     #89, exit sooner when the child process exits unexpectedly
     Add Eq instance for Ghci
     #88, add a --project flag
     Rename --notitle flag to --no-title
-0.6.5
+0.6.5, released 2016-08-10
     #82, properly deal with warning messages including spans
     #78, support boot files better
     Better support for dealing with GHC 8.0 call stack messages
@@ -20,11 +20,11 @@ Changelog for ghcid
     #71, improve multi-project stack support
     #74, make sure Cygwin terminals flush output properly
     If the test exits then exit ghcid
-0.6.4
+0.6.4, released 2016-05-13
     #69, fix up for stack project with file arguments
-0.6.3
+0.6.3, released 2016-05-11
     #68, add --no-status to avoid printing the reloading message
-0.6.2
+0.6.2, released 2016-04-25
     #63, detect test failures and update the titlebar/icon
     #66, add --warnings to run tests even in there are warnings
     #62, find stack.yaml in the parent directory
@@ -33,17 +33,17 @@ Changelog for ghcid
     #67, make --reload/--restart recurse through directories
     #61, deal with drive letters in files (for stack on Windows)
     #58, improve the --help message
-0.6.1
+0.6.1, released 2016-04-06
     Add --reload to add files that reload, but do not restart
     #56, allow --restart to take directories
-0.6
+0.6, released 2016-04-06
     #38, implement loading with stack
     Add process, quit and execStream to the API
     #29, add interrupt function
     Add Data instances for the types
     Make stopGhci more effective, now kills the underlying process
     Make startGhci take a function to write the buffer to
-0.5.1
+0.5.1, released 2016-03-02
     #17, deal with recursive modules errors properly
     #50, use -fno-code when not running tests (about twice as fast)
     #44, abbreviate the redundant module import error
@@ -51,18 +51,18 @@ Changelog for ghcid
     #42, always show the first error in full
     #43, work even if people use break-on-exception flags
     #42, make the first error a minimum of 5 lines
-0.5
+0.5, released 2015-06-20
     Add an extra boolean argument to startGhci
     Add the number of modules loaded after All good
     Print out messages until the prompt comes up
     #23, add arguments and change what commands get invoked
     #35, change the titlebar icon on Windows
-0.4.2
+0.4.2, released 2015-06-11
     Fix a GHC 7.6 warning
-0.4.1
+0.4.1, released 2015-06-11
     #37, add a --notitle flag
     Require extra-1.2
-0.4
+0.4, released 2015-06-07
     #33, make Ctrl-C more robust
     #31, add an outputfile feature
     #32, make newer warnings first (save a file, view its warnings)
@@ -71,33 +71,33 @@ Changelog for ghcid
     Add a --directory flag to change directory first
     #26, use fs-notify to avoid excessive wakeups
     #25, detect console size just before using it
-0.3.6
+0.3.6, released 2015-03-09
     #24, don't error out if error/putStrLn are not imported
-0.3.5
+0.3.5, released 2015-02-25
     #19, put errors in bold
     #9, display interesting information in the title bar
     #7, reload if the .ghci or .cabal file changes
     Use nubOrd
     Require extra-1.1
-0.3.4
+0.3.4, released 2014-12-24
     #21, if you aren't waiting for any files, exit
-0.3.3
+0.3.3, released 2014-12-21
     #21, if the root file is missing, report an error
     #20, avoid an O(n^2) nub
-0.3.2
+0.3.2, released 2014-11-06
     #18, reformat excessively long lines, add a --width flag
-0.3.1
+0.3.1, released 2014-10-28
     Ensure if there are lots of warnings, the first error gets shown
-0.3
+0.3, released 2014-10-24
     #11, ignore certain GHCi-only warnings
     #13, fix version printing
     #8, display Loading... when starting
     Require the extra library
     #14, figure out the terminal height automatically
-0.2
+0.2, released 2014-10-06
     #6, rewrite as a library
     Remove duplicate error messages from cabal repl
-0.1.3
+0.1.3, released 2014-09-29
     #2, handle files that get deleted while loaded
     #3, flesh out the test suite
     #4, give a polite error if ghci does not start
@@ -106,7 +106,7 @@ Changelog for ghcid
     Default to cabal repl if there is no .ghci file
     #1, if there is an IOError just :reload
     Say why you are reloading
-0.1.1
+0.1.1, released 2014-09-27
     Support arguments to --command
-0.1
+0.1, released 2014-09-27
     Initial version
