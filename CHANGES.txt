@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #124, add timestamp to "All good" message
     After the test completes write a message
 0.6.8, released 2017-11-10
     #110, work even if -v0 is passed to ghci
