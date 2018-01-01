@@ -201,8 +201,10 @@ stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenStack $ do
         require [allGoodMessage]
         append "src/Literate.lhs" "> x"
         require ["src/Literate.lhs:5:3","Parse error:"]
-
+{-
+    -- Stack seems to have changed, and continues to do so - lets just test the basics
     withGhcid ["src/Boot.hs"] $ \require -> do
         require [allGoodMessage]
         writeFile "src/Boot.hs" "X"
         require ["src/Boot.hs:1:1","Parse error:"]
+-}
