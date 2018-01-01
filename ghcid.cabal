@@ -33,10 +33,6 @@ library
         extra >= 1.2,
         process >= 1.1,
         cmdargs >= 0.10
-    if os(windows)
-        build-depends: Win32
-    else
-        build-depends: unix
 
     exposed-modules:
         Language.Haskell.Ghcid
