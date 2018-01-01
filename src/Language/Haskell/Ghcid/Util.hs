@@ -16,6 +16,7 @@ import System.FilePath
 import Data.List.Extra
 import Data.Char
 import Data.Time.Clock
+import Data.Time.Format
 import Data.Time.LocalTime
 import System.IO.Error
 import System.Directory
@@ -62,13 +63,10 @@ getModTime file = handleJust
     (\_ -> return Nothing)
     (Just <$> getModificationTime file)
 
--- | Get the current time in the current timezone in HH:MM format
+
+-- | Get the current time in the current timezone in HH:MM:SS format
 getShortTime :: IO String
-getShortTime = do
-  ZonedTime localTime _ <- getZonedTime
-  let LocalTime _ time = localTime
-  let TimeOfDay h m _ = time
-  return $ show h ++ ":" ++ show m
+getShortTime = formatTime defaultTimeLocale "%H:%M:%S" <$> getZonedTime
 
 
 -- | Get the smallest difference that can be reported by two modification times
