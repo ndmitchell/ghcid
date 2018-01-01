@@ -102,7 +102,6 @@ Changelog for ghcid
     #3, flesh out the test suite
     #4, give a polite error if ghci does not start
     #5, add --topmost flag to make the window topmost
-0.1.2
     Add a very simple test suite
     Default to cabal repl if there is no .ghci file
     #1, if there is an IOError just :reload
