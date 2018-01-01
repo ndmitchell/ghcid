@@ -49,11 +49,11 @@ copyDir dir act = do
             withCurrentDirectory tdir act
 
 
-whenStack :: IO a -> IO ()
-whenStack act = do
-    v <- findExecutable "stack"
+whenExecutable :: String -> IO a -> IO ()
+whenExecutable exe act = do
+    v <- findExecutable exe
     case v of
-        Nothing -> putStrLn "Couldn't run test because stack is missing"
+        Nothing -> putStrLn $ "Couldn't run test because " ++ exe ++ " is missing"
         Just _ -> void act
 
 
@@ -193,7 +193,7 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
         require [allGoodMessage]
 
 stackTest :: TestTree
-stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenStack $ do
+stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenExecutable "stack" $ do
     system_ "stack init"
     createDirectoryIfMissing True ".stack-work"
 
