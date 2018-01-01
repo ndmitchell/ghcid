@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    Require time-1.5 or above
     #124, add timestamp to "All good" message
     After the test completes write a message
 0.6.8, released 2017-11-10
