@@ -177,7 +177,7 @@ dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
 
 
 cabalTest :: TestTree
-cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ do
+cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ whenExecutable "cabal" $ do
     env <- getEnvironment
     let db = ["--package-db=" ++ x | x <- maybe [] splitSearchPath $ lookup "GHC_PACKAGE_PATH" env]
     (_, _, _, pid) <- createProcess $
