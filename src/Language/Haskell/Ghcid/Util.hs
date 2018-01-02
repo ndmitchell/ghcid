@@ -13,6 +13,8 @@ import System.Time.Extra
 import System.IO.Unsafe
 import System.IO.Extra
 import System.FilePath
+import System.Info.Extra
+import Data.Version.Extra
 import Data.List.Extra
 import Data.Char
 import Data.Time.Clock
@@ -88,6 +90,10 @@ getModTimeResolutionCache = unsafePerformIO $ withTempDir $ \dir -> do
             writeFile file $ show (i,j)
             t2 <- getModificationTime file
             return $ if t1 == t2 then Left $ j+1 else Right ()
+
+    -- GHC 7.6 and below only have 1 sec resolution timestamps
+    mtime <- return $ if compilerVersion < makeVersion [7,8] then max mtime 1 else mtime
+
     putStrLn $ "Longest file modification time lag was " ++ show (ceiling (mtime * 1000)) ++ "ms"
     -- add a little bit of safety, but if it's really quick, don't make it that much slower
     return $ mtime + min 0.1 mtime
