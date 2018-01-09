@@ -3,6 +3,3 @@
 ##########################
 
 - message: Module reused between components
-- message:
-  - name: Weeds exported
-  - identifier: withWaiterPoll
