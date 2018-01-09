@@ -18,6 +18,7 @@ import System.Console.CmdArgs.Explicit
 import System.Console.ANSI
 import System.Environment
 import System.Directory.Extra
+import System.Time.Extra
 import System.Exit
 import System.FilePath
 import System.IO.Extra
@@ -49,6 +50,7 @@ data Options = Options
     ,directory :: FilePath
     ,outputfile :: [FilePath]
     ,ignoreLoaded :: Bool
+    ,poll :: Maybe Seconds
     }
     deriving (Data,Typeable,Show)
 
@@ -69,6 +71,7 @@ options = cmdArgsMode $ Options
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     ,ignoreLoaded = False &= explicit &= name "ignore-loaded" &= help "Keep going if no files are loaded. Requires --reload to be set."
+    ,poll = Nothing &= typ "SECONDS" &= opt "0.1" &= explicit &= name "poll" &= help "Use polling every N seconds (defaults to using notifiers)"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -158,7 +161,7 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
                 -- so putStrLn width 'x' uses up two lines
                 return (fromMaybe (pred $ fst term) w, fromMaybe (snd term) h)
 
-        withWaiterNotify $ \waiter ->
+        maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
                 runGhcid session waiter termSize termOutput opts
 
