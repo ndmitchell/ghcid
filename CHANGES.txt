@@ -1,6 +1,6 @@
 Changelog for ghcid
 
-    #121, add a --poll flag to demand polling
+    #121, add a --poll flag to use polling instead of notifiers
     Require time-1.5 or above
     #124, add timestamp to "All good" message
     After the test completes write a message
