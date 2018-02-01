@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    Add isLoading function to test the constructor
 0.6.9, released 2018-01-26
     #121, add a --poll flag to use polling instead of notifiers
     Require time-1.5 or above

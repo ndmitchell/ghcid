@@ -4,7 +4,7 @@
 module Language.Haskell.Ghcid.Types(
     GhciError(..),
     Stream(..),
-    Load(..), Severity(..), isMessage
+    Load(..), Severity(..), isMessage, isLoading
     ) where
 
 import Data.Data
@@ -43,3 +43,8 @@ data Load
 isMessage :: Load -> Bool
 isMessage Message{} = True
 isMessage _ = False
+
+-- | Is a Load a module and filename?
+isLoading :: Load -> Bool
+isLoading Loading{} = True
+isLoading _ = False
