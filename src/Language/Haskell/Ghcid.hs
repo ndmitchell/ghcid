@@ -160,12 +160,17 @@ startGhci cmd directory echo0 = do
                 writeInp "import qualified System.IO as INTERNAL_GHCID"
                 writeInp $ ":set prompt " ++ ghcid_prefix
                 writeInp ":set -v1 -fno-break-on-exception -fno-break-on-error" -- see #43 and #110
+                writeInp ":set -fno-hide-source-paths" -- see #132
+                    -- only works with GHC 8.2 and above, but failing isn't harmful
                 writeIORef sync =<< syncFresh
             echo0 strm s
             return Nothing
-    r <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
+    r1 <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
+    -- see #132, if hide-source-paths was turned on the modules didn't get printed out properly
+    -- so try a showModules to capture the information again
+    r2 <- if any isLoading r1 then return [] else map (uncurry Loading) <$> showModules ghci
     execStream ghci "" echo0
-    return (ghci, r)
+    return (ghci, r1 ++ r2)
 
 
 -- | Execute a command, calling a callback on each response.
