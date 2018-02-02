@@ -113,10 +113,10 @@ endfunction
 function! s:ghcid_openwin()
   let buf = s:ghcid_bufnr()
 
-  exe 'keepalt' 'below' g:ghcid_lines . 'new'
   if buf > 0
-    exe 'buffer' buf
+    exe 'keepalt' 'below' g:ghcid_lines . 'split' '#' . buf
   else
+    exe 'keepalt' 'below' g:ghcid_lines . 'new'
     file ghcid
   endif
 
