@@ -287,14 +287,19 @@ function! s:ghcid_update(ghcid, data) abort
   endif
 
   if g:ghcid_signcolumn
-    silent exe "sign"
-      \ "place"
-      \ s:ghcid_sign_id
-      \ "line=" . error.lnum
-      \ "name=" . (error.warning ? "ghcid-warning" : "ghcid-error")
-      \ "file=" . error.filename
+    try
+      silent exe "sign"
+        \ "place"
+        \ s:ghcid_sign_id
+        \ "line=" . error.lnum
+        \ "name=" . (error.warning ? "ghcid-warning" : "ghcid-error")
+        \ "file=" . error.filename
 
-    let s:ghcid_sign_id += 1
+      let s:ghcid_sign_id += 1
+    catch
+      " TODO: Sometimes the buffer name we have here is invalid so we can't
+      " place a sign. Not sure how to fix this at the moment.
+    endtry
   endif
 
   return data
