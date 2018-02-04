@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #130, pass -fno-it to reduce memory leaks
     #132, work even if -fhide-source-paths is set
     Add isLoading function to test the constructor
 0.6.9, released 2018-01-26
