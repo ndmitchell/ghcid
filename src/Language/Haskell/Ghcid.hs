@@ -162,7 +162,7 @@ startGhci cmd directory echo0 = do
                 writeInp ":set -v1 -fno-break-on-exception -fno-break-on-error" -- see #43 and #110
                 writeInp ":set -fno-hide-source-paths" -- see #132
                     -- only works with GHC 8.2 and above, but failing isn't harmful
-                writeInp ":set -fno-it" -- see #130
+                -- writeInp ":set -fno-it" -- see #130
                     -- only works with GHC 8.6 and above, but failing isn't harmful
                 writeIORef sync =<< syncFresh
             echo0 strm s
