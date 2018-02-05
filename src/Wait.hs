@@ -47,7 +47,7 @@ withWaiterNotify f = withManagerConf defaultConfig{confDebounce=NoDebounce} $ \m
 waitFiles :: Waiter -> IO ([FilePath] -> IO [String])
 waitFiles waiter = do
     base <- getCurrentTime
-    return $ \files -> handle (\(e :: IOError) -> do sleep 0.1; return [show e]) $ do
+    return $ \files -> handle (\(e :: IOError) -> do sleep 1.0; return ["Error when waiting, if this happens repeatedly, raise a ghcid bug.",show e]) $ do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
         files <- fmap concat $ forM files $ \file ->
             ifM (doesDirectoryExist file) (listFilesInside (return . not . isPrefixOf "." . takeFileName) file) (return [file])
