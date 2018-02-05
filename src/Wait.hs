@@ -92,4 +92,4 @@ waitFiles waiter = do
 
 
 canonicalizePathSafe :: FilePath -> IO FilePath
-canonicalizePathSafe x = canonicalizePath x `catch_` const (return x)
+canonicalizePathSafe x = canonicalizePath x `catch` \(_ :: IOError) -> return x
