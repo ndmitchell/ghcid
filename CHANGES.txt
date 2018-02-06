@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+0.6.10, released 2018-02-06
     #96, make it work even if -fdiagnostics-color is active
     #130, pass -fno-it to reduce memory leaks
     #132, work even if -fhide-source-paths is set
