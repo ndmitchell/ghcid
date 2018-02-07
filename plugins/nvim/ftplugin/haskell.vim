@@ -122,7 +122,7 @@ function! s:ghcid_openwin()
 
   let s:ghcid_win_id = win_getid()
   call s:ghcid_update_status()
-  silent setlocal nobuflisted
+  silent setlocal nobuflisted winfixheight
   normal! G
   echo
 endfunction
