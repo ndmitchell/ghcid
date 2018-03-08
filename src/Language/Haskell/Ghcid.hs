@@ -102,7 +102,7 @@ startGhciRaw process echo0 = do
             case liftM2 (,) res1 res2 of
                 Nothing -> case cmdspec process of
                     ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg
-                    RawCommand exe args -> throwIO $ UnexpectedExit (intercalate " " (exe:args)) msg
+                    RawCommand exe args -> throwIO $ UnexpectedExit (unwords (exe:args)) msg
                 Just v -> return v
 
     -- held while interrupting, and briefly held when starting an exec
