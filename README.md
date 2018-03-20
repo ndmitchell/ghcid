@@ -33,7 +33,15 @@ Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 
 ### Ghcid Integration
 
-There are a few tools that integrate Ghcid into editors, see the [plugins](plugins/) folder for currently supported integrations.
+There are a few plugins that integrate Ghcid into editors, notably:
+
+* [VS Code](plugins/vscode/)
+* [nvim](plugins/nvim/)
+* [Emacs](plugins/emacs/)
+
+And a blog article on using it:
+
+* [Auto-reload threepenny-gui apps during development](https://binarin.ru/post/auto-reload-threepenny-gui/)
 
 ### FAQ
 
