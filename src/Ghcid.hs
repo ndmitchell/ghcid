@@ -51,6 +51,7 @@ data Options = Options
     ,outputfile :: [FilePath]
     ,ignoreLoaded :: Bool
     ,poll :: Maybe Seconds
+    ,max_messages :: Maybe Int
     }
     deriving (Data,Typeable,Show)
 
@@ -72,6 +73,7 @@ options = cmdArgsMode $ Options
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     ,ignoreLoaded = False &= explicit &= name "ignore-loaded" &= help "Keep going if no files are loaded. Requires --reload to be set."
     ,poll = Nothing &= typ "SECONDS" &= opt "0.1" &= explicit &= name "poll" &= help "Use polling every N seconds (defaults to using notifiers)"
+    ,max_messages = Nothing &= name "n" &= help "Maximum number of messages to print"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -190,7 +192,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             (width, height) <- termSize
             let n = height - length msg
             currTime <- getShortTime
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput currTime (maybe 0 fst load)
+            load <- return $ take (if isJust load then n else 0) $ prettyOutput max_messages currTime (maybe 0 fst load)
                 [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
@@ -229,7 +231,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
-                writeFile file $ unlines $ map snd $ prettyOutput currTime loadedCount $ filter isMessage messages
+                writeFile file $ unlines $ map snd $ prettyOutput max_messages currTime loadedCount $ filter isMessage messages
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -263,8 +265,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: String -> Int -> [Load] -> [(Style,String)]
-prettyOutput currTime loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")")]
-prettyOutput _ loaded xs = concat $ msg1:msgs
+prettyOutput :: Maybe Int -> String -> Int -> [Load] -> [(Style,String)]
+prettyOutput _ currTime loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")")]
+prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs (msg1:msgs)
     where (err, warn) = partition ((==) Error . loadSeverity) xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
