@@ -57,7 +57,7 @@ data Options = Options
 
 options :: Mode (CmdArgs Options)
 options = cmdArgsMode $ Options
-    {command = "" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
+    {command = "" &= name "c" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,arguments = [] &= args &= typ "MODULE"
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
