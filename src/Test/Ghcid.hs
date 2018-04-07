@@ -194,7 +194,7 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ whenExecutable "cabal"
 
 stackTest :: TestTree
 stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenExecutable "stack" $ do
-    system_ "stack init"
+    system_ "stack init --resolver=nightly" -- must match what the CI does, or it takes too long
     createDirectoryIfMissing True ".stack-work"
 
     withGhcid [] $ \require -> do
