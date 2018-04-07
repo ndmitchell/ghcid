@@ -4,8 +4,8 @@
 module Language.Haskell.Ghcid(
     Ghci, GhciError(..), Stream(..),
     Load(..), Severity(..),
-    startGhci, stopGhci, interrupt, process, execStream,
-    showModules, reload, exec, quit
+    startGhci, startGhciShell, startGhciProc, stopGhci, interrupt, process,
+    execStream, showModules, reload, exec, quit
     ) where
 
 import System.IO
@@ -45,14 +45,10 @@ data Ghci = Ghci
 instance Eq Ghci where
     a == b = ghciUnique a == ghciUnique b
 
--- | Start GHCi, returning a function to perform further operation, as well as the result of the initial loading.
---   If you do not call 'stopGhci' then the underlying process may be leaked.
---   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
---   which might compile dependent packages before really loading.
-startGhci :: String -> Maybe FilePath -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
-startGhci cmd directory echo0 = do
+startGhciRaw :: CreateProcess -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
+startGhciRaw process echo0 = do
     (Just inp, Just out, Just err, ghciProcess) <-
-        createProcess (shell cmd){std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, cwd=directory, create_group=True}
+        createProcess process{std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, create_group=True}
 
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
@@ -104,7 +100,9 @@ startGhci cmd directory echo0 = do
             res2 <- consume Stderr (finish Stderr)
             res1 <- res1
             case liftM2 (,) res1 res2 of
-                Nothing -> throwIO $ UnexpectedExit cmd msg
+                Nothing -> case cmdspec process of
+                    ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg
+                    RawCommand exe args -> throwIO $ UnexpectedExit (unwords (exe:args)) msg
                 Just v -> return v
 
     -- held while interrupting, and briefly held when starting an exec
@@ -175,6 +173,37 @@ startGhci cmd directory echo0 = do
     execStream ghci "" echo0
     return (ghci, r1 ++ r2)
 
+
+-- | Alias of 'startGhciShell' for backward compatibility.
+startGhci :: String -> Maybe FilePath -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
+startGhci = startGhciShell
+{-# DEPRECATED startGhci "Deprecated in favour of startGhciShell" #-}
+
+-- | Start GHCi by running the passed shell command, returning  the result of the initial loading.
+--   If you do not call 'stopGhci' then the underlying process may be leaked.
+--   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
+--   which might compile dependent packages before really loading.
+--
+--   @since 0.6.11
+startGhciShell
+    :: String -- ^ Shell command
+    -> Maybe FilePath -- ^ Working directory
+    -> (Stream -> String -> IO ()) -- ^ Output callback
+    -> IO (Ghci, [Load])
+startGhciShell cmd directory = startGhciRaw (shell cmd){cwd=directory}
+
+-- | Like 'startGhciShell', but starts GHCi by running an executable, rather
+--   than a shell command. As a result it is not affected by, e.g. shell
+--   aliases.
+--
+--   @since 0.6.11
+startGhciProc
+    :: FilePath -- ^ Executable name/path
+    -> [String] -- ^ Command line arguments for executable
+    -> Maybe FilePath -- ^ Working directory
+    -> (Stream -> String -> IO ()) -- ^ Output callback
+    -> IO (Ghci, [Load])
+startGhciProc exe args directory = startGhciRaw (proc exe args){cwd=directory}
 
 -- | Execute a command, calling a callback on each response.
 --   The callback will be called single threaded.
