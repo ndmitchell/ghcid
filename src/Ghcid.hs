@@ -52,8 +52,16 @@ data Options = Options
     ,ignoreLoaded :: Bool
     ,poll :: Maybe Seconds
     ,max_messages :: Maybe Int
+    ,color :: ColorMode
     }
     deriving (Data,Typeable,Show)
+
+-- | When to colour terminal output.
+data ColorMode
+    = Never  -- ^ Terminal output will never be coloured.
+    | Always -- ^ Terminal output will always be coloured.
+    | Auto   -- ^ Terminal output will be coloured if $TERM and stdout appear to support it.
+      deriving (Show, Typeable, Data)
 
 options :: Mode (CmdArgs Options)
 options = cmdArgsMode $ Options
@@ -74,6 +82,7 @@ options = cmdArgsMode $ Options
     ,ignoreLoaded = False &= explicit &= name "ignore-loaded" &= help "Keep going if no files are loaded. Requires --reload to be set."
     ,poll = Nothing &= typ "SECONDS" &= opt "0.1" &= explicit &= name "poll" &= help "Use polling every N seconds (defaults to using notifiers)"
     ,max_messages = Nothing &= name "n" &= help "Maximum number of messages to print"
+    ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -163,9 +172,16 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
                 -- so putStrLn width 'x' uses up two lines
                 return (fromMaybe (pred $ fst term) w, fromMaybe (snd term) h)
 
+        restyle <- do
+            useStyle <- case color opts of
+                Always -> return True
+                Never -> return False
+                Auto -> hSupportsANSI stdout
+            return $ if useStyle then id else map (first $ const Plain)
+
         maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid session waiter termSize termOutput opts
+                runGhcid session waiter termSize (termOutput . restyle) opts
 
 
 

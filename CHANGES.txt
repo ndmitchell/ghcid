@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #139, add --color=never to not show Bold output
     #142, add startGhciProcess which takes CreateProcess
     #146, add --max-messages=N to limit to N messages
 0.6.10, released 2018-02-06
