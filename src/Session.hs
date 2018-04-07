@@ -80,7 +80,7 @@ sessionStart Session{..} cmd = do
 
     -- start the new
     outStrLn $ "Loading " ++ cmd ++ " ..."
-    (v, messages) <- startGhciShell cmd Nothing $ const outStrLn
+    (v, messages) <- startGhci cmd Nothing $ const outStrLn
     writeIORef ghci $ Just v
 
     -- install a handler

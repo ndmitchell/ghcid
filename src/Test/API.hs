@@ -13,7 +13,7 @@ import Language.Haskell.Ghcid.Util
 apiTests :: TestTree
 apiTests = testGroup "API test"
     [testCase "No files" $ withTempDir $ \dir -> do
-        (ghci,load) <- startGhciShell "ghci" (Just dir) $ const putStrLn
+        (ghci,load) <- startGhci "ghci" (Just dir) $ const putStrLn
         load @?= []
         showModules ghci >>= (@?= [])
         exec ghci "import Data.List"
@@ -22,7 +22,7 @@ apiTests = testGroup "API test"
 
     ,testCase "Load file" $ withTempDir $ \dir -> do
         writeFile (dir </> "File.hs") "module A where\na = 123"
-        (ghci, load) <- startGhciShell "ghci File.hs" (Just dir) $ const putStrLn
+        (ghci, load) <- startGhci "ghci File.hs" (Just dir) $ const putStrLn
         load @?= [Loading "A" "File.hs"]
         exec ghci "a + 1" >>= (@?= ["124"])
         reload ghci >>= (@?= [])
