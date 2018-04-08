@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards, ViewPatterns #-}
 
 -- | Parses the output from GHCi
 module Language.Haskell.Ghcid.Parser(
@@ -14,16 +14,21 @@ import Prelude
 
 import Language.Haskell.Ghcid.Types
 
-unescape :: String -> String
-unescape ('\x1B':xs) | (pre,'m':post) <- break (== 'm') xs = unescape post
-unescape (x:xs) = x : unescape xs
-unescape [] = []
+-- A string with escape characters in it
+newtype Esc = Esc String
+
+-- | Remove all escape characters in a string
+unescape :: Esc -> String
+unescape (Esc ('\x1B':xs)) | (pre,'m':post) <- break (== 'm') xs = unescape (Esc post)
+unescape (Esc (x:xs)) = x : unescape (Esc xs)
+unescape (Esc []) = []
 
 
 -- | Parse messages from show modules command. Given the parsed lines
 --   return a list of (module name, file).
 parseShowModules :: [String] -> [(String, FilePath)]
-parseShowModules xs =
+parseShowModules (map Esc -> xs) =
+    -- we only return raw values, don't want any escape codes in there
     [ (takeWhile (not . isSpace) $ trimStart a, takeWhile (/= ',') b)
     | x <- map unescape xs, (a,'(':' ':b) <- [break (== '(') x]]
 
@@ -31,7 +36,7 @@ parseShowModules xs =
 -- | Parse messages given on reload.
 parseLoad :: [String] -> [Load]
 -- nub, because cabal repl sometimes does two reloads at the start
-parseLoad  = nubOrd . f . map unescape
+parseLoad (map Esc -> xs) = nubOrd $ f $ map unescape xs
     where
         f :: [String] -> [Load]
         f (('[':xs):rest) =
