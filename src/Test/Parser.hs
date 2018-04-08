@@ -1,6 +1,7 @@
 -- | Test the message parser
 module Test.Parser(parserTests) where
 
+import Data.List.Extra
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -14,6 +15,10 @@ parserTests = testGroup "Parser tests"
     ,testParseLoad
     ,testParseLoadGhc82
     ,testParseLoadSpans
+    ,testParseLoadCycles
+    ,testParseLoadCyclesSelf
+    ,testParseLoadEscapeCodes
+    ,testMissingFile
     ]
 
 testParseShowModules :: TestTree
@@ -66,7 +71,49 @@ testParseLoadGhc82 = testCase "GHC 8.2 Load Parsing" $ parseLoad
     ,Message {loadSeverity = Error, loadFile = "Physics.hs", loadFilePos = (30,18), loadMessage = ["Physics.hs:30:18: error: parse error on input ‘^*’" ,"   |" ,"30 |           dx = ' ^* delta" ,"   |                  ^^"]}
     ]
 
--- | Test when error messages include spans (-ferror-spans)
+testMissingFile = testCase "Starting ghci with a non-existent filename" $ parseLoad
+    ["<no location info>: error: can't find file: bob.hs"
+    ] @?=
+    []
+
+testParseLoadCyclesSelf = testCase "Module cycle with itself" $ parseLoad
+    ["Module imports form a cycle:"
+    ,"  module `Language.Haskell.Ghcid.Parser' (src\\Language\\Haskell\\Ghcid\\Parser.hs) imports itself"
+    ] @?=
+    [Message {loadSeverity = Error, loadFile = "", loadFilePos = (0,0), loadMessage = ["Module imports form a cycle:","  module `Language.Haskell.Ghcid.Parser' (src\\Language\\Haskell\\Ghcid\\Parser.hs) imports itself"]}
+    ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid\\Parser.hs", loadFilePos = (0,0), loadMessage = []}]
+
+testParseLoadCycles = testCase "Module cycle" $ parseLoad
+    ["[ 4 of 13] Compiling Language.Haskell.Ghcid.Parser ( src\\Language\\Haskell\\Ghcid\\Parser.hs, interpreted )"
+    ,"Module imports form a cycle:"
+    ,"         module `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"
+    ,"        imports `Language.Haskell.Ghcid' (src\\Language\\Haskell\\Ghcid.hs)"
+    ,"  which imports `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"
+    ] @?=
+    [Loading {loadModule = "Language.Haskell.Ghcid.Parser", loadFile = "src\\Language\\Haskell\\Ghcid\\Parser.hs"}
+    ,Message {loadSeverity = Error, loadFile = "", loadFilePos = (0,0), loadMessage = ["Module imports form a cycle:","         module `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)","        imports `Language.Haskell.Ghcid' (src\\Language\\Haskell\\Ghcid.hs)","  which imports `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"]}
+    ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid\\Util.hs", loadFilePos = (0,0), loadMessage = []}
+    ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid.hs", loadFilePos = (0,0), loadMessage = []}]
+
+testParseLoadEscapeCodes = testCase "Escape codes as enabled by -fdiagnostics-color=always" $ (parseLoad . map (replace "!" "\ESC"))
+    ["![;1msrc\\Language\\Haskell\\Ghcid\\Types.hs:11:1: ![;1m![35mwarning:![0m![0m![;1m [![;1m![35m-Wunused-imports![0m![0m![;1m]![0m![0m![;1m"
+    ,"    The import of `Data.Data' is redundant"
+    ,"      except perhaps to import instances from `Data.Data'"
+    ,"    To import instances alone, use: import Data.Data()![0m![0m"
+    ,"![;1m![34m   |![0m![0m"
+    ,"![;1m![34m11 |![0m![0m ![;1m![35mimport Data.Data![0m![0m"
+    ,"![;1m![34m   |![0m![0m![;1m![35m ^^^^^^^^^^^^^^^^![0m![0m"
+    ,"![0m![0m![0m"
+    ,"![;1msrc\\Language\\Haskell\\Ghcid\\Util.hs:11:1: ![;1m![31merror:![0m![0m![;1m![0m![0m![;1m"
+    ,"    Could not find module `Language.Haskell.Ghcid.None'![0m![0m"
+    ,"![;1m![34m   |![0m![0m"
+    ,"![;1m![34m11 |![0m![0m ![;1m![31mimport Language.Haskell.Ghcid.None![0m![0m"
+    ,"![;1m![34m   |![0m![0m![;1m![31m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^![0m![0m"
+    ,"![0m![0m![0m"
+    ] @?=
+    [Message {loadSeverity = Warning, loadFile = "src\\Language\\Haskell\\Ghcid\\Types.hs", loadFilePos = (11,1), loadMessage = ["src\\Language\\Haskell\\Ghcid\\Types.hs:11:1: warning: [-Wunused-imports]","    The import of `Data.Data' is redundant","      except perhaps to import instances from `Data.Data'","    To import instances alone, use: import Data.Data()","   |","11 | import Data.Data","   | ^^^^^^^^^^^^^^^^"]}
+    ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid\\Util.hs", loadFilePos = (11,1), loadMessage = ["src\\Language\\Haskell\\Ghcid\\Util.hs:11:1: error:","    Could not find module `Language.Haskell.Ghcid.None'","   |","11 | import Language.Haskell.Ghcid.None","   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"]}]
+
 testParseLoadSpans :: TestTree
 testParseLoadSpans = testCase "Load Parsing when -ferror-spans is enabled" $ parseLoad
     ["[1 of 2] Compiling GHCi             ( GHCi.hs, interpreted )"
