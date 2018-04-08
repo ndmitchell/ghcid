@@ -33,7 +33,7 @@ unescape = rights . unfoldr unesc
 stripPrefixE :: String -> Esc -> Maybe Esc
 stripPrefixE [] e = Just e
 stripPrefixE (x:xs) e = case unesc e of
-    Just (Left code, rest) -> fmap (app code) $ stripPrefixE (x:xs) rest
+    Just (Left code, rest) -> app code <$> stripPrefixE (x:xs) rest
     Just (Right y, rest) | y == x -> stripPrefixE xs rest
     _ -> Nothing
 
