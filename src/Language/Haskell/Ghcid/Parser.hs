@@ -39,9 +39,14 @@ parseLoad :: [String] -> [Load]
 parseLoad (map Esc -> xs) = nubOrd $ f $ map unescape xs
     where
         f :: [String] -> [Load]
-        f (('[':xs):rest) =
-            map (uncurry Loading) (parseShowModules [drop 11 $ dropWhile (/= ']') xs]) ++
-            f rest
+
+        -- [1 of 2] Compiling GHCi             ( GHCi.hs, interpreted )
+        f (xs:rest)
+            | Just xs <- stripPrefix "[" xs
+            = map (uncurry Loading) (parseShowModules [drop 11 $ dropWhile (/= ']') xs]) ++
+              f rest
+
+        -- GHCi.hs:81:1: Warning: Defined but not used: `foo'
         f (x:xs)
             | not $ " " `isPrefixOf` x
             , Just (file,rest) <- breakFileColon x
@@ -54,9 +59,14 @@ parseLoad (map Esc -> xs) = nubOrd $ f $ map unescape xs
             , rest <- trimStart $ unwords $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower rest then Warning else Error
             = Message sev file (p1,p2) (x:msg) : f las
+
+        -- <no location info>: can't find file: FILENAME
         f (x:xs)
             | Just file <- stripPrefix "<no location info>: can't find file: " x
             = Message Error file (0,0) [file ++ ": Can't find file"] : f xs
+
+        -- Module imports form a cycle:
+        --   module `Module' (Module.hs) imports itself
         f (x:xs)
             | x == "Module imports form a cycle:"
             , (xs,rest) <- span (isPrefixOf " ") xs
