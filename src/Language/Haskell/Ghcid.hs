@@ -80,9 +80,11 @@ startGhciProcess process echo0 = do
     syncCount <- newVar 0
     let syncReplay = do
             i <- readVar syncCount
+            -- useful to avoid overloaded strings by showing the ['a','b','c'] form, see #109
+            let showStr xs = "[" ++ intercalate "," (map show xs) ++ "]"
             let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
-            writeInp $ "INTERNAL_GHCID.putStrLn " ++ show msg ++ "\n" ++
-                       "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ show msg
+            writeInp $ "INTERNAL_GHCID.putStrLn " ++ showStr msg ++ "\n" ++
+                       "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ showStr msg
             return $ isInfixOf msg
     let syncFresh = do
             modifyVar_ syncCount $ return . succ
