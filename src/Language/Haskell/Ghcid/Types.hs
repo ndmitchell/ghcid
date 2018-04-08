@@ -27,24 +27,26 @@ data Severity = Warning | Error
 
 -- | Load messages
 data Load
-    = Loading
-        {loadModule :: String
-        ,loadFile :: FilePath
+    = -- | A module/file was being loaded.
+      Loading
+        {loadModule :: String -- ^ The module that was being loaded, @Foo.Bar@.
+        ,loadFile :: FilePath -- ^ The file that was being loaded, @Foo/Bar.hs@.
         }
-    | Message
-        {loadSeverity :: Severity
-        ,loadFile :: FilePath
-        ,loadFilePos :: (Int,Int)
-        ,loadMessage :: [String]
+    | -- | An error/warning was emitted.
+      Message
+        {loadSeverity :: Severity -- ^ The severity of the message, either 'Warning' or 'Error'.
+        ,loadFile :: FilePath -- ^ The file the error relates to, @Foo/Bar.hs@.
+        ,loadFilePos :: (Int,Int) -- ^ The position in the file, @(line,col)@, both 1-based.
+        ,loadMessage :: [String] -- ^ The message, split into separate lines, may contain ANSI Escape codes.
         }
     deriving (Show, Eq, Ord)
 
--- | Is a Load a message with severity?
+-- | Is a 'Load' a 'Message'?
 isMessage :: Load -> Bool
 isMessage Message{} = True
 isMessage _ = False
 
--- | Is a Load a module and filename?
+-- | Is a 'Load' a 'Loading'?
 isLoading :: Load -> Bool
 isLoading Loading{} = True
 isLoading _ = False
