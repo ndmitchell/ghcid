@@ -166,8 +166,8 @@ startGhciProcess process echo0 = do
                 writeIORef stderr []
                 writeInp "import qualified System.IO as INTERNAL_GHCID"
                 writeInp $ ":set prompt " ++ ghcid_prefix
-                writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #110
-                writeInp ":set -v1" -- see #43
+                writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+                writeInp ":set -v1" -- see #110
                 writeInp ":set -ferror-spans" -- see #148
                 writeInp ":set -fno-hide-source-paths" -- see #132
                     -- only works with GHC 8.2 and above, but failing isn't harmful
