@@ -9,6 +9,7 @@ module Session(
     ) where
 
 import Language.Haskell.Ghcid
+import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
 import Data.IORef
 import System.Time.Extra
@@ -155,9 +156,9 @@ sessionExecAsync Session{..} cmd done = do
 -- | Ignore entirely pointless messages and remove unnecessary lines.
 tidyMessage :: Load -> Maybe Load
 tidyMessage Message{loadSeverity=Warning, loadMessage=[_,x]}
-    | x == "    -O conflicts with --interactive; -O ignored." = Nothing
+    | unescape x == "    -O conflicts with --interactive; -O ignored." = Nothing
 tidyMessage m@Message{..}
-    = Just m{loadMessage = filter (\x -> not $ any (`isPrefixOf` x) bad) loadMessage}
+    = Just m{loadMessage = filter (\x -> not $ any (`isPrefixOf` unescape x) bad) loadMessage}
     where bad = ["      except perhaps to import instances from"
                 ,"    To import instances alone, use: import "]
 tidyMessage x = Just x
