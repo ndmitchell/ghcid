@@ -14,19 +14,24 @@ import Prelude
 
 import Language.Haskell.Ghcid.Types
 
+unescape :: String -> String
+unescape ('\x1B':xs) | (pre,'m':post) <- break (== 'm') xs = unescape post
+unescape (x:xs) = x : unescape xs
+unescape [] = []
+
 
 -- | Parse messages from show modules command. Given the parsed lines
 --   return a list of (module name, file).
 parseShowModules :: [String] -> [(String, FilePath)]
 parseShowModules xs =
     [ (takeWhile (not . isSpace) $ trimStart a, takeWhile (/= ',') b)
-    | x <- xs, (a,'(':' ':b) <- [break (== '(') x]]
+    | x <- map unescape xs, (a,'(':' ':b) <- [break (== '(') x]]
 
 
 -- | Parse messages given on reload.
 parseLoad :: [String] -> [Load]
 -- nub, because cabal repl sometimes does two reloads at the start
-parseLoad  = nubOrd . f
+parseLoad  = nubOrd . f . map unescape
     where
         f :: [String] -> [Load]
         f (('[':xs):rest) =
