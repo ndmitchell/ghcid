@@ -51,7 +51,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             , (msg,las) <- span isMessageBody xs
             , rest <- trimStartE $ unwordsE $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower (unescape rest) then Warning else Error
-            = Message sev file (p1,p2) (map unescape $ x:msg) : f las
+            = Message sev file (p1,p2) (map fromEsc $ x:msg) : f las
 
         -- <no location info>: can't find file: FILENAME
         f (x:xs)
@@ -64,7 +64,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             | unescape x == "Module imports form a cycle:"
             , (xs,rest) <- span (isPrefixOfE " ") xs
             , let ms = [takeWhile (/= ')') x | x <- xs, '(':x <- [dropWhile (/= '(') $ unescape x]]
-            = Message Error "" (0,0) (map unescape $ x:xs) :
+            = Message Error "" (0,0) (map fromEsc $ x:xs) :
               -- need to label the modules in the import cycle so I can find them
               [Message Error m (0,0) [] | m <- nubOrd ms] ++ f rest
         f (_:xs) = f xs
