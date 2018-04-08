@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #87, enable HSPEC colors if possible (POSIX only)
     #147, move some :set flags to the command line if possible
     #148, enable -ferror-spans by default
     #144, use color GHC messages where possible

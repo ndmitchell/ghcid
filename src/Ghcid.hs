@@ -180,6 +180,9 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
                 Always -> return True
                 Never -> return False
                 Auto -> hSupportsANSI stdout
+            when useStyle $ do
+                h <- lookupEnv "HSPEC_OPTIONS"
+                when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
             return $ if useStyle then id else map (const Plain *** (unescape . Esc))
 
         maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
