@@ -178,7 +178,7 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
                 Always -> return True
                 Never -> return False
                 Auto -> hSupportsANSI stdout
-            return $ if useStyle then id else map (first $ const Plain)
+            return $ if useStyle then id else map (const Plain *** (unescape . Esc))
 
         maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
