@@ -170,6 +170,8 @@ startGhciProcess process echo0 = do
                 writeInp ":set -ferror-spans" -- see #148
                 writeInp ":set -fno-hide-source-paths" -- see #132
                     -- only works with GHC 8.2 and above, but failing isn't harmful
+                writeInp ":set -fdiagnostics-color=always" -- see #144
+                    -- only works with GHC 8.2 and above, but failing isn't harmful
                 -- writeInp ":set -fno-it" -- see #130
                     -- only works with GHC 8.6 and above, but failing isn't harmful
                 writeIORef sync =<< syncFresh
