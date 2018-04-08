@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #109, support OverloadedStrings and RebindableSyntax together
     Remove support for GHC 7.6
     #87, enable HSPEC colors if possible (POSIX only)
     #147, move some :set flags to the command line if possible
