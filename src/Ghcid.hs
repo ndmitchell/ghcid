@@ -123,7 +123,9 @@ autoOptions o@Options{..}
         stack <- isStack "." ||^ isStack ".." -- stack file might be parent, see #62
 
         let cabal = filter ((==) ".cabal" . takeExtension) files
-        let opts = ["-fno-code" | null test]
+        let opts = ["-fno-code" | null test] ++
+                   -- flags that are set by :set, but are useful earlier, and are GHC-version agnostic
+                   ["-fno-break-on-exception","-fno-break-on-error","-v1","-ferror-spans"]
         return $ case () of
             _ | stack ->
                 let flags = if null arguments then

@@ -166,6 +166,7 @@ startGhciProcess process echo0 = do
                 writeIORef stderr []
                 writeInp "import qualified System.IO as INTERNAL_GHCID"
                 writeInp $ ":set prompt " ++ ghcid_prefix
+                -- some of these we try and set in module Ghcid before we get here
                 writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
                 writeInp ":set -v1" -- see #110
                 writeInp ":set -ferror-spans" -- see #148
