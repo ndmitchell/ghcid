@@ -183,7 +183,7 @@ mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -
             when useStyle $ do
                 h <- lookupEnv "HSPEC_OPTIONS"
                 when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
-            return $ if useStyle then id else map (const Plain *** (unescape . Esc))
+            return $ if useStyle then id else map (const Plain *** unescape)
 
         maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
             handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $

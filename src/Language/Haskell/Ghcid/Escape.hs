@@ -3,7 +3,7 @@
 -- | Module for dealing with escape codes
 module Language.Haskell.Ghcid.Escape(
     Esc(..), unescape,
-    stripInfixE, stripPrefixE, isPrefixOfE, spanE, trimStartE, unwordsE,
+    stripInfixE, stripPrefixE, isPrefixOfE, spanE, trimStartE, unwordsE, unescapeE,
     chunksOfWordE
     ) where
 
@@ -33,9 +33,12 @@ explode = unfoldr unesc
 implode :: [Either Esc Char] -> Esc
 implode = Esc . concatMap (either fromEsc return)
 
+unescape :: String -> String
+unescape = unescapeE . Esc
+
 -- | Remove all escape characters in a string
-unescape :: Esc -> String
-unescape = rights . explode
+unescapeE :: Esc -> String
+unescapeE = rights . explode
 
 stripPrefixE :: String -> Esc -> Maybe Esc
 stripPrefixE [] e = Just e
@@ -93,7 +96,7 @@ breakEndE f = swap . both reverseE . breakE f . reverseE
 
 
 lengthE :: Esc -> Int
-lengthE = length . unescape
+lengthE = length . unescapeE
 
 -- | Like chunksOf, but deal with words up to some gap.
 --   Flows onto a subsequent line if less than N characters end up being empty.

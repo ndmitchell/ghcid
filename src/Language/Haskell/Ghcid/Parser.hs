@@ -20,10 +20,10 @@ import Language.Haskell.Ghcid.Escape
 -- | Parse messages from show modules command. Given the parsed lines
 --   return a list of (module name, file).
 parseShowModules :: [String] -> [(String, FilePath)]
-parseShowModules (map Esc -> xs) =
+parseShowModules (map unescape -> xs) =
     -- we only return raw values, don't want any escape codes in there
     [ (takeWhile (not . isSpace) $ trimStart a, takeWhile (/= ',') b)
-    | x <- map unescape xs, (a,'(':' ':b) <- [break (== '(') x]]
+    | x <- xs, (a,'(':' ':b) <- [break (== '(') x]]
 
 
 -- | Parse messages given on reload.
@@ -36,7 +36,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
         -- [1 of 2] Compiling GHCi             ( GHCi.hs, interpreted )
         f (xs:rest)
             | Just xs <- stripPrefixE "[" xs
-            = map (uncurry Loading) (parseShowModules [drop 11 $ dropWhile (/= ']') $ unescape xs]) ++
+            = map (uncurry Loading) (parseShowModules [drop 11 $ dropWhile (/= ']') $ unescapeE xs]) ++
               f rest
 
         -- GHCi.hs:81:1: Warning: Defined but not used: `foo'
@@ -47,23 +47,23 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
              -- take position, including span if present
             , (pos,rest) <- spanE (\c -> c == ':' || c == '-' || isSpan c || isDigit c) rest
             -- separate line and column, ignoring span (we want the start point only)
-            , [p1,p2] <- map read $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') $ unescape pos
+            , [p1,p2] <- map read $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') $ unescapeE pos
             , (msg,las) <- span isMessageBody xs
             , rest <- trimStartE $ unwordsE $ rest : xs
-            , sev <- if "warning:" `isPrefixOf` lower (unescape rest) then Warning else Error
+            , sev <- if "warning:" `isPrefixOf` lower (unescapeE rest) then Warning else Error
             = Message sev file (p1,p2) (map fromEsc $ x:msg) : f las
 
         -- <no location info>: can't find file: FILENAME
         f (x:xs)
             | Just file <- stripPrefixE "<no location info>: can't find file: " x
-            = Message Error (unescape file) (0,0) [unescape file ++ ": Can't find file"] : f xs
+            = Message Error (unescapeE file) (0,0) [unescapeE file ++ ": Can't find file"] : f xs
 
         -- Module imports form a cycle:
         --   module `Module' (Module.hs) imports itself
         f (x:xs)
-            | unescape x == "Module imports form a cycle:"
+            | unescapeE x == "Module imports form a cycle:"
             , (xs,rest) <- span (isPrefixOfE " ") xs
-            , let ms = [takeWhile (/= ')') x | x <- xs, '(':x <- [dropWhile (/= '(') $ unescape x]]
+            , let ms = [takeWhile (/= ')') x | x <- xs, '(':x <- [dropWhile (/= '(') $ unescapeE x]]
             = Message Error "" (0,0) (map fromEsc $ x:xs) :
               -- need to label the modules in the import cycle so I can find them
               [Message Error m (0,0) [] | m <- nubOrd ms] ++ f rest
@@ -74,7 +74,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
 -- After the file location, message bodies are indented (perhaps prefixed by a line number)
 isMessageBody :: Esc -> Bool
 isMessageBody xs = isPrefixOfE " " xs || case stripInfixE "|" xs of
-  Just (prefix, _) | all (\x -> isSpace x || isDigit x) $ unescape prefix -> True
+  Just (prefix, _) | all (\x -> isSpace x || isDigit x) $ unescapeE prefix -> True
   _ -> False
 
 -- A filename, followed by a colon - be careful to handle Windows drive letters, see #61
@@ -82,5 +82,5 @@ breakFileColon :: Esc -> Maybe (FilePath, Esc)
 breakFileColon xs = case stripInfixE ":" xs of
     Nothing -> Nothing
     Just (a,b)
-        | [drive] <- unescape a, isLetter drive -> first ((++) [drive,':'] . unescape) <$> stripInfixE ":" b
-        | otherwise -> Just (unescape a, b)
+        | [drive] <- unescapeE a, isLetter drive -> first ((++) [drive,':'] . unescapeE) <$> stripInfixE ":" b
+        | otherwise -> Just (unescapeE a, b)
