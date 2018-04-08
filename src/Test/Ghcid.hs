@@ -150,7 +150,7 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
             -- note that due to GHC bug #9648 and #11596 this doesn't work with newer GHC
             -- see https://ghc.haskell.org/trac/ghc/ticket/11596
             rename "Util.hs" "Util2.hs"
-            require ["Main.hs:1:8:","Could not find module `Util'"]
+            require ["Main.hs:1:8","Could not find module `Util'"]
             rename "Util2.hs" "Util.hs"
             require [allGoodMessage]
 
