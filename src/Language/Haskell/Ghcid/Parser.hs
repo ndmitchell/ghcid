@@ -70,7 +70,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f $ map unescape xs
 
 -- After the file location, message bodies are indented (perhaps prefixed by a line number)
 isMessageBody :: String -> Bool
-isMessageBody xs = isPrefixOf " " xs || case break (=='|') xs of
+isMessageBody xs = isPrefixOf " " xs || case break (== '|') xs of
   (prefix, _:_) | all (\x -> isSpace x || isDigit x) prefix -> True
   _ -> False
 
