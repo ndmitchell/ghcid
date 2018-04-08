@@ -1,7 +1,6 @@
 -- | Test the message parser
 module Test.Parser(parserTests) where
 
-import Data.List.Extra
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -95,24 +94,24 @@ testParseLoadCycles = testCase "Module cycle" $ parseLoad
     ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid\\Util.hs", loadFilePos = (0,0), loadMessage = []}
     ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid.hs", loadFilePos = (0,0), loadMessage = []}]
 
-testParseLoadEscapeCodes = testCase "Escape codes as enabled by -fdiagnostics-color=always" $ (parseLoad . map (replace "!" "\ESC"))
-    ["![;1msrc\\Language\\Haskell\\Ghcid\\Types.hs:11:1: ![;1m![35mwarning:![0m![0m![;1m [![;1m![35m-Wunused-imports![0m![0m![;1m]![0m![0m![;1m"
+testParseLoadEscapeCodes = testCase "Escape codes as enabled by -fdiagnostics-color=always" $ parseLoad
+    ["\ESC[;1msrc\\Language\\Haskell\\Ghcid\\Types.hs:11:1: \ESC[;1m\ESC[35mwarning:\ESC[0m\ESC[0m\ESC[;1m [\ESC[;1m\ESC[35m-Wunused-imports\ESC[0m\ESC[0m\ESC[;1m]\ESC[0m\ESC[0m\ESC[;1m"
     ,"    The import of `Data.Data' is redundant"
     ,"      except perhaps to import instances from `Data.Data'"
-    ,"    To import instances alone, use: import Data.Data()![0m![0m"
-    ,"![;1m![34m   |![0m![0m"
-    ,"![;1m![34m11 |![0m![0m ![;1m![35mimport Data.Data![0m![0m"
-    ,"![;1m![34m   |![0m![0m![;1m![35m ^^^^^^^^^^^^^^^^![0m![0m"
-    ,"![0m![0m![0m"
-    ,"![;1msrc\\Language\\Haskell\\Ghcid\\Util.hs:11:1: ![;1m![31merror:![0m![0m![;1m![0m![0m![;1m"
-    ,"    Could not find module `Language.Haskell.Ghcid.None'![0m![0m"
-    ,"![;1m![34m   |![0m![0m"
-    ,"![;1m![34m11 |![0m![0m ![;1m![31mimport Language.Haskell.Ghcid.None![0m![0m"
-    ,"![;1m![34m   |![0m![0m![;1m![31m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^![0m![0m"
-    ,"![0m![0m![0m"
+    ,"    To import instances alone, use: import Data.Data()\ESC[0m\ESC[0m"
+    ,"\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m"
+    ,"\ESC[;1m\ESC[34m11 |\ESC[0m\ESC[0m \ESC[;1m\ESC[35mimport Data.Data\ESC[0m\ESC[0m"
+    ,"\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m\ESC[;1m\ESC[35m ^^^^^^^^^^^^^^^^\ESC[0m\ESC[0m"
+    ,"\ESC[0m\ESC[0m\ESC[0m"
+    ,"\ESC[;1msrc\\Language\\Haskell\\Ghcid\\Util.hs:11:1: \ESC[;1m\ESC[31merror:\ESC[0m\ESC[0m\ESC[;1m\ESC[0m\ESC[0m\ESC[;1m"
+    ,"    Could not find module `Language.Haskell.Ghcid.None'\ESC[0m\ESC[0m"
+    ,"\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m"
+    ,"\ESC[;1m\ESC[34m11 |\ESC[0m\ESC[0m \ESC[;1m\ESC[31mimport Language.Haskell.Ghcid.None\ESC[0m\ESC[0m"
+    ,"\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m\ESC[;1m\ESC[31m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ESC[0m\ESC[0m"
+    ,"\ESC[0m\ESC[0m\ESC[0m"
     ] @?=
-    [Message {loadSeverity = Warning, loadFile = "src\\Language\\Haskell\\Ghcid\\Types.hs", loadFilePos = (11,1), loadMessage = ["src\\Language\\Haskell\\Ghcid\\Types.hs:11:1: warning: [-Wunused-imports]","    The import of `Data.Data' is redundant","      except perhaps to import instances from `Data.Data'","    To import instances alone, use: import Data.Data()","   |","11 | import Data.Data","   | ^^^^^^^^^^^^^^^^"]}
-    ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid\\Util.hs", loadFilePos = (11,1), loadMessage = ["src\\Language\\Haskell\\Ghcid\\Util.hs:11:1: error:","    Could not find module `Language.Haskell.Ghcid.None'","   |","11 | import Language.Haskell.Ghcid.None","   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"]}]
+    [Message {loadSeverity = Warning, loadFile = "src\\Language\\Haskell\\Ghcid\\Types.hs", loadFilePos = (11,1), loadMessage = ["\ESC[;1msrc\\Language\\Haskell\\Ghcid\\Types.hs:11:1: \ESC[;1m\ESC[35mwarning:\ESC[0m\ESC[0m\ESC[;1m [\ESC[;1m\ESC[35m-Wunused-imports\ESC[0m\ESC[0m\ESC[;1m]\ESC[0m\ESC[0m\ESC[;1m","    The import of `Data.Data' is redundant","      except perhaps to import instances from `Data.Data'","    To import instances alone, use: import Data.Data()\ESC[0m\ESC[0m","\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m","\ESC[;1m\ESC[34m11 |\ESC[0m\ESC[0m \ESC[;1m\ESC[35mimport Data.Data\ESC[0m\ESC[0m","\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m\ESC[;1m\ESC[35m ^^^^^^^^^^^^^^^^\ESC[0m\ESC[0m"]}
+    ,Message {loadSeverity = Error, loadFile = "src\\Language\\Haskell\\Ghcid\\Util.hs", loadFilePos = (11,1), loadMessage = ["\ESC[;1msrc\\Language\\Haskell\\Ghcid\\Util.hs:11:1: \ESC[;1m\ESC[31merror:\ESC[0m\ESC[0m\ESC[;1m\ESC[0m\ESC[0m\ESC[;1m","    Could not find module `Language.Haskell.Ghcid.None'\ESC[0m\ESC[0m","\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m","\ESC[;1m\ESC[34m11 |\ESC[0m\ESC[0m \ESC[;1m\ESC[31mimport Language.Haskell.Ghcid.None\ESC[0m\ESC[0m","\ESC[;1m\ESC[34m   |\ESC[0m\ESC[0m\ESC[;1m\ESC[31m ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ESC[0m\ESC[0m"]}]
 
 testParseLoadSpans :: TestTree
 testParseLoadSpans = testCase "Load Parsing when -ferror-spans is enabled" $ parseLoad
