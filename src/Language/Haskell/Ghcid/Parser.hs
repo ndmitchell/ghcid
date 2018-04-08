@@ -19,7 +19,7 @@ newtype Esc = Esc String
 
 -- | Remove all escape characters in a string
 unescape :: Esc -> String
-unescape (Esc ('\x1B':xs)) | (pre,'m':post) <- break (== 'm') xs = unescape (Esc post)
+unescape (Esc ('\ESC':xs)) | (pre,'m':post) <- break (== 'm') xs = unescape (Esc post)
 unescape (Esc (x:xs)) = x : unescape (Esc xs)
 unescape (Esc []) = []
 
