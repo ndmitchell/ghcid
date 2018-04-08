@@ -2,7 +2,6 @@
 -- | Utility functions
 module Language.Haskell.Ghcid.Util(
     dropPrefixRepeatedly,
-    chunksOfWord,
     outWith, outStrLn,
     allGoodMessage,
     getModTime, getModTimeResolution, getShortTime
@@ -16,7 +15,6 @@ import System.FilePath
 import System.Info.Extra
 import Data.Version.Extra
 import Data.List.Extra
-import Data.Char
 import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.LocalTime
@@ -48,15 +46,6 @@ outStrLn = outWith . putStrLn
 -- | The message to show when no errors have been reported
 allGoodMessage :: String
 allGoodMessage = "All good"
-
--- | Like chunksOf, but deal with words up to some gap.
---   Flows onto a subsequent line if less than N characters end up being empty.
-chunksOfWord :: Int -> Int -> String -> [String]
-chunksOfWord mx gap = repeatedly $ \x ->
-    let (a,b) = splitAt mx x in
-    if null b then (a, []) else
-        let (a1,a2) = breakEnd isSpace a in
-        if length a2 <= gap then (a1, a2 ++ b) else (a, dropWhile isSpace b)
 
 -- | Given a 'FilePath' return either 'Nothing' (file does not exist) or 'Just' (the modification time)
 getModTime :: FilePath -> IO (Maybe UTCTime)

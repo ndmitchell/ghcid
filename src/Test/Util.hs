@@ -5,6 +5,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Language.Haskell.Ghcid.Util
+import Language.Haskell.Ghcid.Escape
 
 utilsTests :: TestTree
 utilsTests = testGroup "Utility tests"
@@ -22,6 +23,6 @@ dropPrefixTests = testGroup "dropPrefix"
 
 chunksOfWordTests :: TestTree
 chunksOfWordTests = testGroup "chunksOfWord"
-    [testCase "Max 0" $ chunksOfWord 4 0 "ab cd efgh" @?= ["ab c","d ef","gh"]
-    ,testCase "Max 2" $ chunksOfWord 4 2 "ab cd efgh" @?= ["ab ","cd ","efgh"]
+    [testCase "Max 0" $ chunksOfWordE 4 0 (Esc "ab cd efgh") @?= map Esc ["ab c","d ef","gh"]
+    ,testCase "Max 2" $ chunksOfWordE 4 2 (Esc "ab cd efgh") @?= map Esc ["ab ","cd ","efgh"]
     ]

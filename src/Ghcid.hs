@@ -24,6 +24,7 @@ import System.FilePath
 import System.IO.Extra
 
 import Paths_ghcid
+import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
@@ -209,7 +210,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             let n = height - length msg
             currTime <- getShortTime
             load <- return $ take (if isJust load then n else 0) $ prettyOutput max_messages currTime (maybe 0 fst load)
-                [ m{loadMessage = concatMap (chunksOfWord width (width `div` 5)) $ loadMessage m}
+                [ m{loadMessage = map fromEsc $ concatMap (chunksOfWordE width (width `div` 5)) $ map Esc $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
 
