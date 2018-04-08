@@ -38,6 +38,7 @@ library
         Language.Haskell.Ghcid
     other-modules:
         Paths_ghcid
+        Language.Haskell.Ghcid.Escape
         Language.Haskell.Ghcid.Parser
         Language.Haskell.Ghcid.Types
         Language.Haskell.Ghcid.Util
