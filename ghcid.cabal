@@ -65,9 +65,10 @@ executable ghcid
     else
         build-depends: unix
     other-modules:
-        Language.Haskell.Ghcid.Types
+        Language.Haskell.Ghcid.Escape
         Language.Haskell.Ghcid.Parser
         Language.Haskell.Ghcid.Terminal
+        Language.Haskell.Ghcid.Types
         Language.Haskell.Ghcid.Util
         Language.Haskell.Ghcid
         Paths_ghcid
@@ -101,6 +102,7 @@ test-suite ghcid_test
     other-modules:
         Ghcid
         Language.Haskell.Ghcid
+        Language.Haskell.Ghcid.Escape
         Language.Haskell.Ghcid.Parser
         Language.Haskell.Ghcid.Terminal
         Language.Haskell.Ghcid.Types
