@@ -243,7 +243,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             unless no_title $ setWindowIcon $
                 if countErrors > 0 then IconError else if countWarnings > 0 then IconWarning else IconOK
 
-            let updateTitle extra = unless no_title $ setTitle $
+            let updateTitle extra = unless no_title $ setTitle $ unescape $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
                     in (if countErrors == 0 && countWarnings == 0 then allGoodMessage ++ ", at " ++ currTime else f countErrors "error" ++
                        (if countErrors >  0 && countWarnings >  0 then ", " else "") ++ f countWarnings "warning") ++
