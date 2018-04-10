@@ -45,7 +45,7 @@ outStrLn = outWith . putStrLn
 
 -- | The message to show when no errors have been reported
 allGoodMessage :: String
-allGoodMessage = "All good"
+allGoodMessage = "\ESC[32mAll good\ESC[0m"
 
 -- | Given a 'FilePath' return either 'Nothing' (file does not exist) or 'Just' (the modification time)
 getModTime :: FilePath -> IO (Maybe UTCTime)
