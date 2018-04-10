@@ -157,37 +157,40 @@ withGhcidArgs act = do
 
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
-mainWithTerminal termSize termOutput = withWindowIcon $ withSession $ \session -> do
-    -- On certain Cygwin terminals stdout defaults to BlockBuffering
-    hSetBuffering stdout LineBuffering
-    hSetBuffering stderr NoBuffering
-    opts <- withGhcidArgs $ cmdArgsRun options
-    withCurrentDirectory (directory opts) $ do
-        opts <- autoOptions opts
-        opts <- return $ opts{restart = nubOrd $ restart opts, reload = nubOrd $ reload opts}
-        when (topmost opts) terminalTopmost
+mainWithTerminal termSize termOutput =
+    handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
+        forever $ withWindowIcon $ withSession $ \session -> do
+            setVerbosity Normal -- undo any --verbose flags
 
-        termSize <- return $ case (width opts, height opts) of
-            (Just w, Just h) -> return (w,h)
-            (w, h) -> do
-                term <- termSize
-                -- if we write to the final column of the window then it wraps automatically
-                -- so putStrLn width 'x' uses up two lines
-                return (fromMaybe (pred $ fst term) w, fromMaybe (snd term) h)
+            -- On certain Cygwin terminals stdout defaults to BlockBuffering
+            hSetBuffering stdout LineBuffering
+            hSetBuffering stderr NoBuffering
+            opts <- withGhcidArgs $ cmdArgsRun options
+            withCurrentDirectory (directory opts) $ do
+                opts <- autoOptions opts
+                opts <- return $ opts{restart = nubOrd $ ".ghcid" : restart opts, reload = nubOrd $ reload opts}
+                when (topmost opts) terminalTopmost
 
-        restyle <- do
-            useStyle <- case color opts of
-                Always -> return True
-                Never -> return False
-                Auto -> hSupportsANSI stdout
-            when useStyle $ do
-                h <- lookupEnv "HSPEC_OPTIONS"
-                when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
-            return $ if useStyle then id else map (const Plain *** unescape)
+                termSize <- return $ case (width opts, height opts) of
+                    (Just w, Just h) -> return (w,h)
+                    (w, h) -> do
+                        term <- termSize
+                        -- if we write to the final column of the window then it wraps automatically
+                        -- so putStrLn width 'x' uses up two lines
+                        return (fromMaybe (pred $ fst term) w, fromMaybe (snd term) h)
 
-        maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-            handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
-                runGhcid session waiter termSize (termOutput . restyle) opts
+                restyle <- do
+                    useStyle <- case color opts of
+                        Always -> return True
+                        Never -> return False
+                        Auto -> hSupportsANSI stdout
+                    when useStyle $ do
+                        h <- lookupEnv "HSPEC_OPTIONS"
+                        when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
+                    return $ if useStyle then id else map (const Plain *** unescape)
+
+                maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
+                    runGhcid session waiter termSize (termOutput . restyle) opts
 
 
 
@@ -206,8 +209,11 @@ main = mainWithTerminal termSize termOutput
 
 data Style = Plain | Bold deriving Eq
 
+data Continue = Continue
 
-runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> Options -> IO ()
+-- If we return successfully, we restart the whole process
+-- Use Continue not () so that inadvertant exits don't restart
+runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill load msg = do
@@ -276,7 +282,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
             else
-                runGhcid session waiter termSize termOutput opts
+                -- exit cleanly, since the whole thing is wrapped in a forever
+                return Continue
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command

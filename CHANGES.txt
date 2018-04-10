@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #141, restart if .ghcid changes
     #151, make "All good" green
     #109, support OverloadedStrings and RebindableSyntax together
     Remove support for GHC 7.6
