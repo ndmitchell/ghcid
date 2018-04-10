@@ -67,6 +67,12 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             = Message Error "" (0,0) (map fromEsc $ x:xs) :
               -- need to label the modules in the import cycle so I can find them
               [Message Error m (0,0) [] | m <- nubOrd ms] ++ f rest
+
+        -- Loaded GHCi configuration from C:\Neil\ghcid\.ghci
+        f (x:xs)
+            | Just x <- stripPrefixE "Loaded GHCi configuration from " x
+            = LoadConfig (unescapeE x) : f xs
+
         f (_:xs) = f xs
         f [] = []
         isSpan c = c== ',' || c == '(' || c == ')'
