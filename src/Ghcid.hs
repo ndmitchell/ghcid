@@ -229,6 +229,13 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         putStrLn "--reload must be set when using --ignore-loaded"
         exitFailure
 
+    nextWait <- waitFiles waiter
+    (messages, loaded) <- sessionStart session command
+    when (null loaded && not ignoreLoaded) $ do
+        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
+        exitFailure
+
+    restart <- return $ nubOrd $ restart ++ [x | LoadConfig x <- messages]
     restartTimes <- mapM getModTime restart
     curdir <- getCurrentDirectory
     currTime <- getShortTime
@@ -285,11 +292,6 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 -- exit cleanly, since the whole thing is wrapped in a forever
                 return Continue
 
-    nextWait <- waitFiles waiter
-    (messages, loaded) <- sessionStart session command
-    when (null loaded && not ignoreLoaded) $ do
-        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
-        exitFailure
     fire nextWait (messages, loaded)
 
 
