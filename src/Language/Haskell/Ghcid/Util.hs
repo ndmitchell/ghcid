@@ -13,6 +13,7 @@ import System.IO.Unsafe
 import System.IO.Extra
 import System.FilePath
 import System.Info.Extra
+import System.Console.ANSI
 import Data.Version.Extra
 import Data.List.Extra
 import Data.Time.Clock
@@ -45,7 +46,7 @@ outStrLn = outWith . putStrLn
 
 -- | The message to show when no errors have been reported
 allGoodMessage :: String
-allGoodMessage = "\ESC[32mAll good\ESC[0m"
+allGoodMessage = setSGRCode [SetColor Foreground Dull Green] ++  "All good" ++ setSGRCode []
 
 -- | Given a 'FilePath' return either 'Nothing' (file does not exist) or 'Just' (the modification time)
 getModTime :: FilePath -> IO (Maybe UTCTime)
