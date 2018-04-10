@@ -253,7 +253,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
-                writeFile file $ unlines $ map snd $ prettyOutput max_messages currTime loadedCount $ filter isMessage messages
+                writeFile file $ unlines $ map (unescape . snd) $ prettyOutput max_messages currTime loadedCount $ filter isMessage messages
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
