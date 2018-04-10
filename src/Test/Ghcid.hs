@@ -20,6 +20,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Ghcid
+import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
 import Data.Functor
 import Prelude
@@ -83,7 +84,7 @@ withGhcid args script = do
 assertApproxInfix :: [String] -> [String] -> IO ()
 assertApproxInfix want got = do
     -- Spacing and quotes tend to be different on different GHCi versions
-    let simple = lower . filter (\x -> isLetter x || isDigit x || x == ':')
+    let simple = lower . filter (\x -> isLetter x || isDigit x || x == ':') . unescape
         got2 = simple $ unwords got
     all (`isInfixOf` got2) (map simple want) @?
         "Expected " ++ show want ++ ", got " ++ show got
