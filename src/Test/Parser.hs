@@ -65,9 +65,11 @@ testParseLoadGhc82 = testCase "GHC 8.2 Load Parsing" $ parseLoad
     ,"   |"
     ,"30 |           dx = ' ^* delta"
     ,"   |                  ^^"
+    ,"Loaded GHCi configuration from C:\\Neil\\ghcid\\.ghci"
     ] @?=
     [Loading "Physics" "Physics.hs"
     ,Message {loadSeverity = Error, loadFile = "Physics.hs", loadFilePos = (30,18), loadMessage = ["Physics.hs:30:18: error: parse error on input ‘^*’" ,"   |" ,"30 |           dx = ' ^* delta" ,"   |                  ^^"]}
+    ,LoadConfig "C:\\Neil\\ghcid\\.ghci"
     ]
 
 testMissingFile = testCase "Starting ghci with a non-existent filename" $ parseLoad
