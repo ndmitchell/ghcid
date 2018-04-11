@@ -161,7 +161,7 @@ withGhcidArgs act = do
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
 mainWithTerminal termSize termOutput =
-    handle (\(UnexpectedExit cmd _) -> putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly") $
+    handle (\(UnexpectedExit cmd _) -> do putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly"; exitFailure) $
         forever $ withWindowIcon $ withSession $ \session -> do
             setVerbosity Normal -- undo any --verbose flags
 
