@@ -115,27 +115,30 @@ autoOptions :: Options -> IO Options
 autoOptions o@Options{..}
     | command /= "" = return $ f [command] []
     | otherwise = do
+        curdir <- getCurrentDirectory
         files <- getDirectoryContents "."
 
         -- use unsafePerformIO to get nicer pattern matching for logic (read-only operations)
-        let isStack dir = flip catchIOError (const $ return False) $
-                doesFileExist (dir </> "stack.yaml") &&^ doesDirectoryExist (dir </> ".stack-work")
-        stack <- isStack "." ||^ isStack ".." -- stack file might be parent, see #62
+        let findStack dir = flip catchIOError (const $ return Nothing) $ do
+                let yaml = dir </> "stack.yaml"
+                b <- doesFileExist yaml &&^ doesDirectoryExist (dir </> ".stack-work")
+                return $ if b then Just yaml else Nothing
+        stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
-        let cabal = filter ((==) ".cabal" . takeExtension) files
+        let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
         let opts = ["-fno-code" | null test] ++
                    -- flags that are set by :set, but are useful earlier, and are GHC-version agnostic
                    ["-fno-break-on-exception","-fno-break-on-error","-v1","-ferror-spans"]
         return $ case () of
-            _ | stack ->
+            _ | Just stack <- stack ->
                 let flags = if null arguments then
                                 "stack ghci --test" :
                                 ["--no-load" | ".ghci" `elem` files] ++
                                 map ("--ghci-options=" ++) opts
                             else
                                 "stack exec --test -- ghci" : opts
-                in f flags $ "stack.yaml":cabal
-              | ".ghci" `elem` files -> f ("ghci":opts) [".ghci"]
+                in f flags $ stack:cabal
+              | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
               | cabal /= [] -> f (if null arguments then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
               | otherwise -> f ("ghci":opts) []
     where
@@ -165,10 +168,11 @@ mainWithTerminal termSize termOutput =
             -- On certain Cygwin terminals stdout defaults to BlockBuffering
             hSetBuffering stdout LineBuffering
             hSetBuffering stderr NoBuffering
+            origDir <- getCurrentDirectory
             opts <- withGhcidArgs $ cmdArgsRun options
             withCurrentDirectory (directory opts) $ do
                 opts <- autoOptions opts
-                opts <- return $ opts{restart = nubOrd $ ".ghcid" : restart opts, reload = nubOrd $ reload opts}
+                opts <- return $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
                 when (topmost opts) terminalTopmost
 
                 termSize <- return $ case (width opts, height opts) of
