@@ -11,6 +11,7 @@ import Language.Haskell.Ghcid.Types
 parserTests :: TestTree
 parserTests = testGroup "Parser tests"
     [testParseShowModules
+    ,testParseShowPaths
     ,testParseLoad
     ,testParseLoadGhc82
     ,testParseLoadSpans
@@ -28,6 +29,16 @@ testParseShowModules = testCase "Show Modules" $ parseShowModules
     [("Main","src/Main.hs")
     ,("AI.Neural.WiscDigit","src/AI/Neural/WiscDigit.hs")
     ]
+
+testParseShowPaths :: TestTree
+testParseShowPaths = testCase "Show Paths" $ parseShowPaths
+    ["current working directory:"
+    ,"  C:\\Neil\\ghcid"
+    ,"module import search paths:"
+    ,"  ."
+    ,"  src"
+    ] @?=
+    ("C:\\Neil\\ghcid",[".","src"])
 
 testParseLoad :: TestTree
 testParseLoad = testCase "Load Parsing" $ parseLoad

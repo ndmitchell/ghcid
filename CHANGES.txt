@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    Add showPaths function to exercise ":show paths"
     #127, use Loaded GHCi configuration message to add .ghci restart
     #141, restart if .ghcid changes
     #151, make "All good" green

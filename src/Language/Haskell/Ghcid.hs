@@ -5,7 +5,7 @@ module Language.Haskell.Ghcid(
     Ghci, GhciError(..), Stream(..),
     Load(..), Severity(..),
     startGhci, startGhciProcess, stopGhci, interrupt, process,
-    execStream, showModules, reload, exec, quit
+    execStream, showModules, showPaths, reload, exec, quit
     ) where
 
 import System.IO
@@ -234,6 +234,10 @@ exec ghci cmd = execBuffer ghci cmd $ \_ _ -> return ()
 -- | List the modules currently loaded, with module name and source file.
 showModules :: Ghci -> IO [(String,FilePath)]
 showModules ghci = parseShowModules <$> exec ghci ":show modules"
+
+-- | Return the current working directory, and a list of module import paths
+showPaths :: Ghci -> IO (FilePath, [FilePath])
+showPaths ghci = parseShowPaths <$> exec ghci ":show paths"
 
 -- | Perform a reload, list the messages that reload generated.
 reload :: Ghci -> IO [Load]

@@ -2,7 +2,7 @@
 
 -- | Parses the output from GHCi
 module Language.Haskell.Ghcid.Parser(
-    parseShowModules, parseLoad
+    parseShowModules, parseShowPaths, parseLoad
     ) where
 
 import System.FilePath
@@ -25,6 +25,12 @@ parseShowModules (map unescape -> xs) =
     [ (takeWhile (not . isSpace) $ trimStart a, takeWhile (/= ',') b)
     | x <- xs, (a,'(':' ':b) <- [break (== '(') x]]
 
+-- | Parse messages from show paths command. Given the parsed lines
+--   return (current working directory, module import search paths)
+parseShowPaths :: [String] -> (FilePath, [FilePath])
+parseShowPaths (map unescape -> xs)
+    | (_:x:_:is) <- xs = (trimStart x, map trimStart is)
+    | otherwise = (".",[])
 
 -- | Parse messages given on reload.
 parseLoad :: [String] -> [Load]
