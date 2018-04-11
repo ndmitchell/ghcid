@@ -168,6 +168,7 @@ cdTest = testCase "Cd basic" $ freshDir $ do
     write "foo/Main.hs" "main = print 1"
     write "foo/Util.hs" "import Bob"
     write "foo/.ghci" ":load Main"
+    ignore $ void $ system "chmod go-w foo/.ghci"
     withGhcid ["-ccd foo && ghci"] $ \require -> do
         require [allGoodMessage]
         write "foo/Main.hs" "x"
