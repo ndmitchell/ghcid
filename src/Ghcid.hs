@@ -286,15 +286,16 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
             reason <- nextWait $ restart ++ reload ++ loaded
             whenLoud $ outStrLn $ "%RELOADING: " ++ unwords reason
-            unless no_status $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
             restartTimes2 <- mapM getModTime restart
-            if restartTimes == restartTimes2 then do
+            let restartChanged = [s | (False, s) <- zip (zipWith (==) restartTimes restartTimes2) restart]
+            if not $ null restartChanged then do
+                -- exit cleanly, since the whole thing is wrapped in a forever
+                unless no_status $ outputFill Nothing $ "Restarting..." : map ("  " ++) restartChanged
+                return Continue
+            else do
+                unless no_status $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
-            else do
-                -- exit cleanly, since the whole thing is wrapped in a forever
-                whenLoud $ outStrLn $ "%RESTARTING: " ++ unwords [s | (False, s) <- zip (zipWith (==) restartTimes restartTimes2) restart]
-                return Continue
 
     fire nextWait (messages, loaded)
 
