@@ -168,7 +168,7 @@ cdTest = testCase "Cd basic" $ freshDir $ do
     write "foo/Main.hs" "main = print 1"
     write "foo/Util.hs" "import Bob"
     write "foo/.ghci" ":load Main"
-    withGhcid ["-c \"cd foo && ghci\""] $ \require -> do
+    withGhcid ["-ccd foo && ghci"] $ \require -> do
         require [allGoodMessage]
         write "foo/Main.hs" "x"
         require ["Main.hs:1:1"," Parse error:"]
