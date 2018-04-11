@@ -11,6 +11,7 @@ module Session(
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
+import Language.Haskell.Ghcid.Types
 import Data.IORef
 import System.Time.Extra
 import System.Process
@@ -67,6 +68,9 @@ kill ghci = ignore $ do
     debugShutdown "After terminateProcess"
 
 
+loadedModules :: [Load] -> [FilePath]
+loadedModules = nubOrd . filter (/= "") . map loadFile . filter (not . isLoadConfig)
+
 -- | Spawn a new Ghci process at a given command line. Returns the load messages, plus
 --   the list of files that were observed (both those loaded and those that failed to load).
 sessionStart :: Session -> String -> IO ([Load], [FilePath])
@@ -95,7 +99,7 @@ sessionStart Session{..} cmd = do
     -- handle what the process returned
     messages <- return $ mapMaybe tidyMessage messages
     writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
-    return (messages, nubOrd $ map loadFile messages)
+    return (messages, loadedModules messages)
 
 
 -- | Call 'sessionStart' at the previous command.
@@ -121,7 +125,7 @@ sessionReload session@Session{..} = do
         Just ghci <- readIORef ghci
         messages <- mapMaybe tidyMessage <$> reload ghci
         loaded <- map snd <$> showModules ghci
-        let reloaded = nubOrd $ filter (/= "") $ map loadFile messages
+        let reloaded = loadedModules messages
         warn <- readIORef warnings
 
         -- only keep old warnings from files that are still loaded, but did not reload
