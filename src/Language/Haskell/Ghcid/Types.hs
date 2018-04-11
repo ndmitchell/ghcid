@@ -4,7 +4,8 @@
 module Language.Haskell.Ghcid.Types(
     GhciError(..),
     Stream(..),
-    Load(..), Severity(..), isMessage, isLoading
+    Load(..), Severity(..),
+    isMessage, isLoading, isLoadConfig
     ) where
 
 import Data.Data
@@ -54,3 +55,8 @@ isMessage _ = False
 isLoading :: Load -> Bool
 isLoading Loading{} = True
 isLoading _ = False
+
+-- | Is a 'Load' a 'LoadConfig'?
+isLoadConfig :: Load -> Bool
+isLoadConfig LoadConfig{} = True
+isLoadConfig _ = False
