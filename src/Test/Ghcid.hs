@@ -29,6 +29,7 @@ import Prelude
 ghcidTest :: TestTree
 ghcidTest = testGroup "Ghcid test"
     [basicTest
+    ,cdTest
     ,dotGhciTest
     ,cabalTest
     ,stackTest
@@ -160,6 +161,19 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
             require [allGoodMessage]
 
         -- after this point GHC bugs mean nothing really works too much
+
+
+cdTest :: TestTree
+cdTest = testCase "Cd basic" $ freshDir $ do
+    write "foo/Main.hs" "main = print 1"
+    write "foo/Util.hs" "import Bob"
+    write "foo/.ghci" ":load Main"
+    withGhcid ["-c \"cd foo && ghci\""] $ \require -> do
+        require [allGoodMessage]
+        write "foo/Main.hs" "x"
+        require ["Main.hs:1:1"," Parse error:"]
+        write "foo/.ghci" ":load Util"
+        require ["Util.hs:1:1"," Could not find module `Bob'"]
 
 
 dotGhciTest :: TestTree
