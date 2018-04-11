@@ -169,7 +169,9 @@ cdTest = testCase "Cd basic" $ freshDir $ do
     write "foo/Util.hs" "import Bob"
     write "foo/.ghci" ":load Main"
     ignore $ void $ system "chmod go-w foo foo/.ghci"
-    withGhcid ["-ccd foo && ghci","--verbose"] $ \require -> do
+    ghcVer <- readVersion <$> systemOutput_ "ghc --numeric-version"
+    -- GHC 8.0 and lower don't emit the LoadConfig messages
+    withGhcid (["-ccd foo && ghci"] ++ ["--restart=foo/.ghci" | ghcVer < makeVersion [8,2]]) $ \require -> do
         require [allGoodMessage]
         write "foo/Main.hs" "x"
         require ["Main.hs:1:1"," Parse error:"]

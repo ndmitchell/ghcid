@@ -40,7 +40,7 @@ data Load
         ,loadFilePos :: (Int,Int) -- ^ The position in the file, @(line,col)@, both 1-based.
         ,loadMessage :: [String] -- ^ The message, split into separate lines, may contain ANSI Escape codes.
         }
-    | -- | A config file was loaded, usually a .ghci file
+    | -- | A config file was loaded, usually a .ghci file (GHC 8.2 and above only)
       LoadConfig
         {loadFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
         }
