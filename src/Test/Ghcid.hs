@@ -169,7 +169,7 @@ cdTest = testCase "Cd basic" $ freshDir $ do
     write "foo/Util.hs" "import Bob"
     write "foo/.ghci" ":load Main"
     ignore $ void $ system "chmod go-w foo foo/.ghci"
-    withGhcid ["-ccd foo && ghci"] $ \require -> do
+    withGhcid ["-ccd foo && ghci","--verbose"] $ \require -> do
         require [allGoodMessage]
         write "foo/Main.hs" "x"
         require ["Main.hs:1:1"," Parse error:"]
