@@ -202,7 +202,10 @@ stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenExecutable "stack"
     createDirectoryIfMissing True ".stack-work"
 
     withGhcid [] $ \require -> do
-        require [allGoodMessage]
+        require [allGoodMessage ++ " (4 modules, at "]
+        -- the .ghci file we watch was created _after_ we started loading stack
+        -- so ghcid is correct to immediately reload, in case it changed
+        require [allGoodMessage ++ " (4 modules, at "]
         append "src/Literate.lhs" "> x"
         require ["src/Literate.lhs:5:3","Parse error:"]
 {-
