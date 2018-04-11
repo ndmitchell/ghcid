@@ -70,9 +70,9 @@ withGhcid args script = do
             sleep =<< getModTimeResolution
 
     let output msg = do
-        let msg2 = filter (/= "") $ map snd msg
-        putStr $ unlines $ map ("%PRINT: "++) msg2
-        writeChan chan msg2
+            let msg2 = filter (/= "") $ map snd msg
+            putStr $ unlines $ map ("%PRINT: "++) msg2
+            writeChan chan msg2
     done <- newBarrier
     res <- bracket
         (flip forkFinally (const $ signalBarrier done ()) $
