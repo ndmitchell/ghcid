@@ -96,6 +96,7 @@ assertApproxInfix want got = do
 write :: FilePath -> String -> IO ()
 write file x = do
     print ("writeFile",file,x)
+    createDirectoryIfMissing True $ takeDirectory file
     writeFile file x
 
 append :: FilePath -> String -> IO ()
