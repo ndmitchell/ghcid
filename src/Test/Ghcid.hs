@@ -68,7 +68,10 @@ withGhcid args script = do
                 Just got -> assertApproxInfix want got
             sleep =<< getModTimeResolution
 
-    let output = writeChan chan . filter (/= "") . map snd
+    let output msg = do
+        let msg2 = filter (/= "") $ map snd msg
+        putStr $ unlines $ map ("%PRINT: "++) msg2
+        writeChan chan msg2
     done <- newBarrier
     res <- bracket
         (flip forkFinally (const $ signalBarrier done ()) $
