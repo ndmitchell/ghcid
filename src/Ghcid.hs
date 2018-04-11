@@ -219,11 +219,10 @@ data Continue = Continue
 -- Use Continue not () so that inadvertant exits don't restart
 runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
-    let outputFill :: Maybe (Int, [Load]) -> [String] -> IO ()
-        outputFill load msg = do
+    let outputFill :: String -> Maybe (Int, [Load]) -> [String] -> IO ()
+        outputFill currTime load msg = do
             (width, height) <- termSize
             let n = height - length msg
-            currTime <- getShortTime
             load <- return $ take (if isJust load then n else 0) $ prettyOutput max_messages currTime (maybe 0 fst load)
                 [ m{loadMessage = map fromEsc $ concatMap (chunksOfWordE width (width `div` 5) . Esc) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
@@ -270,7 +269,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                        (if null project then takeFileName curdir else project)
 
             updateTitle $ if isJust test then "(running test)" else ""
-            outputFill (Just (loadedCount, messages)) ["Running test..." | isJust test]
+            outputFill currTime (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
                 writeFile file $ unlines $ map (unescape . snd) $ prettyOutput max_messages currTime loadedCount $ filter isMessage messages
             when (null loaded && not ignoreLoaded) $ do
@@ -292,12 +291,13 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             whenLoud $ outStrLn $ "%RELOADING: " ++ unwords reason
             restartTimes2 <- mapM getModTime restart
             let restartChanged = [s | (False, s) <- zip (zipWith (==) restartTimes restartTimes2) restart]
+            currTime <- getShortTime
             if not $ null restartChanged then do
                 -- exit cleanly, since the whole thing is wrapped in a forever
-                unless no_status $ outputFill Nothing $ "Restarting..." : map ("  " ++) restartChanged
+                unless no_status $ outputFill currTime Nothing $ "Restarting..." : map ("  " ++) restartChanged
                 return Continue
             else do
-                unless no_status $ outputFill Nothing $ "Reloading..." : map ("  " ++) reason
+                unless no_status $ outputFill currTime Nothing $ "Reloading..." : map ("  " ++) reason
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
 
