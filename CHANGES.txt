@@ -1,5 +1,6 @@
 Changelog for ghcid
 
+    #120, use absolute paths everywhere, in case ghci does a cd
     Add showPaths function to exercise ":show paths"
     #127, use Loaded GHCi configuration message to add .ghci restart
     #141, restart if .ghcid changes

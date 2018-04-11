@@ -15,6 +15,7 @@ import Language.Haskell.Ghcid.Types
 import Data.IORef
 import System.Time.Extra
 import System.Process
+import System.FilePath
 import Control.Exception.Extra
 import Control.Concurrent.Extra
 import Control.Monad.Extra
@@ -28,6 +29,7 @@ data Session = Session
     {ghci :: IORef (Maybe Ghci) -- ^ The Ghci session, or Nothing if there is none
     ,command :: IORef (Maybe String) -- ^ The last command passed to sessionStart
     ,warnings :: IORef [Load] -- ^ The warnings from the last load
+    ,curdir :: IORef FilePath -- ^ The current working directory
     ,running :: Var Bool -- ^ Am I actively running an async command
     ,withThread :: ThreadId -- ^ Thread that called withSession
     }
@@ -43,6 +45,7 @@ withSession f = do
     ghci <- newIORef Nothing
     command <- newIORef Nothing
     warnings <- newIORef []
+    curdir <- newIORef "."
     running <- newVar False
     debugShutdown "Starting session"
     withThread <- myThreadId
@@ -71,6 +74,9 @@ kill ghci = ignore $ do
 loadedModules :: [Load] -> [FilePath]
 loadedModules = nubOrd . filter (/= "") . map loadFile . filter (not . isLoadConfig)
 
+qualify :: FilePath -> [Load] -> [Load]
+qualify dir xs = [x{loadFile = dir </> loadFile x} | x <- xs]
+
 -- | Spawn a new Ghci process at a given command line. Returns the load messages, plus
 --   the list of files that were observed (both those loaded and those that failed to load).
 sessionStart :: Session -> String -> IO ([Load], [FilePath])
@@ -87,6 +93,9 @@ sessionStart Session{..} cmd = do
     outStrLn $ "Loading " ++ cmd ++ " ..."
     (v, messages) <- startGhci cmd Nothing $ const outStrLn
     writeIORef ghci $ Just v
+    (dir, _) <- showPaths v
+    writeIORef curdir dir
+    messages <- return $ qualify dir messages
 
     -- install a handler
     forkIO $ do
@@ -123,8 +132,9 @@ sessionReload session@Session{..} = do
     if stuck then sessionRestart session else do
         -- actually reload
         Just ghci <- readIORef ghci
-        messages <- mapMaybe tidyMessage <$> reload ghci
-        loaded <- map snd <$> showModules ghci
+        dir <- readIORef curdir
+        messages <- mapMaybe tidyMessage . qualify dir <$> reload ghci
+        loaded <- map ((dir </>) . snd) <$> showModules ghci
         let reloaded = loadedModules messages
         warn <- readIORef warnings
 
