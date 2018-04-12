@@ -61,7 +61,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
         -- <no location info>: can't find file: FILENAME
         f (x:xs)
             | Just file <- stripPrefixE "<no location info>: can't find file: " x
-            = Message Error (unescapeE file) (0,0) (0,0) [unescapeE file ++ ": Can't find file"] : f xs
+            = Message Error (unescapeE file) (0,0) (0,0) [fromEsc x] : f xs
 
         -- Module imports form a cycle:
         --   module `Module' (Module.hs) imports itself
