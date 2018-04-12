@@ -235,7 +235,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         exitFailure
 
     nextWait <- waitFiles waiter
-    (messages, loaded) <- sessionStart session command
+    (messages, loaded) <- sessionStart session command $
+        [":set -ferror-spans" -- see #148
+        ,":set -fdiagnostics-color=always" -- see #144
+            -- only works with GHC 8.2 and above, but failing isn't harmful
+        ]
+
     when (null loaded && not ignoreLoaded) $ do
         putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
         exitFailure

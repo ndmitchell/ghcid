@@ -27,7 +27,7 @@ import Prelude
 
 data Session = Session
     {ghci :: IORef (Maybe Ghci) -- ^ The Ghci session, or Nothing if there is none
-    ,command :: IORef (Maybe String) -- ^ The last command passed to sessionStart
+    ,command :: IORef (Maybe (String, [String])) -- ^ The last command passed to sessionStart, setup operations
     ,warnings :: IORef [Load] -- ^ The warnings from the last load
     ,curdir :: IORef FilePath -- ^ The current working directory
     ,running :: Var Bool -- ^ Am I actively running an async command
@@ -79,10 +79,10 @@ qualify dir xs = [x{loadFile = dir </> loadFile x} | x <- xs]
 
 -- | Spawn a new Ghci process at a given command line. Returns the load messages, plus
 --   the list of files that were observed (both those loaded and those that failed to load).
-sessionStart :: Session -> String -> IO ([Load], [FilePath])
-sessionStart Session{..} cmd = do
+sessionStart :: Session -> String -> [String] -> IO ([Load], [FilePath])
+sessionStart Session{..} cmd setup = do
     modifyVar_ running $ const $ return False
-    writeIORef command $ Just cmd
+    writeIORef command $ Just (cmd, setup)
 
     -- cleanup any old instances
     whenJustM (readIORef ghci) $ \v -> do
@@ -93,6 +93,11 @@ sessionStart Session{..} cmd = do
     outStrLn $ "Loading " ++ cmd ++ " ..."
     (v, messages) <- startGhci cmd Nothing $ const outStrLn
     writeIORef ghci $ Just v
+
+    -- do whatever preparation was requested
+    exec v $ unlines setup
+
+    -- capture stdout
     (dir, _) <- showPaths v
     writeIORef curdir dir
     messages <- return $ qualify dir messages
@@ -114,8 +119,8 @@ sessionStart Session{..} cmd = do
 -- | Call 'sessionStart' at the previous command.
 sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
-    Just cmd <- readIORef command
-    sessionStart session cmd
+    Just (cmd, setup) <- readIORef command
+    sessionStart session cmd setup
 
 
 -- | Reload, returning the same information as 'sessionStart'. In particular, any
