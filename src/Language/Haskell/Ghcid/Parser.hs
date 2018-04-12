@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards, ViewPatterns #-}
+{-# LANGUAGE PatternGuards, ViewPatterns, TupleSections #-}
 
 -- | Parses the output from GHCi
 module Language.Haskell.Ghcid.Parser(
@@ -86,14 +86,26 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
 -- 1:2-4:
 -- (1,2)-(3,4):
 parsePosition :: Esc -> Maybe (((Int, Int), (Int, Int)), Esc)
-parsePosition rest
-    | (pos,rest) <- spanE (\c -> c == ':' || c == '-' || isSpan c || isDigit c) rest
-    -- separate line and column, ignoring span (we want the start point only)
-    , [Just p1,Just p2] <- map readMaybe $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') $ unescapeE pos
-    = Just (((p1,p2),(p1,p2)), rest)
-    where isSpan c = c== ',' || c == '(' || c == ')'
-parsePosition _ = Nothing
+parsePosition x
+    | Just (l1, x) <- digit x, Just x <- lit ":" x, Just (c1, x) <- digit x = case () of
+        _ | Just x <- lit ":" x -> Just (((l1,c1),(l1,c1)), x)
+          | Just x <- lit "-" x, Just (c2,x) <- digit x, Just x <- lit ":" x -> Just (((l1,c1),(l1,c2)), x)
+          | otherwise -> Nothing
+    | Just (p1, x) <- digits x, Just x <- lit "-" x, Just (p2, x) <- digits x, Just x <- lit ":" x = Just ((p1,p2),x)
+    | otherwise = Nothing
+    where
+        lit = stripPrefixE
 
+        digit x = (,b) <$> readMaybe (unescapeE a)
+            where (a,b) = spanE isDigit x
+
+        digits x =  do
+            x <- lit "(" x
+            (l,x) <- digit x
+            x <- lit "," x
+            (c,x) <- digit x
+            x <- lit ")" x
+            return ((l,c),x)
 
 
 -- After the file location, message bodies are indented (perhaps prefixed by a line number)

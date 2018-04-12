@@ -187,9 +187,9 @@ testParseLoadSpans = testCase "Load Parsing when -ferror-spans is enabled" $ par
     ,"    A do-notation statement discarded a result of type ‘[()]’"
     ] @?=
     [Loading "GHCi" "GHCi.hs"
-    ,Message Error   "GHCi.hs"           (70,1) (70,1)
+    ,Message Error   "GHCi.hs"           (70,1) (70,2)
         ["GHCi.hs:70:1-2: Parse error: naked expression at top level"]
-    ,Message Error   "GHCi.hs"           (72,13) (72,13)
+    ,Message Error   "GHCi.hs"           (72,13) (72,14)
         ["GHCi.hs:72:13-14:"
         ,"    No instance for (Num ([String] -> [String]))"
         ,"      arising from the literal `1'"
@@ -197,19 +197,19 @@ testParseLoadSpans = testCase "Load Parsing when -ferror-spans is enabled" $ par
         ,"      add an instance declaration for (Num ([String] -> [String]))"
         ,"    In the expression: 1"
         ,"    In an equation for `parseLoad': parseLoad = 1"]
-    ,Message Warning "GHCi.hs"           (81,1) (81,1)
+    ,Message Warning "GHCi.hs"           (81,1) (81,15)
         ["GHCi.hs:81:1-15: Warning: Defined but not used: `foo'"]
-    ,Message Warning "C:\\GHCi.hs"       (82,1) (82,1)
+    ,Message Warning "C:\\GHCi.hs"       (82,1) (82,17)
         ["C:\\GHCi.hs:82:1-17: warning: Defined but not used: \8216foo\8217"]
-    ,Message Warning "src\\Haskell.hs"   (4,23) (4,23)
+    ,Message Warning "src\\Haskell.hs"   (4,23) (4,24)
         ["src\\Haskell.hs:4:23-24:"
         ,"    Warning: {-# SOURCE #-} unnecessary in import of  `Boot'"]
-    ,Message Error   "src\\Boot.hs-boot" (2,8) (2,8)
+    ,Message Error   "src\\Boot.hs-boot" (2,8) (2,5)
         ["src\\Boot.hs-boot:2:8-5:"
         ,"    File name does not match module name:"
         ,"    Saw: `BootX'"
         ,"    Expected: `Boot'"]
-    ,Message Warning "/src/TrieSpec.hs"  (192,7) (192,7)
+    ,Message Warning "/src/TrieSpec.hs"  (192,7) (193,76)
         ["/src/TrieSpec.hs:(192,7)-(193,76): Warning:"
         ,"    A do-notation statement discarded a result of type ‘[()]’"]
     ]
