@@ -56,6 +56,7 @@ data Options = Options
     ,poll :: Maybe Seconds
     ,max_messages :: Maybe Int
     ,color :: ColorMode
+    ,setup :: [String]
     }
     deriving (Data,Typeable,Show)
 
@@ -86,6 +87,7 @@ options = cmdArgsMode $ Options
     ,poll = Nothing &= typ "SECONDS" &= opt "0.1" &= explicit &= name "poll" &= help "Use polling every N seconds (defaults to using notifiers)"
     ,max_messages = Nothing &= name "n" &= help "Maximum number of messages to print"
     ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
+    ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -239,7 +241,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         [":set -ferror-spans" -- see #148
         ,":set -fdiagnostics-color=always" -- see #144
             -- only works with GHC 8.2 and above, but failing isn't harmful
-        ]
+        ] ++ setup
 
     when (null loaded && not ignoreLoaded) $ do
         putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
