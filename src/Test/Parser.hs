@@ -111,10 +111,9 @@ testParseLoadCyclesSelf = testCase "Module cycle with itself" $ parseLoad
     ["Module imports form a cycle:"
     ,"  module `Language.Haskell.Ghcid.Parser' (src\\Language\\Haskell\\Ghcid\\Parser.hs) imports itself"
     ] @?=
-    [Message Error "" (0,0) (0,0)
+    [Message Error "src\\Language\\Haskell\\Ghcid\\Parser.hs" (0,0) (0,0)
         ["Module imports form a cycle:"
         ,"  module `Language.Haskell.Ghcid.Parser' (src\\Language\\Haskell\\Ghcid\\Parser.hs) imports itself"]
-    ,Message Error "src\\Language\\Haskell\\Ghcid\\Parser.hs" (0,0) (0,0) []
     ]
 
 testParseLoadCycles = testCase "Module cycle" $ parseLoad
@@ -124,14 +123,13 @@ testParseLoadCycles = testCase "Module cycle" $ parseLoad
     ,"        imports `Language.Haskell.Ghcid' (src\\Language\\Haskell\\Ghcid.hs)"
     ,"  which imports `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"
     ] @?=
+    let msg = ["Module imports form a cycle:"
+              ,"         module `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"
+              ,"        imports `Language.Haskell.Ghcid' (src\\Language\\Haskell\\Ghcid.hs)"
+              ,"  which imports `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"] in
     [Loading "Language.Haskell.Ghcid.Parser" "src\\Language\\Haskell\\Ghcid\\Parser.hs"
-    ,Message Error "" (0,0) (0,0)
-        ["Module imports form a cycle:"
-        ,"         module `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"
-        ,"        imports `Language.Haskell.Ghcid' (src\\Language\\Haskell\\Ghcid.hs)"
-        ,"  which imports `Language.Haskell.Ghcid.Util' (src\\Language\\Haskell\\Ghcid\\Util.hs)"]
-    ,Message Error "src\\Language\\Haskell\\Ghcid\\Util.hs" (0,0) (0,0) []
-    ,Message Error "src\\Language\\Haskell\\Ghcid.hs" (0,0) (0,0) []
+    ,Message Error "src\\Language\\Haskell\\Ghcid\\Util.hs" (0,0) (0,0) msg
+    ,Message Error "src\\Language\\Haskell\\Ghcid.hs" (0,0) (0,0) msg
     ]
 
 testParseLoadEscapeCodes = testCase "Escape codes as enabled by -fdiagnostics-color=always" $ parseLoad

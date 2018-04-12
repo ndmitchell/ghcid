@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    Make module cycles generate well-formed Load messages
 *   Add loadFilePosEnd to Load
     If a command exits unexpectedly return a failing exit code
     #120, use absolute paths everywhere, in case ghci does a cd
