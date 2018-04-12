@@ -52,13 +52,11 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             , Just (file,rest) <- breakFileColon x
             , takeExtension file `elem` [".hs",".lhs",".hs-boot",".lhs-boot"]
              -- take position, including span if present
-            , (pos,rest) <- spanE (\c -> c == ':' || c == '-' || isSpan c || isDigit c) rest
-            -- separate line and column, ignoring span (we want the start point only)
-            , [Just p1,Just p2] <- map readMaybe $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') $ unescapeE pos
+            , Just ((pos1, pos2), rest) <- parsePosition rest
             , (msg,las) <- span isMessageBody xs
             , rest <- trimStartE $ unwordsE $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower (unescapeE rest) then Warning else Error
-            = Message sev file (p1,p2) (p1,p2) (map fromEsc $ x:msg) : f las
+            = Message sev file pos1 pos2 (map fromEsc $ x:msg) : f las
 
         -- <no location info>: can't find file: FILENAME
         f (x:xs)
@@ -82,7 +80,21 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
 
         f (_:xs) = f xs
         f [] = []
-        isSpan c = c== ',' || c == '(' || c == ')'
+
+
+-- 1:2:
+-- 1:2-4:
+-- (1,2)-(3,4):
+parsePosition :: Esc -> Maybe (((Int, Int), (Int, Int)), Esc)
+parsePosition rest
+    | (pos,rest) <- spanE (\c -> c == ':' || c == '-' || isSpan c || isDigit c) rest
+    -- separate line and column, ignoring span (we want the start point only)
+    , [Just p1,Just p2] <- map readMaybe $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') $ unescapeE pos
+    = Just (((p1,p2),(p1,p2)), rest)
+    where isSpan c = c== ',' || c == '(' || c == ')'
+parsePosition _ = Nothing
+
+
 
 -- After the file location, message bodies are indented (perhaps prefixed by a line number)
 isMessageBody :: Esc -> Bool
