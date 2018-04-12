@@ -308,5 +308,6 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 prettyOutput :: Maybe Int -> String -> Int -> [Load] -> [(Style,String)]
 prettyOutput _ currTime loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")")]
 prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs (msg1:msgs)
-    where (err, warn) = partition ((==) Error . loadSeverity) xs
+          -- nubOrdOn loadMessage because module cycles generate the same message at several different locations
+    where (err, warn) = partition ((==) Error . loadSeverity) $ nubOrdOn loadMessage xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
