@@ -9,6 +9,7 @@ import System.FilePath
 import Data.Char
 import Data.List.Extra
 import Data.Maybe
+import Text.Read
 import Data.Tuple.Extra
 import Control.Applicative
 import Prelude
@@ -53,7 +54,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
              -- take position, including span if present
             , (pos,rest) <- spanE (\c -> c == ':' || c == '-' || isSpan c || isDigit c) rest
             -- separate line and column, ignoring span (we want the start point only)
-            , [p1,p2] <- map read $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') $ unescapeE pos
+            , [Just p1,Just p2] <- map readMaybe $ wordsBy (\c -> c == ':' || isSpan c) $ takeWhile (/= '-') $ unescapeE pos
             , (msg,las) <- span isMessageBody xs
             , rest <- trimStartE $ unwordsE $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower (unescapeE rest) then Warning else Error
