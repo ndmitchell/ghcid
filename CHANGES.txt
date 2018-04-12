@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #152, make --output for a file ending .json produce JSON output
     Make module cycles generate well-formed Load messages
 *   Add loadFilePosEnd to Load
     If a command exits unexpectedly return a failing exit code

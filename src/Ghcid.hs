@@ -11,6 +11,8 @@ import Data.List.Extra
 import Data.Maybe
 import Data.Tuple.Extra
 import Data.Version
+import Data.Char
+import Numeric
 import Session
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
@@ -271,7 +273,11 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             updateTitle $ if isJust test then "(running test)" else ""
             outputFill currTime (Just (loadedCount, messages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
-                writeFile file $ unlines $ map (unescape . snd) $ prettyOutput max_messages currTime loadedCount $ filter isMessage messages
+                writeFile file $
+                    if takeExtension file == ".json" then
+                        showJSON [("loaded",map jString loaded),("messages",map jMessage $ filter isMessage messages)]
+                    else
+                        unlines $ map (unescape . snd) $ prettyOutput max_messages currTime loadedCount $ filter isMessage messages
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -311,3 +317,34 @@ prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs (msg1:msgs)
           -- nubOrdOn loadMessage because module cycles generate the same message at several different locations
     where (err, warn) = partition ((==) Error . loadSeverity) $ nubOrdOn loadMessage xs
           msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
+
+
+showJSON :: [(String, [String])] -> String
+showJSON xs = unlines $ concat $
+    [ ((if i == 0 then "{" else ",") ++ jString a ++ ":") :
+      ["  " ++ (if j == 0 then "[" else ",") ++ b | (j,b) <- zipFrom 0 bs] ++
+      [if null bs then "  []" else "  ]"]
+    | (i,(a,bs)) <- zipFrom 0 xs] ++
+    [["}"]]
+
+jString x = "\"" ++ concatMap f x ++ "\""
+    where f '\"' = "\\\""
+          f '\\' = "\\\\"
+          f '\b' = "\\b"
+          f '\f' = "\\f"
+          f '\n' = "\\n"
+          f '\r' = "\\r"
+          f '\t' = "\\t"
+          f x | isControl x || not (isAscii x) = "\\u" ++ takeEnd 4 ("0000" ++ showHex (ord x) "")
+          f x = [x]
+
+
+jMessage Message{..} = jDict $
+    [("severity",jString $ show loadSeverity)
+    ,("file",jString loadFile)] ++
+    [("start",pair loadFilePos) | loadFilePos /= (0,0)] ++
+    [("end", pair loadFilePosEnd) | loadFilePos /= loadFilePosEnd] ++
+    [("message", jString $ intercalate "\n" loadMessage)]
+    where pair (a,b) = "[" ++ show a ++ "," ++ show b ++ "]"
+
+jDict xs = "{" ++ intercalate ", " [jString a ++ ":" ++ b | (a,b) <- xs] ++ "}"
