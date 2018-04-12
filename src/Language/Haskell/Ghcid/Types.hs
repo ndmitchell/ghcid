@@ -37,7 +37,7 @@ data Load
       Message
         {loadSeverity :: Severity -- ^ The severity of the message, either 'Warning' or 'Error'.
         ,loadFile :: FilePath -- ^ The file the error relates to, @Foo/Bar.hs@.
-        ,loadFilePos :: (Int,Int) -- ^ The position in the file, @(line,col)@, both 1-based.
+        ,loadFilePos :: (Int,Int) -- ^ The position in the file, @(line,col)@, both 1-based. Uses @(0,0)@ for no position information.
         ,loadMessage :: [String] -- ^ The message, split into separate lines, may contain ANSI Escape codes.
         }
     | -- | A config file was loaded, usually a .ghci file (GHC 8.2 and above only)
