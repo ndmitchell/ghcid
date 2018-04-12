@@ -176,7 +176,7 @@ cdTest = testCase "Cd basic" $ freshDir $ do
         write "foo/Main.hs" "x"
         require ["Main.hs:1:1"," Parse error:"]
         write "foo/.ghci" ":load Util"
-        require ["Util.hs:1:1","`Bob'"]
+        require ["Util.hs:1:","`Bob'"]
 
 
 dotGhciTest :: TestTree
