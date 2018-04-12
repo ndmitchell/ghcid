@@ -72,7 +72,7 @@ kill ghci = ignore $ do
 
 
 loadedModules :: [Load] -> [FilePath]
-loadedModules = nubOrd . filter (/= "") . map loadFile . filter (not . isLoadConfig)
+loadedModules = nubOrd . map loadFile . filter (not . isLoadConfig)
 
 qualify :: FilePath -> [Load] -> [Load]
 qualify dir xs = [x{loadFile = dir </> loadFile x} | x <- xs]
