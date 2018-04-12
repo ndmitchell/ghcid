@@ -1,4 +1,4 @@
-Changelog for ghcid
+Changelog for ghcid (* = breaking change)
 
     If a command exits unexpectedly return a failing exit code
     #120, use absolute paths everywhere, in case ghci does a cd
@@ -11,6 +11,7 @@ Changelog for ghcid
     #87, enable HSPEC colors if possible (POSIX only)
     #147, move some :set flags to the command line if possible
     #148, enable -ferror-spans by default
+*   #144, allow ANSI escape codes in loadMessage
     #144, use color GHC messages where possible
     #139, add --color=never to not show Bold output
     #142, add startGhciProcess which takes CreateProcess
@@ -66,7 +67,7 @@ Changelog for ghcid
     #29, add interrupt function
     Add Data instances for the types
     Make stopGhci more effective, now kills the underlying process
-    Make startGhci take a function to write the buffer to
+*   Make startGhci take a function to write the buffer to
 0.5.1, released 2016-03-02
     #17, deal with recursive modules errors properly
     #50, use -fno-code when not running tests (about twice as fast)
@@ -76,7 +77,7 @@ Changelog for ghcid
     #43, work even if people use break-on-exception flags
     #42, make the first error a minimum of 5 lines
 0.5, released 2015-06-20
-    Add an extra boolean argument to startGhci
+*   Add an extra boolean argument to startGhci
     Add the number of modules loaded after All good
     Print out messages until the prompt comes up
     #23, add arguments and change what commands get invoked
