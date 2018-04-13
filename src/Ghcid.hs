@@ -208,6 +208,7 @@ main = mainWithTerminal termSize termOutput
         termSize = maybe (80, 8) (Term.width &&& Term.height) <$> Term.size
 
         termOutput xs = do
+            evaluate $ length $ show xs -- we don't do expensive computation inside outWith
             outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
                 when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
                 putStr $ concatMap ((:) '\n' . snd) x
@@ -215,7 +216,7 @@ main = mainWithTerminal termSize termOutput
             hFlush stdout -- must flush, since we don't finish with a newline
 
 
-data Style = Plain | Bold deriving Eq
+data Style = Plain | Bold deriving (Eq,Show)
 
 data Continue = Continue
 

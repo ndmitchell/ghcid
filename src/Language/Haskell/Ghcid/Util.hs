@@ -43,7 +43,9 @@ outWith :: IO a -> IO a
 outWith = withLock lock
 
 outStrLn :: String -> IO ()
-outStrLn = outWith . putStrLn
+outStrLn xs = do
+    evaluate $ length $ show xs
+    outWith $ putStrLn xs
 
 
 -- | The message to show when no errors have been reported
