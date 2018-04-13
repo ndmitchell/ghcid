@@ -160,7 +160,7 @@ withGhcidArgs act = do
 
 
 -- | Like 'main', but run with a fake terminal for testing
-mainWithTerminal :: IO (Int,Int) -> ([(Style,String)] -> IO ()) -> IO ()
+mainWithTerminal :: IO (Int,Int) -> ([String] -> IO ()) -> IO ()
 mainWithTerminal termSize termOutput =
     handle (\(UnexpectedExit cmd _) -> do putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly"; exitFailure) $
         forever $ withWindowIcon $ withSession $ \session -> do
@@ -192,7 +192,7 @@ mainWithTerminal termSize termOutput =
                     when useStyle $ do
                         h <- lookupEnv "HSPEC_OPTIONS"
                         when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
-                    return $ if useStyle then id else map (const Plain *** unescape)
+                    return $ if useStyle then id else map unescape
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
                     runGhcid session waiter termSize (termOutput . restyle) opts
@@ -205,21 +205,15 @@ main = mainWithTerminal termSize termOutput
         termSize = maybe (80, 8) (Term.width &&& Term.height) <$> Term.size
 
         termOutput xs = do
-            evaluate $ length $ show xs -- we don't do expensive computation inside outWith
-            outWith $ forM_ (groupOn fst xs) $ \x@((s,_):_) -> do
-                when (s == Bold) $ setSGR [SetConsoleIntensity BoldIntensity]
-                putStr $ concatMap ((:) '\n' . snd) x
-                when (s == Bold) $ setSGR []
+            outStr $ concatMap ('\n':) xs
             hFlush stdout -- must flush, since we don't finish with a newline
 
-
-data Style = Plain | Bold deriving (Eq,Show)
 
 data Continue = Continue
 
 -- If we return successfully, we restart the whole process
 -- Use Continue not () so that inadvertant exits don't restart
-runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([(Style,String)] -> IO ()) -> Options -> IO Continue
+runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([String] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let outputFill :: String -> Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill currTime load msg = do
@@ -228,7 +222,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             load <- return $ take (if isJust load then n else 0) $ prettyOutput max_messages currTime (maybe 0 fst load)
                 [ m{loadMessage = map fromEsc $ concatMap (chunksOfWordE width (width `div` 5) . Esc) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
-            termOutput $ load ++ map (Plain,) msg ++ replicate (height - (length load + length msg)) (Plain,"")
+            termOutput $ load ++ msg ++ replicate (height - (length load + length msg)) ""
 
     when (ignoreLoaded && null reload) $ do
         putStrLn "--reload must be set when using --ignore-loaded"
@@ -289,7 +283,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     if takeExtension file == ".json" then
                         showJSON [("loaded",map jString loaded),("messages",map jMessage $ filter isMessage messages)]
                     else
-                        unlines $ map (unescape . snd) $ prettyOutput max_messages currTime loadedCount ordMessages
+                        unlines $ map unescape $ prettyOutput max_messages currTime loadedCount ordMessages
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -323,11 +317,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Maybe Int -> String -> Int -> [Load] -> [(Style,String)]
+prettyOutput :: Maybe Int -> String -> Int -> [Load] -> [String]
 prettyOutput _ currTime loaded [] =
-    [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")")]
-prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs $
-    [map (if loadSeverity == Error then Bold else Plain,) loadMessage | Message{..} <- xs]
+    [allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")"]
+prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs $ map loadMessage xs
 
 
 showJSON :: [(String, [String])] -> String

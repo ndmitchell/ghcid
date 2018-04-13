@@ -70,7 +70,7 @@ withGhcid args script = do
             sleep =<< getModTimeResolution
 
     let output msg = do
-            let msg2 = filter (/= "") $ map snd msg
+            let msg2 = filter (/= "") msg
             putStr $ unlines $ map ("%PRINT: "++) msg2
             writeChan chan msg2
     done <- newBarrier
