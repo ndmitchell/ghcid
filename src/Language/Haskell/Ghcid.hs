@@ -61,137 +61,137 @@ withCreateProc proc f = do
 --   @since 0.6.11
 startGhciProcess :: CreateProcess -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhciProcess process echo0 = do
-  let proc = process{std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, create_group=True}
-  withCreateProc proc $ \(Just inp) (Just out) (Just err) ghciProcess -> do
+    let proc = process{std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, create_group=True}
+    withCreateProc proc $ \(Just inp) (Just out) (Just err) ghciProcess -> do
 
-    hSetBuffering out LineBuffering
-    hSetBuffering err LineBuffering
-    hSetBuffering inp LineBuffering
-    let writeInp x = do
-            whenLoud $ outStrLn $ "%STDIN: " ++ x
-            hPutStrLn inp x
+        hSetBuffering out LineBuffering
+        hSetBuffering err LineBuffering
+        hSetBuffering inp LineBuffering
+        let writeInp x = do
+                whenLoud $ outStrLn $ "%STDIN: " ++ x
+                hPutStrLn inp x
 
-    -- Some programs (e.g. stack) might use stdin before starting ghci (see #57)
-    -- Send them an empty line
-    hPutStrLn inp ""
+        -- Some programs (e.g. stack) might use stdin before starting ghci (see #57)
+        -- Send them an empty line
+        hPutStrLn inp ""
 
-    -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
-    -- string and filter that out.
-    let ghcid_prefix = "#~GHCID-START~#"
-    let removePrefix = dropPrefixRepeatedly ghcid_prefix
+        -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
+        -- string and filter that out.
+        let ghcid_prefix = "#~GHCID-START~#"
+        let removePrefix = dropPrefixRepeatedly ghcid_prefix
 
-    -- At various points I need to ensure everything the user is waiting for has completed
-    -- So I send messages on stdout/stderr and wait for them to arrive
-    syncCount <- newVar 0
-    let syncReplay = do
-            i <- readVar syncCount
-            -- useful to avoid overloaded strings by showing the ['a','b','c'] form, see #109
-            let showStr xs = "[" ++ intercalate "," (map show xs) ++ "]"
-            let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
-            writeInp $ "INTERNAL_GHCID.putStrLn " ++ showStr msg ++ "\n" ++
-                       "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ showStr msg
-            return $ isInfixOf msg
-    let syncFresh = do
-            modifyVar_ syncCount $ return . succ
-            syncReplay
-
-    -- Consume from a stream until EOF (return Nothing) or some predicate returns Just
-    let consume :: Stream -> (String -> IO (Maybe a)) -> IO (Maybe a)
-        consume name finish = do
-            let h = if name == Stdout then out else err
-            fix $ \rec -> do
-                el <- tryBool isEOFError $ hGetLine h
-                case el of
-                    Left _ -> return Nothing
-                    Right l -> do
-                        whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
-                        res <- finish $ removePrefix l
-                        case res of
-                            Nothing -> rec
-                            Just a -> return $ Just a
-
-    let consume2 :: String -> (Stream -> String -> IO (Maybe a)) -> IO (a,a)
-        consume2 msg finish = do
-            -- fetch the operations in different threads as hGetLine may block
-            -- and can't be aborted by async exceptions, see #154
-            res1 <- onceFork $ consume Stdout (finish Stdout)
-            res2 <- onceFork $ consume Stderr (finish Stderr)
-            res1 <- res1
-            res2 <- res2
-            case liftM2 (,) res1 res2 of
-                Nothing -> case cmdspec process of
-                    ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg
-                    RawCommand exe args -> throwIO $ UnexpectedExit (unwords (exe:args)) msg
-                Just v -> return v
-
-    -- held while interrupting, and briefly held when starting an exec
-    -- ensures exec values queue up behind an ongoing interrupt and no two interrupts run at once
-    isInterrupting <- newLock
-
-    -- is anyone running running an exec statement, ensure only one person talks to ghci at a time
-    isRunning <- newLock
-
-    let ghciExec command echo = do
-            withLock isInterrupting $ return ()
-            res <- withLockTry isRunning $ do
-                writeInp command
-                stop <- syncFresh
-                void $ consume2 command $ \strm s ->
-                    if stop s then return $ Just () else do echo strm s; return Nothing
-            when (isNothing res) $
-                fail "Ghcid.exec, computation is already running, must be used single-threaded"
-
-    let ghciInterrupt = withLock isInterrupting $
-            whenM (fmap isNothing $ withLockTry isRunning $ return ()) $ do
-                whenLoud $ outStrLn "%INTERRUPT"
-                interruptProcessGroupOf ghciProcess
-                -- let the person running ghciExec finish, since their sync messages
-                -- may have been the ones that got interrupted
+        -- At various points I need to ensure everything the user is waiting for has completed
+        -- So I send messages on stdout/stderr and wait for them to arrive
+        syncCount <- newVar 0
+        let syncReplay = do
+                i <- readVar syncCount
+                -- useful to avoid overloaded strings by showing the ['a','b','c'] form, see #109
+                let showStr xs = "[" ++ intercalate "," (map show xs) ++ "]"
+                let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
+                writeInp $ "INTERNAL_GHCID.putStrLn " ++ showStr msg ++ "\n" ++
+                        "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ showStr msg
+                return $ isInfixOf msg
+        let syncFresh = do
+                modifyVar_ syncCount $ return . succ
                 syncReplay
-                -- now wait for the person doing ghciExec to have actually left the lock
-                withLock isRunning $ return ()
-                -- there may have been two syncs sent, so now do a fresh sync to clear everything
-                stop <- syncFresh
-                void $ consume2 "Interrupt" $ \_ s -> return $ if stop s then Just () else Nothing
 
-    ghciUnique <- newUnique
-    let ghci = Ghci{..}
+        -- Consume from a stream until EOF (return Nothing) or some predicate returns Just
+        let consume :: Stream -> (String -> IO (Maybe a)) -> IO (Maybe a)
+            consume name finish = do
+                let h = if name == Stdout then out else err
+                fix $ \rec -> do
+                    el <- tryBool isEOFError $ hGetLine h
+                    case el of
+                        Left _ -> return Nothing
+                        Right l -> do
+                            whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
+                            res <- finish $ removePrefix l
+                            case res of
+                                Nothing -> rec
+                                Just a -> return $ Just a
 
-    -- Now wait for 'GHCi, version' to appear before sending anything real, required for #57
-    stdout <- newIORef []
-    stderr <- newIORef []
-    sync <- newIORef $ const False
-    consume2 "" $ \strm s -> do
-        stop <- readIORef sync
-        if stop s then
-            return $ Just ()
-         else do
-            -- there may be some initial prompts on stdout before I set the prompt properly
-            s <- return $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
-            whenLoud $ outStrLn $ "%STDOUT2: " ++ s
-            modifyIORef (if strm == Stdout then stdout else stderr) (s:)
-            when ("GHCi, version " `isPrefixOf` s) $ do
-                -- the thing before me may have done its own Haskell compiling
-                writeIORef stdout []
-                writeIORef stderr []
-                writeInp "import qualified System.IO as INTERNAL_GHCID"
-                writeInp $ ":set prompt " ++ ghcid_prefix
-                -- some of these we try and set in module Ghcid before we get here
-                writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
-                writeInp ":set -v1" -- see #110
-                writeInp ":set -fno-hide-source-paths" -- see #132
-                    -- only works with GHC 8.2 and above, but failing isn't harmful
-                -- writeInp ":set -fno-it" -- see #130
-                    -- only works with GHC 8.6 and above, but failing isn't harmful
-                writeIORef sync =<< syncFresh
-            echo0 strm s
-            return Nothing
-    r1 <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
-    -- see #132, if hide-source-paths was turned on the modules didn't get printed out properly
-    -- so try a showModules to capture the information again
-    r2 <- if any isLoading r1 then return [] else map (uncurry Loading) <$> showModules ghci
-    execStream ghci "" echo0
-    return (ghci, r1 ++ r2)
+        let consume2 :: String -> (Stream -> String -> IO (Maybe a)) -> IO (a,a)
+            consume2 msg finish = do
+                -- fetch the operations in different threads as hGetLine may block
+                -- and can't be aborted by async exceptions, see #154
+                res1 <- onceFork $ consume Stdout (finish Stdout)
+                res2 <- onceFork $ consume Stderr (finish Stderr)
+                res1 <- res1
+                res2 <- res2
+                case liftM2 (,) res1 res2 of
+                    Nothing -> case cmdspec process of
+                        ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg
+                        RawCommand exe args -> throwIO $ UnexpectedExit (unwords (exe:args)) msg
+                    Just v -> return v
+
+        -- held while interrupting, and briefly held when starting an exec
+        -- ensures exec values queue up behind an ongoing interrupt and no two interrupts run at once
+        isInterrupting <- newLock
+
+        -- is anyone running running an exec statement, ensure only one person talks to ghci at a time
+        isRunning <- newLock
+
+        let ghciExec command echo = do
+                withLock isInterrupting $ return ()
+                res <- withLockTry isRunning $ do
+                    writeInp command
+                    stop <- syncFresh
+                    void $ consume2 command $ \strm s ->
+                        if stop s then return $ Just () else do echo strm s; return Nothing
+                when (isNothing res) $
+                    fail "Ghcid.exec, computation is already running, must be used single-threaded"
+
+        let ghciInterrupt = withLock isInterrupting $
+                whenM (fmap isNothing $ withLockTry isRunning $ return ()) $ do
+                    whenLoud $ outStrLn "%INTERRUPT"
+                    interruptProcessGroupOf ghciProcess
+                    -- let the person running ghciExec finish, since their sync messages
+                    -- may have been the ones that got interrupted
+                    syncReplay
+                    -- now wait for the person doing ghciExec to have actually left the lock
+                    withLock isRunning $ return ()
+                    -- there may have been two syncs sent, so now do a fresh sync to clear everything
+                    stop <- syncFresh
+                    void $ consume2 "Interrupt" $ \_ s -> return $ if stop s then Just () else Nothing
+
+        ghciUnique <- newUnique
+        let ghci = Ghci{..}
+
+        -- Now wait for 'GHCi, version' to appear before sending anything real, required for #57
+        stdout <- newIORef []
+        stderr <- newIORef []
+        sync <- newIORef $ const False
+        consume2 "" $ \strm s -> do
+            stop <- readIORef sync
+            if stop s then
+                return $ Just ()
+            else do
+                -- there may be some initial prompts on stdout before I set the prompt properly
+                s <- return $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
+                whenLoud $ outStrLn $ "%STDOUT2: " ++ s
+                modifyIORef (if strm == Stdout then stdout else stderr) (s:)
+                when ("GHCi, version " `isPrefixOf` s) $ do
+                    -- the thing before me may have done its own Haskell compiling
+                    writeIORef stdout []
+                    writeIORef stderr []
+                    writeInp "import qualified System.IO as INTERNAL_GHCID"
+                    writeInp $ ":set prompt " ++ ghcid_prefix
+                    -- some of these we try and set in module Ghcid before we get here
+                    writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
+                    writeInp ":set -v1" -- see #110
+                    writeInp ":set -fno-hide-source-paths" -- see #132
+                        -- only works with GHC 8.2 and above, but failing isn't harmful
+                    -- writeInp ":set -fno-it" -- see #130
+                        -- only works with GHC 8.6 and above, but failing isn't harmful
+                    writeIORef sync =<< syncFresh
+                echo0 strm s
+                return Nothing
+        r1 <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
+        -- see #132, if hide-source-paths was turned on the modules didn't get printed out properly
+        -- so try a showModules to capture the information again
+        r2 <- if any isLoading r1 then return [] else map (uncurry Loading) <$> showModules ghci
+        execStream ghci "" echo0
+        return (ghci, r1 ++ r2)
 
 
 -- | Start GHCi by running the given shell command, a helper around 'startGhciProcess'.
