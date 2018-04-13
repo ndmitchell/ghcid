@@ -176,13 +176,10 @@ startGhciProcess process echo0 = do
                     writeIORef stderr []
                     writeInp "import qualified System.IO as INTERNAL_GHCID"
                     writeInp $ ":set prompt " ++ ghcid_prefix
-                    -- some of these we try and set in module Ghcid before we get here
-                    writeInp ":set -fno-break-on-exception -fno-break-on-error" -- see #43
-                    writeInp ":set -v1" -- see #110
-                    writeInp ":set -fno-hide-source-paths" -- see #132
-                        -- only works with GHC 8.2 and above, but failing isn't harmful
-                    -- writeInp ":set -fno-it" -- see #130
-                        -- only works with GHC 8.6 and above, but failing isn't harmful
+
+                    -- failure isn't harmful, so do them one-by-one
+                    forM_ (ghciFlagsRequired ++ ghciFlagsRequiredVersioned) $ \flag ->
+                        writeInp $ ":set " ++ flag
                     writeIORef sync =<< syncFresh
                 echo0 strm s
                 return Nothing

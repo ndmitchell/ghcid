@@ -128,9 +128,7 @@ autoOptions o@Options{..}
         stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
         let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
-        let opts = ["-fno-code" | null test] ++
-                   -- flags that are set by :set, but are useful earlier, and are GHC-version agnostic
-                   ["-fno-break-on-exception","-fno-break-on-error","-v1","-ferror-spans"]
+        let opts = ["-fno-code" | null test] ++ ghciFlagsRequired ++ ghciFlagsUseful
         return $ case () of
             _ | Just stack <- stack ->
                 let flags = if null arguments then
@@ -237,10 +235,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command $
-        [":set -ferror-spans" -- see #148
-        ,":set -fdiagnostics-color=always" -- see #144
-            -- only works with GHC 8.2 and above, but failing isn't harmful
-        ] ++ setup
+        map (":set " ++) (ghciFlagsUseful ++ ghciFlagsUsefulVersioned) ++ setup
 
     when (null loaded && not ignoreLoaded) $ do
         putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command

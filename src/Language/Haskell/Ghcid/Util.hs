@@ -1,6 +1,8 @@
 
 -- | Utility functions
 module Language.Haskell.Ghcid.Util(
+    ghciFlagsRequired, ghciFlagsRequiredVersioned,
+    ghciFlagsUseful, ghciFlagsUsefulVersioned,
     dropPrefixRepeatedly,
     outWith, outStrLn,
     ignored,
@@ -26,6 +28,32 @@ import Control.Exception
 import Control.Monad.Extra
 import Control.Applicative
 import Prelude
+
+
+-- | Flags that are required for ghcid to function and are supported on all GHC versions
+ghciFlagsRequired :: [String]
+ghciFlagsRequired =
+    ["-fno-break-on-exception","-fno-break-on-error" -- see #43
+    ,"-v1" -- see #110
+    ]
+
+-- | Flags that are required for ghcid to function, but are only supported on some GHC versions
+ghciFlagsRequiredVersioned :: [String]
+ghciFlagsRequiredVersioned =
+    ["-fno-hide-source-paths" -- see #132, GHC 8.2 and above
+    ]
+
+-- | Flags that make ghcid work better and are supported on all GHC versions
+ghciFlagsUseful :: [String]
+ghciFlagsUseful =
+    ["-ferror-spans" -- see #148
+    ]
+
+-- | Flags that make ghcid work better, but are only supported on some GHC versions
+ghciFlagsUsefulVersioned :: [String]
+ghciFlagsUsefulVersioned =
+    ["-fdiagnostics-color=always" -- see #144, GHC 8.2 and above
+    ]
 
 
 -- | Drop a prefix from a list, no matter how many times that prefix is present
