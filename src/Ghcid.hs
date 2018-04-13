@@ -9,6 +9,7 @@ import System.IO.Error
 import Control.Monad.Extra
 import Data.List.Extra
 import Data.Maybe
+import Data.Ord
 import Data.Tuple.Extra
 import Data.Version
 import Session
@@ -275,8 +276,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
             -- order and restrict the messages
             -- nubOrdOn loadMessage because module cycles generate the same message at several different locations
-            let (msgError, msgWarn) = partition ((==) Error . loadSeverity) $ nubOrdOn loadMessage $ filter isMessage messages
-            let ordMessages = msgError ++ msgWarn
+            ordMessages <- do
+                let (msgError, msgWarn) = partition ((==) Error . loadSeverity) $ nubOrdOn loadMessage $ filter isMessage messages
+                -- sort error messages by modtime, so newer edits cause the errors to float to the top - see #153
+                errTimes <- sequence [(x,) <$> getModTime x | x <- nubOrd $ map loadFile msgError]
+                let f x = lookup (loadFile x) errTimes
+                return $ sortOn (Down . f) msgError ++ msgWarn
 
             outputFill currTime (Just (loadedCount, ordMessages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
