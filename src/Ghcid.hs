@@ -11,8 +11,6 @@ import Data.List.Extra
 import Data.Maybe
 import Data.Tuple.Extra
 import Data.Version
-import Data.Char
-import Numeric
 import Session
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
@@ -335,17 +333,7 @@ showJSON xs = unlines $ concat $
     | (i,(a,bs)) <- zipFrom 0 xs] ++
     [["}"]]
 
-jString x = "\"" ++ concatMap f x ++ "\""
-    where f '\"' = "\\\""
-          f '\\' = "\\\\"
-          f '\b' = "\\b"
-          f '\f' = "\\f"
-          f '\n' = "\\n"
-          f '\r' = "\\r"
-          f '\t' = "\\t"
-          f x | isControl x || not (isAscii x) = "\\u" ++ takeEnd 4 ("0000" ++ showHex (ord x) "")
-          f x = [x]
-
+jString x = "\"" ++ escapeJSON x ++ "\""
 
 jMessage Message{..} = jDict $
     [("severity",jString $ show loadSeverity)

@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    Require extra-1.6.6
     Add --setup actions to send to ghci stdin on startup
     #152, make --output for a file ending .json produce JSON output
     Make module cycles generate well-formed Load messages
