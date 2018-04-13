@@ -37,6 +37,8 @@ dropPrefixRepeatedly pre s = maybe s (dropPrefixRepeatedly pre) $ stripPrefix pr
 lock :: Lock
 lock = unsafePerformIO newLock
 
+-- | Perform some IO action with a global lock.
+--   You should make sure the data required by the operation has been evaluated in advance.
 outWith :: IO a -> IO a
 outWith = withLock lock
 
