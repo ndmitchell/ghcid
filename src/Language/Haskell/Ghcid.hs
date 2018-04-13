@@ -45,6 +45,11 @@ data Ghci = Ghci
 instance Eq Ghci where
     a == b = ghciUnique a == ghciUnique b
 
+
+withCreateProc proc f = do
+    let undo (_, _, _, proc) = do ignored $ terminateProcess proc
+    bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
+
 -- | Start GHCi by running the described process, returning  the result of the initial loading.
 --   If you do not call 'stopGhci' then the underlying process may be leaked.
 --   The callback will be given the messages produced while loading, useful if invoking something like "cabal repl"
@@ -56,8 +61,8 @@ instance Eq Ghci where
 --   @since 0.6.11
 startGhciProcess :: CreateProcess -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhciProcess process echo0 = do
-    (Just inp, Just out, Just err, ghciProcess) <-
-        createProcess process{std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, create_group=True}
+  let proc = process{std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, create_group=True}
+  withCreateProc proc $ \(Just inp) (Just out) (Just err) ghciProcess -> do
 
     hSetBuffering out LineBuffering
     hSetBuffering err LineBuffering
