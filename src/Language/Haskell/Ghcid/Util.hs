@@ -47,6 +47,7 @@ ghciFlagsRequiredVersioned =
 ghciFlagsUseful :: [String]
 ghciFlagsUseful =
     ["-ferror-spans" -- see #148
+    ,"-j" -- see #153, GHC 7.8 and above, but that's all I support anyway
     ]
 
 -- | Flags that make ghcid work better, but are only supported on some GHC versions
