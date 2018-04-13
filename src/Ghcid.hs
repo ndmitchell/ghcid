@@ -272,13 +272,19 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                        (if null project then takeFileName curdir else project)
 
             updateTitle $ if isJust test then "(running test)" else ""
-            outputFill currTime (Just (loadedCount, messages)) ["Running test..." | isJust test]
+
+            -- order and restrict the messages
+            -- nubOrdOn loadMessage because module cycles generate the same message at several different locations
+            let (msgError, msgWarn) = partition ((==) Error . loadSeverity) $ nubOrdOn loadMessage $ filter isMessage messages
+            let ordMessages = msgError ++ msgWarn
+
+            outputFill currTime (Just (loadedCount, ordMessages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
                 writeFile file $
                     if takeExtension file == ".json" then
                         showJSON [("loaded",map jString loaded),("messages",map jMessage $ filter isMessage messages)]
                     else
-                        unlines $ map (unescape . snd) $ prettyOutput max_messages currTime loadedCount $ filter isMessage messages
+                        unlines $ map (unescape . snd) $ prettyOutput max_messages currTime loadedCount ordMessages
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -313,11 +319,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
 prettyOutput :: Maybe Int -> String -> Int -> [Load] -> [(Style,String)]
-prettyOutput _ currTime loaded [] = [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")")]
-prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs (msg1:msgs)
-          -- nubOrdOn loadMessage because module cycles generate the same message at several different locations
-    where (err, warn) = partition ((==) Error . loadSeverity) $ nubOrdOn loadMessage xs
-          msg1:msgs = map (map (Bold,) . loadMessage) err ++ map (map (Plain,) . loadMessage) warn
+prettyOutput _ currTime loaded [] =
+    [(Plain,allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")")]
+prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs $
+    [map (if loadSeverity == Error then Bold else Plain,) loadMessage | Message{..} <- xs]
 
 
 showJSON :: [(String, [String])] -> String
