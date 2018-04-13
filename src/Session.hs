@@ -91,8 +91,10 @@ sessionStart Session{..} cmd setup = do
 
     -- start the new
     outStrLn $ "Loading " ++ cmd ++ " ..."
-    (v, messages) <- startGhci cmd Nothing $ const outStrLn
-    writeIORef ghci $ Just v
+    (v, messages) <- mask $ \unmask -> do
+        (v, messages) <- unmask $ startGhci cmd Nothing $ const outStrLn
+        writeIORef ghci $ Just v
+        return (v, messages)
 
     -- do whatever preparation was requested
     exec v $ unlines setup
