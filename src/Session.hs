@@ -61,13 +61,13 @@ withSession f = do
 
 -- | Kill. Wait just long enough to ensure you've done the job, but not to see the results.
 kill :: Ghci -> IO ()
-kill ghci = ignore $ do
+kill ghci = ignored $ do
     timeout 5 $ do
         debugShutdown "Before quit"
-        ignore $ quit ghci
+        ignored $ quit ghci
         debugShutdown "After quit"
     debugShutdown "Before terminateProcess"
-    terminateProcess $ process ghci
+    ignored $ terminateProcess $ process ghci
     debugShutdown "After terminateProcess"
 
 

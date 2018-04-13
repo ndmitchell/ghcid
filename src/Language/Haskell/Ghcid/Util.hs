@@ -3,6 +3,7 @@
 module Language.Haskell.Ghcid.Util(
     dropPrefixRepeatedly,
     outWith, outStrLn,
+    ignored,
     allGoodMessage,
     getModTime, getModTimeResolution, getShortTime
     ) where
@@ -47,6 +48,13 @@ outStrLn xs = do
     evaluate $ length $ show xs
     outWith $ putStrLn xs
 
+
+-- | Ignore all exceptions coming from an action
+ignored :: IO () -> IO ()
+ignored act = do
+    bar <- newBarrier
+    forkFinally act $ const $ signalBarrier bar ()
+    waitBarrier bar
 
 -- | The message to show when no errors have been reported
 allGoodMessage :: String

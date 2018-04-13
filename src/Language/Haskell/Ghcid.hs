@@ -247,8 +247,7 @@ quit ghci =  do
     handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
     -- Be aware that waitForProcess has a race condition, see https://github.com/haskell/process/issues/46.
     -- Therefore just ignore the exception anyway, its probably already terminated.
-    ignore $
-        void $ waitForProcess $ process ghci
+    ignored $ void $ waitForProcess $ process ghci
 
 
 -- | Stop GHCi. Attempts to interrupt and execute @:quit:@, but if that doesn't complete
