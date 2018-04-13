@@ -107,9 +107,12 @@ startGhciProcess process echo0 = do
 
     let consume2 :: String -> (Stream -> String -> IO (Maybe a)) -> IO (a,a)
         consume2 msg finish = do
+            -- fetch the operations in different threads as hGetLine may block
+            -- and can't be aborted by async exceptions, see #154
             res1 <- onceFork $ consume Stdout (finish Stdout)
-            res2 <- consume Stderr (finish Stderr)
+            res2 <- onceFork $ consume Stderr (finish Stderr)
             res1 <- res1
+            res2 <- res2
             case liftM2 (,) res1 res2 of
                 Nothing -> case cmdspec process of
                     ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg
