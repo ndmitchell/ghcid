@@ -6,7 +6,8 @@ License: MIT
 
 USAGE                                                           *neovim-ghcid*
 
-Run this command to start Ghcid in a terminal buffer.
+Run this command to start Ghcid in a terminal buffer,
+This opens the buffer with filetype "ghcid".
 >
 	:Ghcid
 <
