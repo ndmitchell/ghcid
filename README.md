@@ -6,7 +6,7 @@ _Acknowledgements:_ This project incorporates significant work from [JPMoresmau]
 
 ### Using it
 
-Run `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid --height=8 --topmost "--command=ghci Main.hs"`. The `height` is the number of lines you are going to resize your console window to (defaults to height of the console). The `topmost` is to make the window sit above all others, which only works on Windows. The `command` is how you start your project in `ghci`. If you omit `--command` then it will default to `stack ghci` if you have the `stack.yaml` file and `.stack-work` directory, default to `ghci` if you have a `.ghci` file in the current directory, and otherwise default to `cabal repl`.
+Run `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid "--command=ghci Main.hs"`. The `command` is how you start your project in `ghci`. If you omit `--command` then it will default to `stack ghci` if you have the `stack.yaml` file and `.stack-work` directory, default to `ghci` if you have a `.ghci` file in the current directory, and otherwise default to `cabal repl`.
 
 Personally, I always create a `.ghci` file at the root of all my projects, which usually [reads something like](https://github.com/ndmitchell/ghcid/blob/master/.ghci):
 
@@ -14,7 +14,7 @@ Personally, I always create a `.ghci` file at the root of all my projects, which
     :set -isrc
     :load Main
 
-After that, resize your console and make it so you can see it while working in your editor. On Windows the console will automatically sit on top of all other windows. On Linux, you probably want to use your window manager to make it topmost or use a [tiling window manager](http://xmonad.org/).
+After that, resize your console and make it so you can see it while working in your editor. On Windows you may wish to pass `--topmost` so the console will sit on top of all other windows. On Linux, you probably want to use your window manager to make it topmost or use a [tiling window manager](http://xmonad.org/).
 
 ### What you get
 
