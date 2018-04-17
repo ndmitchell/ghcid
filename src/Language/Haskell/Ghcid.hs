@@ -47,7 +47,7 @@ instance Eq Ghci where
 
 
 withCreateProc proc f = do
-    let undo (_, _, _, proc) = do ignored $ terminateProcess proc
+    let undo (_, _, _, proc) = ignored $ terminateProcess proc
     bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
 
 -- | Start GHCi by running the described process, returning  the result of the initial loading.
