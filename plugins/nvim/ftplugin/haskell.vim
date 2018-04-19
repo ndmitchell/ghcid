@@ -318,7 +318,7 @@ endfunction
 function! s:ghcid(...) abort
   let opts = {}
   let s:ghcid_killcmd = 0
-  let s:ghcid_command_args = a:000
+  let s:ghcid_command_args = a:000 + ['--color=never']
 
   if s:ghcid_winnr() > 0
     call s:ghcid_closewin_force()
