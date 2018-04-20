@@ -135,7 +135,7 @@ function! s:ghcid_bufwrite() abort
 endfunction
 
 let s:ghcid_error_header_regexp=
-  \   '^\s*\([^\t\r\n:]\+\):\(\d\+\):\(\d\+\):\s*\(warning:\)\?'
+  \   '^\s*\([^\t\r\n:]\+\):\(\d\+\):\([0-9\-]\+\):\s*\(warning:\)\?'
 
 let s:ghcid_error_text_regexp=
   \   '\s\+\([^\t\r\n]\+\)'
