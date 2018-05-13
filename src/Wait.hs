@@ -14,7 +14,6 @@ import Control.Exception.Extra
 import System.Directory.Extra
 import Data.Time.Clock
 import Data.String
-import Data.Maybe
 import System.Console.CmdArgs
 import System.Time.Extra
 import System.FSNotify
@@ -83,10 +82,11 @@ waitFiles waiter = do
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
                 [] -> recheck files new
                 xs -> do
-                    when (or $ zipWith (\o n -> isJust o && isNothing n) old new) $ do
+                    let disappeared = [x | (x, Just _, Nothing) <- zip3 files old new]
+                    when (disappeared /= []) $ do
                         -- if someone is deleting a needed file, give them some space to put the file back
                         -- typically caused by VIM
-                        whenLoud $ outStrLn "%WAITING: Extra wait due to file removal"
+                        whenLoud $ outStrLn $ "%WAITING: Wait 1s due to file removal, " ++ unwords disappeared
                         sleep 1
                     return xs
 
