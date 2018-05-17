@@ -134,8 +134,11 @@ function! s:ghcid_bufwrite() abort
   let s:ghcid_dirty = 1
 endfunction
 
-let s:ghcid_error_header_regexp=
+let s:ghcid_error_header_regexp1=
   \   '^\s*\([^\t\r\n:]\+\):\(\d\+\):\([0-9\-]\+\):\s*\(warning:\)\?'
+
+let s:ghcid_error_header_regexp2=
+  \   '^\s*\([^\t\r\n:]\+\):(\(\d\+\),\(\d\+\))-(\d\+,\d\+):\s*\(warning:\)\?'
 
 let s:ghcid_error_text_regexp=
   \   '\s\+\([^\t\r\n]\+\)'
@@ -153,9 +156,12 @@ function! s:ghcid_parse_error_text(str) abort
 endfunction
 
 function! s:ghcid_parse_error_header(str) abort
-  let result = matchlist(a:str, s:ghcid_error_header_regexp)
+  let result = matchlist(a:str, s:ghcid_error_header_regexp1)
   if !len(result)
-    return {}
+    let result = matchlist(a:str, s:ghcid_error_header_regexp2)
+    if !len(result)
+      return {}
+    endif
   endif
 
   let file = result[1]
