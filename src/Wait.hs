@@ -86,8 +86,13 @@ waitFiles waiter = do
                     when (disappeared /= []) $ do
                         -- if someone is deleting a needed file, give them some space to put the file back
                         -- typically caused by VIM
-                        whenLoud $ outStrLn $ "%WAITING: Wait 1s due to file removal, " ++ unwords disappeared
-                        sleep 1
+                        -- but try not to
+                        whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords disappeared
+                        -- at most 20 iterations, but stop as soon as the file returns
+                        void $ flip firstJustM (replicate 20 ()) $ \_ -> do
+                            sleep 0.05
+                            new <- mapM getModTime files
+                            return $ if null [x | (x, Just _, Nothing) <- zip3 files old new] then Just () else Nothing
                     return xs
 
 
