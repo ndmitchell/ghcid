@@ -175,7 +175,7 @@ startGhciProcess process echo0 = do
                     writeIORef stdout []
                     writeIORef stderr []
                     writeInp "import qualified System.IO as INTERNAL_GHCID"
-                    writeInp $ ":unset +t +s" -- see https://github.com/ndmitchell/ghcid/issues/162
+                    writeInp ":unset +t +s" -- see https://github.com/ndmitchell/ghcid/issues/162
                     writeInp $ ":set prompt " ++ ghcid_prefix
 
                     -- failure isn't harmful, so do them one-by-one
