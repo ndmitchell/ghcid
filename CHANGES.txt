@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #162, always disable :set +t (which writes out types)
 0.7, released 2018-04-18
     #153, show errors/warnings to freshly edited files first
     #153, set -j
