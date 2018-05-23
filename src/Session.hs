@@ -99,7 +99,7 @@ sessionStart Session{..} cmd setup = do
     -- do whatever preparation was requested
     exec v $ unlines setup
 
-    -- capture stdout
+    -- deal with current directory
     (dir, _) <- showPaths v
     writeIORef curdir dir
     messages <- return $ qualify dir messages
