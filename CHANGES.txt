@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #163, allow --run, like --test but defaults to main
     #161, if a file disappears, reload as soon as it returns
     #162, always disable :set +t (which writes out types)
 0.7, released 2018-04-18

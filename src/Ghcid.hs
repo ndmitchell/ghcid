@@ -40,6 +40,7 @@ data Options = Options
     {command :: String
     ,arguments :: [String]
     ,test :: [String]
+    ,run :: [String]
     ,warnings :: Bool
     ,no_status :: Bool
     ,height :: Maybe Int
@@ -71,6 +72,7 @@ options = cmdArgsMode $ Options
     {command = "" &= name "c" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,arguments = [] &= args &= typ "MODULE"
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
+    ,run = [] &= name "r" &= typ "EXPR" &= opt "main" &= help "Command to run after successful loading (defaults to main)"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,no_status = False &= name "S" &= help "Suppress status messages"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
@@ -129,7 +131,7 @@ autoOptions o@Options{..}
         stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
         let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
-        let opts = ["-fno-code" | null test] ++ ghciFlagsRequired ++ ghciFlagsUseful
+        let opts = ["-fno-code" | null test && null run] ++ ghciFlagsRequired ++ ghciFlagsUseful
         return $ case () of
             _ | Just stack <- stack ->
                 let flags = if null arguments then
@@ -143,7 +145,7 @@ autoOptions o@Options{..}
               | cabal /= [] -> f (if null arguments then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
               | otherwise -> f ("ghci":opts) []
     where
-        f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r}
+        f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r, run = [], test = run ++ test}
 
         -- in practice we're not expecting many arguments to have anything funky in them
         escape x | ' ' `elem` x = "\"" ++ x ++ "\""
