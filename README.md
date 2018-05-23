@@ -31,7 +31,7 @@ Or, if everything is good, you see:
 
 Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 
-### Ghcid Integration
+### Editor integration
 
 There are a few plugins that integrate Ghcid into editors, notably:
 
@@ -39,9 +39,11 @@ There are a few plugins that integrate Ghcid into editors, notably:
 * [nvim](plugins/nvim/)
 * [Emacs](plugins/emacs/)
 
-And a blog article on using it:
+### Usage tips
 
-* [Auto-reload threepenny-gui apps during development](https://binarin.ru/post/auto-reload-threepenny-gui/)
+* If you have a `.ghcid` file in the current folder, or a parent folder, the contents of that file will be used as command line arguments. For example, if you always want to pass `--command=custom-ghci` then putting that in a `.ghcid` file will free you from writing it each time.
+* There is an article on [auto-reloading threepenny-gui apps during development](https://binarin.ru/post/auto-reload-threepenny-gui/).
+* There are a list of [general tips for using Ghcid](http://www.parsonsmatt.org/2018/05/19/ghcid_for_the_win.html).
 
 ### FAQ
 
