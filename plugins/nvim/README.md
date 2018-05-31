@@ -11,7 +11,7 @@ also a lot simpler. Developed and maintained by @cloudhead.
 ### Requirements
 
   * neovim >= 0.2.1 (https://github.com/neovim/neovim)
-  * ghcid >= 0.6.5
+  * ghcid >= 0.7
 
 ### Installation
 
