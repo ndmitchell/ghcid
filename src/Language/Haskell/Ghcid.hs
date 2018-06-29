@@ -170,7 +170,7 @@ startGhciProcess process echo0 = do
                 s <- return $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
                 whenLoud $ outStrLn $ "%STDOUT2: " ++ s
                 modifyIORef (if strm == Stdout then stdout else stderr) (s:)
-                when ("GHCi, version " `isPrefixOf` s) $ do
+                when (any (`isPrefixOf` s) ["GHCi, version ","GHCJSi, version "]) $ do
                     -- the thing before me may have done its own Haskell compiling
                     writeIORef stdout []
                     writeIORef stderr []
