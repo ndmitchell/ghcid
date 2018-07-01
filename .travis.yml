@@ -5,6 +5,7 @@ env:
 - GHCVER=8.0.2
 - GHCVER=8.2.2
 - GHCVER=8.4.3
+- GHCVER=8.6.1
 - GHCVER=head
 
 script:
