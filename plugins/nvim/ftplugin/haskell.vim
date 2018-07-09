@@ -21,10 +21,6 @@ if !exists("g:ghcid_command")
   let g:ghcid_command = "ghcid"
 endif
 
-if !exists("g:ghcid_signcolumn")
-  let g:ghcid_signcolumn = 2
-endif
-
 if !exists("g:ghcid_background")
   let g:ghcid_background = 0
 endif
@@ -36,7 +32,6 @@ endif
 let s:ghcid_command_args = {}
 let s:ghcid_base_sign_id = 100
 let s:ghcid_sign_id = s:ghcid_base_sign_id
-let s:ghcid_dummy_sign_id = 99
 let s:ghcid_job_id = 0
 let s:ghcid_error_header = {}
 let s:ghcid_win_id = -1
@@ -48,25 +43,6 @@ command!          GhcidKill    call s:ghcid_kill()
 
 sign define ghcid-warning text=× texthl=WarningSign
 sign define ghcid-error text=× texthl=ErrorSign
-sign define ghcid-dummy
-
-function! s:ghcid_init()
-  if g:ghcid_signcolumn == 1
-    call s:ghcid_place_dummy_sign()
-  endif
-endfunction
-
-function! s:ghcid_place_dummy_sign()
-  if g:ghcid_signcolumn >= 1
-    exe 'sign' 'place'  s:ghcid_dummy_sign_id  'line=9999' 'name=ghcid-dummy' 'buffer=' . bufnr('%')
-  endif
-endfunction
-
-function! s:ghcid_clear_dummy_sign()
-  if g:ghcid_signcolumn != 1
-    silent exe 'sign' 'unplace' s:ghcid_dummy_sign_id
-  endif
-endfunction
 
 function! s:ghcid_winnr()
   return win_id2win(s:ghcid_win_id)
@@ -136,7 +112,6 @@ function! s:ghcid_openwin()
 endfunction
 
 autocmd BufWritePost,FileChangedShellPost *.hs call s:ghcid_bufwrite()
-autocmd BufEnter                          *.hs call s:ghcid_init()
 
 function! s:ghcid_bufwrite() abort
   let s:ghcid_dirty = 1
@@ -223,9 +198,6 @@ function! s:ghcid_update(ghcid, data) abort
 
   if s:ghcid_dirty
     let s:ghcid_dirty = 0
-    if !s:ghcid_allgood()
-      call s:ghcid_place_dummy_sign()
-    endif
     call s:ghcid_clear_signs()
   endif
 
@@ -240,7 +212,6 @@ function! s:ghcid_update(ghcid, data) abort
     endif
     call s:ghcid_clear_signs()
     call s:ghcid_update_status()
-    call s:ghcid_clear_dummy_sign()
     return
   endif
 
@@ -306,21 +277,19 @@ function! s:ghcid_update(ghcid, data) abort
     endif
   endif
 
-  if g:ghcid_signcolumn
-    try
-      silent exe "sign"
-        \ "place"
-        \ s:ghcid_sign_id
-        \ "line=" . error.lnum
-        \ "name=" . (error.warning ? "ghcid-warning" : "ghcid-error")
-        \ "file=" . error.filename
+  try
+    silent exe "sign"
+      \ "place"
+      \ s:ghcid_sign_id
+      \ "line=" . error.lnum
+      \ "name=" . (error.warning ? "ghcid-warning" : "ghcid-error")
+      \ "file=" . error.filename
 
-      let s:ghcid_sign_id += 1
-    catch
-      " TODO: Sometimes the buffer name we have here is invalid so we can't
-      " place a sign. Not sure how to fix this at the moment.
-    endtry
-  endif
+    let s:ghcid_sign_id += 1
+  catch
+    " TODO: Sometimes the buffer name we have here is invalid so we can't
+    " place a sign. Not sure how to fix this at the moment.
+  endtry
 
   return data
 endfunction
