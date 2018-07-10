@@ -334,6 +334,7 @@ function! s:ghcid(...) abort
   function! opts.on_exit(id, code, event)
     if a:code != 0 && !s:ghcid_killcmd
       echoerr "Ghcid: Exited with status " . a:code
+      call s:ghcid_stop()
     endif
   endfunction
 
