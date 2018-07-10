@@ -25,6 +25,10 @@ if !exists("g:ghcid_signcolumn")
   let g:ghcid_signcolumn = 2
 endif
 
+if !exists("g:ghcid_background")
+  let g:ghcid_background = 0
+endif
+
 let s:ghcid_command_args = {}
 let s:ghcid_base_sign_id = 100
 let s:ghcid_sign_id = s:ghcid_base_sign_id
@@ -288,8 +292,12 @@ function! s:ghcid_update(ghcid, data) abort
   " Since we got here, we must have a valid error.
   " Open the ghcid window.
   if !s:ghcid_winnr()
-    call s:ghcid_openwin()
-    wincmd p
+    if g:ghcid_background
+      echo "Ghcid: " . len(getqflist()) . " message(s)"
+    else
+      call s:ghcid_openwin()
+      wincmd p
+    endif
   endif
 
   if g:ghcid_signcolumn
