@@ -29,6 +29,10 @@ if !exists("g:ghcid_background")
   let g:ghcid_background = 0
 endif
 
+if !exists("g:ghcid_verbosity")
+  let g:ghcid_verbosity = 2
+endif
+
 let s:ghcid_command_args = {}
 let s:ghcid_base_sign_id = 100
 let s:ghcid_sign_id = s:ghcid_base_sign_id
@@ -231,7 +235,9 @@ function! s:ghcid_update(ghcid, data) abort
     if s:ghcid_winnr()
       call s:ghcid_closewin()
     endif
-    echo "Ghcid: OK"
+    if g:ghcid_verbosity > 1
+      echo "Ghcid: OK"
+    endif
     call s:ghcid_clear_signs()
     call s:ghcid_update_status()
     call s:ghcid_clear_dummy_sign()
@@ -292,7 +298,7 @@ function! s:ghcid_update(ghcid, data) abort
   " Since we got here, we must have a valid error.
   " Open the ghcid window.
   if !s:ghcid_winnr()
-    if g:ghcid_background
+    if g:ghcid_background && g:ghcid_verbosity > 0
       echo "Ghcid: " . len(getqflist()) . " message(s)"
     else
       call s:ghcid_openwin()
