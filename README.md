@@ -6,7 +6,7 @@ _Acknowledgements:_ This project incorporates significant work from [JPMoresmau]
 
 ### Using it
 
-Run `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid "--command=ghci Main.hs"`. The `command` is how you start your project in `ghci`. If you omit `--command` then it will default to `stack ghci` if you have the `stack.yaml` file and `.stack-work` directory, default to `ghci` if you have a `.ghci` file in the current directory, and otherwise default to `cabal repl`.
+Run `stack install ghcid` or `cabal update && cabal install ghcid` to install it as normal. Then run `ghcid "--command=ghci Main.hs"`. The `command` is how you start your project in `ghci`. If you omit `--command` then it will default to `stack ghci` if you have the `stack.yaml` file and `.stack-work` directory, default to `ghci` if you have a `.ghci` file in the current directory, and otherwise default to `cabal repl`.
 
 Personally, I always create a `.ghci` file at the root of all my projects, which usually [reads something like](https://github.com/ndmitchell/ghcid/blob/master/.ghci):
 
