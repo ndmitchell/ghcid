@@ -12,6 +12,7 @@ import Data.Maybe
 import Text.Read
 import Data.Tuple.Extra
 import Control.Applicative
+import Data.Coerce
 import Prelude
 
 import Language.Haskell.Ghcid.Types
@@ -36,7 +37,7 @@ parseShowPaths (map unescape -> xs)
 -- | Parse messages given on reload.
 parseLoad :: [String] -> [Load]
 -- nub, because cabal repl sometimes does two reloads at the start
-parseLoad (map Esc -> xs) = nubOrd $ f xs
+parseLoad = nubOrd . f . coerce
     where
         f :: [Esc] -> [Load]
 
@@ -56,7 +57,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             , (msg,las) <- span isMessageBody xs
             , rest <- trimStartE $ unwordsE $ rest : xs
             , sev <- if "warning:" `isPrefixOf` lower (unescapeE rest) then Warning else Error
-            = Message sev file pos1 pos2 (map fromEsc $ x:msg) : f las
+            = Message sev file pos1 pos2 (coerce $ x:msg) : f las
 
         -- <no location info>: can't find file: FILENAME
         f (x:xs)
@@ -69,7 +70,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             | unescapeE x == "Module imports form a cycle:"
             , (xs,rest) <- span (isPrefixOfE " ") xs
             , let ms = [takeWhile (/= ')') x | x <- xs, '(':x <- [dropWhile (/= '(') $ unescapeE x]]
-            = [Message Error m (0,0) (0,0) (map fromEsc $ x:xs) | m <- nubOrd ms] ++ f rest
+            = [Message Error m (0,0) (0,0) (coerce $ x:xs) | m <- nubOrd ms] ++ f rest
 
         -- Loaded GHCi configuration from C:\Neil\ghcid\.ghci
         f (x:xs)
