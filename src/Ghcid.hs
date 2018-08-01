@@ -135,11 +135,11 @@ autoOptions o@Options{..}
         return $ case () of
             _ | Just stack <- stack ->
                 let flags = if null arguments then
-                                "stack ghci --test" :
+                                "stack ghci --test --bench" :
                                 ["--no-load" | ".ghci" `elem` files] ++
                                 map ("--ghci-options=" ++) opts
                             else
-                                "stack exec --test -- ghci" : opts
+                                "stack exec --test --bench -- ghci" : opts
                 in f flags $ stack:cabal
               | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
               | cabal /= [] -> f (if null arguments then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
