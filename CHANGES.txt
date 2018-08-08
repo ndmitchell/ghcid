@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #190, load benchmarks as well as tests when using stack
     #171, support GHCJSi
     #163, allow --run, like --test but defaults to main
     #161, if a file disappears, reload as soon as it returns
