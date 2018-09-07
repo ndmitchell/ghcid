@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+0.7.1, released 2018-09-07
     #190, load benchmarks as well as tests when using stack
     #171, support GHCJSi
     #163, allow --run, like --test but defaults to main
