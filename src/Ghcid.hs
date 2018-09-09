@@ -22,6 +22,7 @@ import System.Directory.Extra
 import System.Time.Extra
 import System.Exit
 import System.FilePath
+import System.Info
 import System.IO.Extra
 
 import Paths_ghcid
@@ -173,6 +174,10 @@ mainWithTerminal termSize termOutput =
             hSetBuffering stderr NoBuffering
             origDir <- getCurrentDirectory
             opts <- withGhcidArgs $ cmdArgsRun options
+            whenLoud $ do
+              outStrLn $ "%OS: " ++ os
+              outStrLn $ "%ARCH: " ++ arch
+              outStrLn $ "%VERSION: " ++ showVersion version
             withCurrentDirectory (directory opts) $ do
                 opts <- autoOptions opts
                 opts <- return $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
