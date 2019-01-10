@@ -31,3 +31,8 @@ Run:
     rm haskell-ghcid-*.vsix
     vsce package
     code --install-extension haskell-ghcid-*.vsix
+
+## Making releases of this extension
+
+* Create a personal token following [the instructions](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token), which involves visiting [this page](https://ndmitchell.visualstudio.com/_usersSettings/tokens).
+* Run `vsce publish -p <token>`.
