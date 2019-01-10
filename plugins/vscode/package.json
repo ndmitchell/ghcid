@@ -14,7 +14,10 @@
         "type": "git",
         "url": "git://github.com/ndmitchell/ghcid.git"
     },
-    "categories": ["Languages", "Linters"],
+    "categories": [
+        "Programming Languages",
+        "Linters"
+    ],
     "activationEvents": [
         "onCommand:extension.startGhcid"
     ],
