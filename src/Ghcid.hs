@@ -244,10 +244,14 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
     let outputFill :: String -> Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill currTime load msg = do
             TermSize{..} <- termSize
-            let n = termHeight - length msg
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput currTime (maybe 0 fst load) $ limitMessages
-                [ m{loadMessage = map fromEsc $ concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc) $ loadMessage m}
-                | m@Message{} <- maybe [] snd load]
+            load <- return $ case load of
+                Nothing -> []
+                Just (loadedCount, msgs) ->
+                    take (termHeight - length msg) $
+                    prettyOutput currTime loadedCount $
+                    limitMessages
+                        [ m{loadMessage = map fromEsc $ concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc) $ loadMessage m}
+                        | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ msg ++ replicate (termHeight - (length load + length msg)) ""
 
     when (ignoreLoaded && null reload) $ do
