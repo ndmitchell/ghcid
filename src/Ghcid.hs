@@ -344,8 +344,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
 prettyOutput :: String -> Int -> [Load] -> [String]
-prettyOutput currTime loaded [] =
-    [allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")"]
+prettyOutput currTime loadedCount [] =
+    [allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")"]
 prettyOutput _ _ xs = concatMap loadMessage xs
 
 
