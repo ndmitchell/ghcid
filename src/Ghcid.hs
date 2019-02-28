@@ -244,7 +244,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 Nothing -> []
                 Just (loadedCount, msgs) ->
                     take (termHeight - length msg) $
-                    map fromEsc $ concatMap (snd . wordWrapE termWidth (termWidth `div` 5) . Esc) $
+                    map fromEsc $ concatMap (concat . wordWrapE termWidth (termWidth `div` 5) . Esc) $
                     prettyOutput currTime loadedCount $
                     filter isMessage msgs
             termOutput $ load ++ msg ++ replicate (termHeight - (length load + length msg)) ""
