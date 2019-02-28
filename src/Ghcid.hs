@@ -190,12 +190,12 @@ mainWithTerminal termSize termOutput =
                 when (topmost opts) terminalTopmost
 
                 termSize <- return $ case (width opts, height opts) of
-                    (Just w, Just h) -> return (w,h)
+                    (Just w, Just h) -> return $ TermSize w h
                     (w, h) -> do
                         term <- termSize
                         -- if we write to the final column of the window then it wraps automatically
                         -- so putStrLn width 'x' uses up two lines
-                        return (fromMaybe (pred $ termWidth term) w, fromMaybe (termHeight term) h)
+                        return $ TermSize (fromMaybe (pred $ termWidth term) w) (fromMaybe (termHeight term) h)
 
                 restyle <- do
                     useStyle <- case color opts of
@@ -230,16 +230,16 @@ data Continue = Continue
 
 -- If we return successfully, we restart the whole process
 -- Use Continue not () so that inadvertant exits don't restart
-runGhcid :: Session -> Waiter -> IO (Int,Int) -> ([String] -> IO ()) -> Options -> IO Continue
+runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let outputFill :: String -> Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill currTime load msg = do
-            (width, height) <- termSize
-            let n = height - length msg
+            TermSize{..} <- termSize
+            let n = termHeight - length msg
             load <- return $ take (if isJust load then n else 0) $ prettyOutput max_messages currTime (maybe 0 fst load)
-                [ m{loadMessage = map fromEsc $ concatMap (chunksOfWordE width (width `div` 5) . Esc) $ loadMessage m}
+                [ m{loadMessage = map fromEsc $ concatMap (chunksOfWordE termWidth (termWidth `div` 5) . Esc) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
-            termOutput $ load ++ msg ++ replicate (height - (length load + length msg)) ""
+            termOutput $ load ++ msg ++ replicate (termHeight - (length load + length msg)) ""
 
     when (ignoreLoaded && null reload) $ do
         putStrLn "--reload must be set when using --ignore-loaded"
