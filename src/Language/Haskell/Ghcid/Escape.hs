@@ -106,9 +106,12 @@ data WordWrap = WrapHard | WrapSoft
 
 -- | Word wrap a string into N separate strings.
 --   Flows onto a subsequent line if less than N characters end up being empty.
-wordWrapE :: Int -> Int -> Esc -> [Esc]
-wordWrapE mx gap = repeatedlyE $ \x ->
-    let (a,b) = splitAtE mx x in
-    if b == Esc "" then (a, Esc "") else
-        let (a1,a2) = breakEndE isSpace a in
-        if lengthE a2 <= gap then (a1, app a2 b) else (a, trimStartE b)
+wordWrapE :: Int -> Int -> Esc -> (Int, [Esc])
+wordWrapE mx gap xs = (length ans, ans)
+    where
+        ans = repeatedlyE f xs
+        f x =
+            let (a,b) = splitAtE mx x in
+            if b == Esc "" then (a, Esc "") else
+                let (a1,a2) = breakEndE isSpace a in
+                if lengthE a2 <= gap then (a1, app a2 b) else (a, trimStartE b)
