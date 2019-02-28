@@ -251,7 +251,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     prettyOutput currTime loadedCount $
                     limitMessages
                         [ m{loadMessage = map fromEsc $ concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc) $ loadMessage m}
-                        | m@Message{} <- maybe [] snd load]
+                        | m@Message{} <- msgs]
             termOutput $ load ++ msg ++ replicate (termHeight - (length load + length msg)) ""
 
     when (ignoreLoaded && null reload) $ do
