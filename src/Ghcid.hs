@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
-module Ghcid(main, mainWithTerminal, TermSize(..), TermWrap(..)) where
+module Ghcid(main, mainWithTerminal, TermSize(..), WordWrap(..)) where
 
 import Control.Exception
 import System.IO.Error
@@ -162,15 +162,11 @@ withGhcidArgs act = do
         withArgs (extra ++ orig) act
 
 
--- | 'WrapHard' means you have to
-data TermWrap = WrapHard | WrapSoft
-
 data TermSize = TermSize
     {termWidth :: Int
     ,termHeight :: Int
-    ,termWrap :: TermWrap
+    ,termWrap :: WordWrap
     }
-
 
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO TermSize -> ([String] -> IO ()) -> IO ()

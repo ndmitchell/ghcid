@@ -2,6 +2,7 @@
 
 -- | Module for dealing with escape codes
 module Language.Haskell.Ghcid.Escape(
+    WordWrap(..),
     Esc(..), unescape,
     stripInfixE, stripPrefixE, isPrefixOfE, spanE, trimStartE, unwordsE, unescapeE,
     wordWrapE
@@ -97,6 +98,11 @@ breakEndE f = swap . both reverseE . breakE f . reverseE
 
 lengthE :: Esc -> Int
 lengthE = length . unescapeE
+
+
+-- | 'WrapHard' means you have to
+data WordWrap = WrapHard | WrapSoft
+
 
 -- | Word wrap a string into N separate strings.
 --   Flows onto a subsequent line if less than N characters end up being empty.
