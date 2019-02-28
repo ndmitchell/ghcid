@@ -239,11 +239,13 @@ data Continue = Continue
 -- Use Continue not () so that inadvertant exits don't restart
 runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
+    let limitMessages = maybe id (take . max 1) max_messages
+
     let outputFill :: String -> Maybe (Int, [Load]) -> [String] -> IO ()
         outputFill currTime load msg = do
             TermSize{..} <- termSize
             let n = termHeight - length msg
-            load <- return $ take (if isJust load then n else 0) $ prettyOutput max_messages currTime (maybe 0 fst load)
+            load <- return $ take (if isJust load then n else 0) $ prettyOutput currTime (maybe 0 fst load) $ limitMessages
                 [ m{loadMessage = map fromEsc $ concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ msg ++ replicate (termHeight - (length load + length msg)) ""
@@ -307,7 +309,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     if takeExtension file == ".json" then
                         showJSON [("loaded",map jString loaded),("messages",map jMessage $ filter isMessage messages)]
                     else
-                        unlines $ map unescape $ prettyOutput max_messages currTime loadedCount ordMessages
+                        unlines $ map unescape $ prettyOutput currTime loadedCount $ limitMessages ordMessages
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -341,10 +343,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: Maybe Int -> String -> Int -> [Load] -> [String]
-prettyOutput _ currTime loaded [] =
+prettyOutput :: String -> Int -> [Load] -> [String]
+prettyOutput currTime loaded [] =
     [allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")"]
-prettyOutput maxMsgs _ loaded xs = concat $ maybe id take maxMsgs $ map loadMessage xs
+prettyOutput _ loaded xs = concat $ map loadMessage xs
 
 
 showJSON :: [(String, [String])] -> String
