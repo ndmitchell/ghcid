@@ -4,7 +4,7 @@
 module Language.Haskell.Ghcid.Escape(
     Esc(..), unescape,
     stripInfixE, stripPrefixE, isPrefixOfE, spanE, trimStartE, unwordsE, unescapeE,
-    chunksOfWordE
+    wordWrapE
     ) where
 
 import Data.Char
@@ -98,10 +98,10 @@ breakEndE f = swap . both reverseE . breakE f . reverseE
 lengthE :: Esc -> Int
 lengthE = length . unescapeE
 
--- | Like chunksOf, but deal with words up to some gap.
+-- | Word wrap a string into N separate strings.
 --   Flows onto a subsequent line if less than N characters end up being empty.
-chunksOfWordE :: Int -> Int -> Esc -> [Esc]
-chunksOfWordE mx gap = repeatedlyE $ \x ->
+wordWrapE :: Int -> Int -> Esc -> [Esc]
+wordWrapE mx gap = repeatedlyE $ \x ->
     let (a,b) = splitAtE mx x in
     if b == Esc "" then (a, Esc "") else
         let (a1,a2) = breakEndE isSpace a in

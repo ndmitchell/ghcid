@@ -244,7 +244,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             TermSize{..} <- termSize
             let n = termHeight - length msg
             load <- return $ take (if isJust load then n else 0) $ prettyOutput max_messages currTime (maybe 0 fst load)
-                [ m{loadMessage = map fromEsc $ concatMap (chunksOfWordE termWidth (termWidth `div` 5) . Esc) $ loadMessage m}
+                [ m{loadMessage = map fromEsc $ concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc) $ loadMessage m}
                 | m@Message{} <- maybe [] snd load]
             termOutput $ load ++ msg ++ replicate (termHeight - (length load + length msg)) ""
 
