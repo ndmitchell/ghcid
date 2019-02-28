@@ -185,9 +185,9 @@ mainWithTerminal termSize termOutput =
             origDir <- getCurrentDirectory
             opts <- withGhcidArgs $ cmdArgsRun options
             whenLoud $ do
-              outStrLn $ "%OS: " ++ os
-              outStrLn $ "%ARCH: " ++ arch
-              outStrLn $ "%VERSION: " ++ showVersion version
+                outStrLn $ "%OS: " ++ os
+                outStrLn $ "%ARCH: " ++ arch
+                outStrLn $ "%VERSION: " ++ showVersion version
             withCurrentDirectory (directory opts) $ do
                 opts <- autoOptions opts
                 opts <- return $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
