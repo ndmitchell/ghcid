@@ -77,7 +77,7 @@ withGhcid args script = do
     res <- bracket
         (flip forkFinally (const $ signalBarrier done ()) $
             withArgs (["--no-title","--no-status"]++args) $
-                mainWithTerminal (return (100, 50)) output)
+                mainWithTerminal (return $ TermSize 100 50) output)
         killThread $ \_ -> script require
     waitBarrier done
     return res

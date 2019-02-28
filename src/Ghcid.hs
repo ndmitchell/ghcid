@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
-module Ghcid(main, mainWithTerminal) where
+module Ghcid(main, mainWithTerminal, TermSize(..)) where
 
 import Control.Exception
 import System.IO.Error
@@ -162,8 +162,14 @@ withGhcidArgs act = do
         withArgs (extra ++ orig) act
 
 
+data TermSize = TermSize
+    {termWidth :: Int
+    ,termHeight :: Int
+    }
+
+
 -- | Like 'main', but run with a fake terminal for testing
-mainWithTerminal :: IO (Int,Int) -> ([String] -> IO ()) -> IO ()
+mainWithTerminal :: IO TermSize -> ([String] -> IO ()) -> IO ()
 mainWithTerminal termSize termOutput =
     handle (\(UnexpectedExit cmd _) -> do putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly"; exitFailure) $
         forever $ withWindowIcon $ withSession $ \session -> do
@@ -189,7 +195,7 @@ mainWithTerminal termSize termOutput =
                         term <- termSize
                         -- if we write to the final column of the window then it wraps automatically
                         -- so putStrLn width 'x' uses up two lines
-                        return (fromMaybe (pred $ fst term) w, fromMaybe (snd term) h)
+                        return (fromMaybe (pred $ termWidth term) w, fromMaybe (termHeight term) h)
 
                 restyle <- do
                     useStyle <- case color opts of
@@ -209,7 +215,11 @@ mainWithTerminal termSize termOutput =
 main :: IO ()
 main = mainWithTerminal termSize termOutput
     where
-        termSize = maybe (80, 8) (Term.width &&& Term.height) <$> Term.size
+        termSize = do
+            x <- Term.size
+            return $ case x of
+                Nothing -> TermSize 80 8
+                Just t -> TermSize (Term.width t) (Term.height t)
 
         termOutput xs = do
             outStr $ concatMap ('\n':) xs
