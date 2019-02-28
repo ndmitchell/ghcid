@@ -346,7 +346,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 prettyOutput :: String -> Int -> [Load] -> [String]
 prettyOutput currTime loaded [] =
     [allGoodMessage ++ " (" ++ show loaded ++ " module" ++ ['s' | loaded /= 1] ++ ", at " ++ currTime ++ ")"]
-prettyOutput _ loaded xs = concat $ map loadMessage xs
+prettyOutput _ _ xs = concatMap loadMessage xs
 
 
 showJSON :: [(String, [String])] -> String
