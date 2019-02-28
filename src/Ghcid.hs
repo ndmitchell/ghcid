@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
-module Ghcid(main, mainWithTerminal, TermSize(..)) where
+module Ghcid(main, mainWithTerminal, TermSize(..), TermWrap(..)) where
 
 import Control.Exception
 import System.IO.Error
@@ -162,9 +162,13 @@ withGhcidArgs act = do
         withArgs (extra ++ orig) act
 
 
+-- | 'WrapHard' means you have to
+data TermWrap = WrapHard | WrapSoft
+
 data TermSize = TermSize
     {termWidth :: Int
     ,termHeight :: Int
+    ,termWrap :: TermWrap
     }
 
 
@@ -190,12 +194,15 @@ mainWithTerminal termSize termOutput =
                 when (topmost opts) terminalTopmost
 
                 termSize <- return $ case (width opts, height opts) of
-                    (Just w, Just h) -> return $ TermSize w h
+                    (Just w, Just h) -> return $ TermSize w h WrapHard
                     (w, h) -> do
                         term <- termSize
                         -- if we write to the final column of the window then it wraps automatically
                         -- so putStrLn width 'x' uses up two lines
-                        return $ TermSize (fromMaybe (pred $ termWidth term) w) (fromMaybe (termHeight term) h)
+                        return $ TermSize
+                            (fromMaybe (pred $ termWidth term) w)
+                            (fromMaybe (termHeight term) h)
+                            (if isJust w then WrapHard else termWrap term)
 
                 restyle <- do
                     useStyle <- case color opts of
@@ -218,8 +225,8 @@ main = mainWithTerminal termSize termOutput
         termSize = do
             x <- Term.size
             return $ case x of
-                Nothing -> TermSize 80 8
-                Just t -> TermSize (Term.width t) (Term.height t)
+                Nothing -> TermSize 80 8 WrapHard
+                Just t -> TermSize (Term.width t) (Term.height t) WrapSoft
 
         termOutput xs = do
             outStr $ concatMap ('\n':) xs
