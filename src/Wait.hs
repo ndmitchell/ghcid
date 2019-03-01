@@ -51,7 +51,7 @@ waitFiles waiter = do
         files <- fmap concat $ forM files $ \file ->
             ifM (doesDirectoryExist file) (listFilesInside (return . not . isPrefixOf "." . takeFileName) file) (return [file])
         case waiter of
-            WaiterPoll t -> sleep $ max 0 $ t - 0.1 -- subtract the initial 0.1 sleep from above
+            WaiterPoll t -> return ()
             WaiterNotify manager kick mp -> do
                 dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map takeDirectory files
                 modifyVar_ mp $ \mp -> do
@@ -74,7 +74,7 @@ waitFiles waiter = do
         recheck files old = do
             sleep 0.1
             case waiter of
-                WaiterPoll _ -> return ()
+                WaiterPoll t -> sleep $ max 0 $ t - 0.1 -- subtract the initial 0.1 sleep from above
                 WaiterNotify _ kick _ -> do
                     takeMVar kick
                     whenLoud $ outStrLn "%WAITING: Notify signaled"

@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #226, fix the polling behaviour
     #224, print out overly long files without line breaks
     #202, make --verbose print out version, arch, os
 0.7.1, released 2018-09-07
