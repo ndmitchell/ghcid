@@ -10,7 +10,7 @@ import Language.Haskell.Ghcid.Escape
 utilsTests :: TestTree
 utilsTests = testGroup "Utility tests"
     [dropPrefixTests
-    ,chunksOfWordTests
+    ,wordWrapTests
     ]
 
 dropPrefixTests :: TestTree
@@ -21,8 +21,8 @@ dropPrefixTests = testGroup "dropPrefix"
     ,testCase "Prefix found twice" $ dropPrefixRepeatedly "str" "strstring" @?= "ing"
     ]
 
-chunksOfWordTests :: TestTree
-chunksOfWordTests = testGroup "chunksOfWord"
+wordWrapTests :: TestTree
+wordWrapTests = testGroup "wordWrap"
     [testCase "Max 0" $ wordWrapE 4 0 (Esc "ab cd efgh") @?= map (pure . Esc) ["ab c","d ef","gh"]
     ,testCase "Max 2" $ wordWrapE 4 2 (Esc "ab cd efgh") @?= map (pure . Esc) ["ab ","cd ","efgh"]
     ]
