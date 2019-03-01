@@ -4,6 +4,7 @@ module Language.Haskell.Ghcid.Util(
     ghciFlagsRequired, ghciFlagsRequiredVersioned,
     ghciFlagsUseful, ghciFlagsUsefulVersioned,
     dropPrefixRepeatedly,
+    takeRemainder,
     outStr, outStrLn,
     ignored,
     allGoodMessage,
@@ -94,6 +95,9 @@ getModTime file = handleJust
     (\_ -> return Nothing)
     (Just <$> getModificationTime file)
 
+-- | Returns both the amount left (could have been taken more) and the list
+takeRemainder :: Int -> [a] -> (Int, [a])
+takeRemainder n xs = let ys = take n xs in (n - length ys, ys)
 
 -- | Get the current time in the current timezone in HH:MM:SS format
 getShortTime :: IO String

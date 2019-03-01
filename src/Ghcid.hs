@@ -244,7 +244,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 Just (loadedCount, msgs) -> prettyOutput currTime loadedCount $ filter isMessage msgs
             TermSize{..} <- termSize
             let wrap = map fromEsc . concatMap (map fst . wordWrapE termWidth (termWidth `div` 5) . Esc)
-            termOutput $ take (termHeight - length msg) (wrap load) ++ msg ++ replicate (termHeight - (length load + length msg)) ""
+            (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
+            (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
+            let pad = replicate termHeight ""
+            termOutput $ load ++ msg ++ pad
 
     when (ignoreLoaded && null reload) $ do
         putStrLn "--reload must be set when using --ignore-loaded"
