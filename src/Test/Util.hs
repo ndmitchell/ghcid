@@ -1,4 +1,3 @@
-{-# LANGUAGE TupleSections #-}
 
 -- | Test utility functions
 module Test.Util(utilsTests) where

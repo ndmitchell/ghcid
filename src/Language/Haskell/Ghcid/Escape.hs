@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards, TupleSections #-}
+{-# LANGUAGE PatternGuards #-}
 
 -- | Module for dealing with escape codes
 module Language.Haskell.Ghcid.Escape(
