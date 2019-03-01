@@ -247,7 +247,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
             (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
             let pad = replicate termHeight ""
-            termOutput $ map (fromEsc . fst) (load ++ msg) ++ pad
+            let mergeSoft ((Esc x,WrapSoft):(Esc y,q):xs) = mergeSoft $ (Esc (x++y), q) : xs
+                mergeSoft ((x,_):xs) = x : mergeSoft xs
+                mergeSoft [] = []
+            termOutput $ map fromEsc ((if termWrap == WrapSoft then mergeSoft else map fst) $ load ++ msg) ++ pad
 
     when (ignoreLoaded && null reload) $ do
         putStrLn "--reload must be set when using --ignore-loaded"
