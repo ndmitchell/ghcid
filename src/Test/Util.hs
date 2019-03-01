@@ -25,6 +25,8 @@ dropPrefixTests = testGroup "dropPrefix"
 
 wordWrapTests :: TestTree
 wordWrapTests = testGroup "wordWrap"
-    [testCase "Max 0" $ wordWrapE 4 0 (Esc "ab cd efgh") @?= map ((,WrapHard) . Esc) ["ab c","d ef","gh"]
-    ,testCase "Max 2" $ wordWrapE 4 2 (Esc "ab cd efgh") @?= map ((,WrapHard) . Esc) ["ab ","cd ","efgh"]
+    [testCase "Max 0" $ wordWrapE 4 0 (Esc "ab cd efgh") @?= [s"ab c",s"d ef",h"gh"]
+    ,testCase "Max 2" $ wordWrapE 4 2 (Esc "ab cd efgh") @?= [h"ab ",h"cd ",h"efgh"]
     ]
+    where h x = (Esc x, WrapHard)
+          s x = (Esc x, WrapSoft)
