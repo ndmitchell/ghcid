@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 -- | Test utility functions
 module Test.Util(utilsTests) where
 
@@ -23,6 +25,6 @@ dropPrefixTests = testGroup "dropPrefix"
 
 wordWrapTests :: TestTree
 wordWrapTests = testGroup "wordWrap"
-    [testCase "Max 0" $ wordWrapE 4 0 (Esc "ab cd efgh") @?= map (pure . Esc) ["ab c","d ef","gh"]
-    ,testCase "Max 2" $ wordWrapE 4 2 (Esc "ab cd efgh") @?= map (pure . Esc) ["ab ","cd ","efgh"]
+    [testCase "Max 0" $ wordWrapE 4 0 (Esc "ab cd efgh") @?= map ((,WrapHard) . Esc) ["ab c","d ef","gh"]
+    ,testCase "Max 2" $ wordWrapE 4 2 (Esc "ab cd efgh") @?= map ((,WrapHard) . Esc) ["ab ","cd ","efgh"]
     ]

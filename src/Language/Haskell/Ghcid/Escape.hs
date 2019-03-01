@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards, TupleSections #-}
 
 -- | Module for dealing with escape codes
 module Language.Haskell.Ghcid.Escape(
@@ -102,12 +102,13 @@ lengthE = length . unescapeE
 
 -- | 'WrapHard' means you have to
 data WordWrap = WrapHard | WrapSoft
+    deriving (Eq,Show)
 
 
 -- | Word wrap a string into N separate strings.
 --   Flows onto a subsequent line if less than N characters end up being empty.
-wordWrapE :: Int -> Int -> Esc -> [[Esc]]
-wordWrapE mx gap = map pure . repeatedlyE f
+wordWrapE :: Int -> Int -> Esc -> [(Esc, WordWrap)]
+wordWrapE mx gap = map (,WrapHard) . repeatedlyE f
     where
         f x =
             let (a,b) = splitAtE mx x in
