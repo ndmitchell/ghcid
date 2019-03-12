@@ -32,6 +32,16 @@ withWaiterNotify f = withManagerConf defaultConfig{confDebounce=NoDebounce} $ \m
     var <- newVar Map.empty
     f $ WaiterNotify manager mvar var
 
+-- `listContentsInside test dir` will list files and directories inside `dir`,
+-- recursing into those subdirectories which pass `test`.
+-- Note that `dir` and files it directly contains are always listed, regardless of `test`.
+-- Subdirectories will have a trailing path separator, and are only listed if we recurse into them.
+listContentsInside :: (FilePath -> IO Bool) -> FilePath -> IO [FilePath]
+listContentsInside test dir = do
+    (dirs,files) <- partitionM doesDirectoryExist =<< listContents dir
+    recurse <- filterM test dirs
+    rest <- concatMapM (listContentsInside test) recurse
+    return $ addTrailingPathSeparator dir : files ++ rest
 
 -- | Given the pattern:
 --
@@ -48,8 +58,10 @@ waitFiles waiter = do
     base <- getCurrentTime
     return $ \files -> handle (\(e :: IOError) -> do sleep 1.0; return ["Error when waiting, if this happens repeatedly, raise a ghcid bug.",show e]) $ do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
+        -- As listContentsInside returns directories, we are waiting on them explicitly and so
+        -- will pick up new files, as creating a new file changes the containing directory's modtime.
         files <- fmap concat $ forM files $ \file ->
-            ifM (doesDirectoryExist file) (listFilesInside (return . not . isPrefixOf "." . takeFileName) file) (return [file])
+            ifM (doesDirectoryExist file) (listContentsInside (return . not . isPrefixOf "." . takeFileName) file) (return [file])
         case waiter of
             WaiterPoll t -> return ()
             WaiterNotify manager kick mp -> do
