@@ -45,6 +45,8 @@ There are a few plugins that integrate Ghcid into editors, notably:
 * There is an article on [auto-reloading threepenny-gui apps during development](https://binarin.ru/post/auto-reload-threepenny-gui/).
 * There are a list of [general tips for using Ghcid](http://www.parsonsmatt.org/2018/05/19/ghcid_for_the_win.html).
 
+In general, to use `ghcid`, you first need to get `ghci` working well for you. In particular, craft a command line or `.ghci` file such that when you start `ghci` it has loaded all the files you care about (check `:show modules`). If you want to use `--test` check that whatever expression you want to use works in that `ghci` session. Getting `ghci` started properly is one of the hardest things of using `ghcid`, and while `ghcid` has a lot of defaults for common cases, it doesn't always work out of the box.
+
 ### FAQ
 
 #### This isn't as good as full IDE
