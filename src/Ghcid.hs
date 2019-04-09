@@ -22,7 +22,7 @@ import System.Directory.Extra
 import System.Time.Extra
 import System.Exit
 import System.FilePath
-import System.Process (readProcessWithExitCode)
+import System.Process
 import System.Info
 import System.IO.Extra
 
@@ -77,7 +77,7 @@ options = cmdArgsMode $ Options
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,run = [] &= name "r" &= typ "EXPR" &= opt "main" &= help "Command to run after successful loading (defaults to main)"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
-    ,lint = Nothing &= typ "LINTCMD" &= name "lint" &= opt "hlint" &= help "Run linter if there are no errors. Defaults to hlint."
+    ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
@@ -332,8 +332,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                         whenNormal $ outStrLn "\n...done"
             whenJust lint $ \lintcmd ->
                 unless hasErrors $ do
-                    (exitcode, stdout, _) <- readProcessWithExitCode lintcmd loaded ""
-                    unless (exitcode == ExitSuccess) $ outStrLn stdout
+                    (exitcode, stdout, stderr) <- readProcessWithExitCode lintcmd loaded ""
+                    unless (exitcode == ExitSuccess) $ outStrLn (stdout ++ stderr)
 
             reason <- nextWait $ restart ++ reload ++ loaded
             whenLoud $ outStrLn $ "%RELOADING: " ++ unwords reason
