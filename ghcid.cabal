@@ -60,8 +60,7 @@ executable ghcid
         process >= 1.1,
         cmdargs >= 0.10,
         ansi-terminal,
-        terminal-size >= 0.3,
-        hlint
+        terminal-size >= 0.3
     if os(windows)
         build-depends: Win32
     else

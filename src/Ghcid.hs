@@ -22,6 +22,7 @@ import System.Directory.Extra
 import System.Time.Extra
 import System.Exit
 import System.FilePath
+import System.Process (readProcessWithExitCode)
 import System.Info
 import System.IO.Extra
 
@@ -30,7 +31,6 @@ import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Terminal
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
-import Language.Haskell.HLint3 (hlint)
 import Wait
 
 import Data.Functor
@@ -44,7 +44,7 @@ data Options = Options
     ,test :: [String]
     ,run :: [String]
     ,warnings :: Bool
-    ,lint :: Bool
+    ,lint :: Maybe String
     ,no_status :: Bool
     ,height :: Maybe Int
     ,width :: Maybe Int
@@ -77,7 +77,7 @@ options = cmdArgsMode $ Options
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
     ,run = [] &= name "r" &= typ "EXPR" &= opt "main" &= help "Command to run after successful loading (defaults to main)"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
-    ,lint = False &= name "l" &= help "Show lint suggestions"
+    ,lint = Nothing &= typ "LINTCMD" &= name "lint" &= opt "hlint" &= help "Run linter if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
@@ -284,9 +284,9 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
-            let failed = countErrors /= 0 || (countWarnings /= 0 && not warnings)
+            let hasErrors = countErrors /= 0 || (countWarnings /= 0 && not warnings)
             test <- return $
-                if null test || failed then Nothing
+                if null test || hasErrors then Nothing
                 else Just $ intercalate "\n" test
 
             unless no_title $ setWindowIcon $
@@ -330,9 +330,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                      else do
                         updateTitle "(test done)"
                         whenNormal $ outStrLn "\n...done"
-            when (lint && not failed) $ do
-                lints <- hlint loaded
-                forM_ lints (outStrLn . show)
+            whenJust lint $ \lintcmd ->
+                unless hasErrors $ do
+                    (exitcode, stdout, _) <- readProcessWithExitCode lintcmd loaded ""
+                    unless (exitcode == ExitSuccess) $ outStrLn stdout
 
             reason <- nextWait $ restart ++ reload ++ loaded
             whenLoud $ outStrLn $ "%RELOADING: " ++ unwords reason
