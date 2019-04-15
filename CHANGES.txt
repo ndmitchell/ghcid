@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+0.7.3, released 2019-04-15
     #236, add hlint support, pass --lint
 0.7.2, released 2019-03-12
     #225, allow watching directories for new files
