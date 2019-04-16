@@ -46,6 +46,7 @@ data Options = Options
     ,warnings :: Bool
     ,lint :: Maybe String
     ,no_status :: Bool
+    ,no_height_limit :: Bool
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
@@ -79,6 +80,7 @@ options = cmdArgsMode $ Options
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
+    ,no_height_limit = False &= name "no-height-limit" &= help "Disable height limit"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
@@ -192,7 +194,7 @@ mainWithTerminal termSize termOutput =
                 opts <- return $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
                 when (topmost opts) terminalTopmost
 
-                termSize <- return $ case (width opts, height opts) of
+                termSize <- case (width opts, height opts) of
                     (Just w, Just h) -> return $ TermSize w (Just h) WrapHard
                     (w, h) -> do
                         term <- termSize
@@ -202,6 +204,11 @@ mainWithTerminal termSize termOutput =
                             (fromMaybe (pred $ termWidth term) w)
                             (h <|> termHeight term)
                             (if isJust w then WrapHard else termWrap term)
+
+                termSize <- return $
+                  if no_height_limit opts
+                  then termSize { termHeight = Nothing }
+                  else termSize
 
                 restyle <- do
                     useStyle <- case color opts of
@@ -214,7 +221,7 @@ mainWithTerminal termSize termOutput =
                     return $ if useStyle then id else map unescape
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid session waiter termSize (termOutput . restyle) opts
+                    runGhcid session waiter (return termSize) (termOutput . restyle) opts
 
 
 
