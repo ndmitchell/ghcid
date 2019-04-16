@@ -216,20 +216,18 @@ mainWithTerminal termSize termOutput =
                   then termSize { termHeight = Nothing }
                   else termSize
 
-                supportsANSI <- hSupportsANSI stdout
-
                 restyle <- do
-                    let useStyle = case color opts of
-                          Always -> True
-                          Never -> False
-                          Auto -> supportsANSI
+                    useStyle <- case color opts of
+                        Always -> return True
+                        Never -> return False
+                        Auto -> hSupportsANSI stdout
                     when useStyle $ do
                         h <- lookupEnv "HSPEC_OPTIONS"
                         when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
                     return $ if useStyle then id else map unescape
 
                 clear <- return $
-                  if clear opts && supportsANSI
+                  if clear opts
                   then (clearScreen *>)
                   else id
 
