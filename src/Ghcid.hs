@@ -6,6 +6,7 @@ module Ghcid(main, mainWithTerminal, TermSize(..), WordWrap(..)) where
 
 import Control.Exception
 import System.IO.Error
+import Control.Applicative
 import Control.Monad.Extra
 import Data.List.Extra
 import Data.Maybe
@@ -33,7 +34,6 @@ import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Wait
 
-import Data.Functor
 import Prelude
 
 
@@ -167,7 +167,7 @@ withGhcidArgs act = do
 
 data TermSize = TermSize
     {termWidth :: Int
-    ,termHeight :: Int
+    ,termHeight :: Maybe Int
     ,termWrap :: WordWrap
     }
 
@@ -193,14 +193,14 @@ mainWithTerminal termSize termOutput =
                 when (topmost opts) terminalTopmost
 
                 termSize <- return $ case (width opts, height opts) of
-                    (Just w, Just h) -> return $ TermSize w h WrapHard
+                    (Just w, Just h) -> return $ TermSize w (Just h) WrapHard
                     (w, h) -> do
                         term <- termSize
                         -- if we write to the final column of the window then it wraps automatically
                         -- so putStrLn width 'x' uses up two lines
                         return $ TermSize
                             (fromMaybe (pred $ termWidth term) w)
-                            (fromMaybe (termHeight term) h)
+                            (h <|> termHeight term)
                             (if isJust w then WrapHard else termWrap term)
 
                 restyle <- do
@@ -224,8 +224,8 @@ main = mainWithTerminal termSize termOutput
         termSize = do
             x <- Term.size
             return $ case x of
-                Nothing -> TermSize 80 8 WrapHard
-                Just t -> TermSize (Term.width t) (Term.height t) WrapSoft
+                Nothing -> TermSize 80 (Just 8) WrapHard
+                Just t -> TermSize (Term.width t) (Just $ Term.height t) WrapSoft
 
         termOutput xs = do
             outStr $ concatMap ('\n':) xs
@@ -247,9 +247,13 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 Just (loadedCount, msgs) -> prettyOutput currTime loadedCount $ filter isMessage msgs
             TermSize{..} <- termSize
             let wrap = concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc)
-            (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
-            (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
-            let pad = replicate termHeight ""
+            (msg, load, pad) <-
+              case termHeight of
+                Nothing -> return (wrap msg, wrap load, [])
+                Just termHeight -> do
+                  (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
+                  (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
+                  return (msg, load, replicate termHeight "")
             let mergeSoft ((Esc x,WrapSoft):(Esc y,q):xs) = mergeSoft $ (Esc (x++y), q) : xs
                 mergeSoft ((x,_):xs) = x : mergeSoft xs
                 mergeSoft [] = []
