@@ -141,9 +141,7 @@ autoOptions o@Options{..}
         stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
         let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
-        let opts = ["-fno-code" | null test && null run]
-                ++ ["-freverse-errors" | reversed ]
-                ++ ghciFlagsRequired ++ ghciFlagsUseful
+        let opts = ["-fno-code" | null test && null run] ++ ghciFlagsRequired ++ ghciFlagsUseful
         return $ case () of
             _ | Just stack <- stack ->
                 let flags = if null arguments then
@@ -329,10 +327,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 -- sort error messages by modtime, so newer edits cause the errors to float to the top - see #153
                 errTimes <- sequence [(x,) <$> getModTime x | x <- nubOrd $ map loadFile msgError]
                 let f x = lookup (loadFile x) errTimes
-                return $
-                  if reversed
-                  then msgWarn ++ sortOn f msgError
-                  else sortOn (Down . f) msgError ++ msgWarn
+                    moduleSorted = sortOn (Down . f) msgError ++ msgWarn
+                return $ (if reversed then reverse else id) moduleSorted
 
             outputFill currTime (Just (loadedCount, ordMessages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
