@@ -47,7 +47,7 @@ data Options = Options
     ,lint :: Maybe String
     ,no_status :: Bool
     ,clear :: Bool
-    ,reversed :: Bool
+    ,reverse_errors :: Bool
     ,no_height_limit :: Bool
     ,height :: Maybe Int
     ,width :: Maybe Int
@@ -83,7 +83,7 @@ options = cmdArgsMode $ Options
     ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
     ,clear = False &= name "clear" &= help "Clear screen when reloading"
-    ,reversed = False &=name "reversed" &= help "Reverse output order"
+    ,reverse_errors = False &= help "Reverse output order (works best with --no-height-limit)"
     ,no_height_limit = False &= name "no-height-limit" &= help "Disable height limit"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
@@ -328,7 +328,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 errTimes <- sequence [(x,) <$> getModTime x | x <- nubOrd $ map loadFile msgError]
                 let f x = lookup (loadFile x) errTimes
                     moduleSorted = sortOn (Down . f) msgError ++ msgWarn
-                return $ (if reversed then reverse else id) moduleSorted
+                return $ (if reverse_errors then reverse else id) moduleSorted
 
             outputFill currTime (Just (loadedCount, ordMessages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
