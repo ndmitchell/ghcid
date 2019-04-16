@@ -46,6 +46,7 @@ data Options = Options
     ,warnings :: Bool
     ,lint :: Maybe String
     ,no_status :: Bool
+    ,clear :: Bool
     ,reversed :: Bool
     ,no_height_limit :: Bool
     ,height :: Maybe Int
@@ -81,6 +82,7 @@ options = cmdArgsMode $ Options
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
+    ,clear = False &= name "clear" &= help "Clear screen when reloading"
     ,reversed = False &=name "reversed" &= help "Reverse output order"
     ,no_height_limit = False &= name "no-height-limit" &= help "Disable height limit"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
@@ -214,18 +216,25 @@ mainWithTerminal termSize termOutput =
                   then termSize { termHeight = Nothing }
                   else termSize
 
+                supportsANSI <- hSupportsANSI stdout
+
                 restyle <- do
-                    useStyle <- case color opts of
-                        Always -> return True
-                        Never -> return False
-                        Auto -> hSupportsANSI stdout
+                    let useStyle = case color opts of
+                          Always -> True
+                          Never -> False
+                          Auto -> supportsANSI
                     when useStyle $ do
                         h <- lookupEnv "HSPEC_OPTIONS"
                         when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
                     return $ if useStyle then id else map unescape
 
+                clear <- return $
+                  if clear opts && supportsANSI
+                  then (clearScreen *>)
+                  else id
+
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid session waiter (return termSize) (termOutput . restyle) opts
+                    runGhcid session waiter (return termSize) (clear . termOutput . restyle) opts
 
 
 
