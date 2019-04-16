@@ -46,6 +46,7 @@ data Options = Options
     ,warnings :: Bool
     ,lint :: Maybe String
     ,no_status :: Bool
+    ,reversed :: Bool
     ,no_height_limit :: Bool
     ,height :: Maybe Int
     ,width :: Maybe Int
@@ -80,6 +81,7 @@ options = cmdArgsMode $ Options
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
+    ,reversed = False &=name "reversed" &= help "Reverse output order"
     ,no_height_limit = False &= name "no-height-limit" &= help "Disable height limit"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
@@ -137,7 +139,9 @@ autoOptions o@Options{..}
         stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
         let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
-        let opts = ["-fno-code" | null test && null run] ++ ghciFlagsRequired ++ ghciFlagsUseful
+        let opts = ["-fno-code" | null test && null run]
+                ++ ["-freverse-errors" | reversed ]
+                ++ ghciFlagsRequired ++ ghciFlagsUseful
         return $ case () of
             _ | Just stack <- stack ->
                 let flags = if null arguments then
@@ -318,7 +322,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 -- sort error messages by modtime, so newer edits cause the errors to float to the top - see #153
                 errTimes <- sequence [(x,) <$> getModTime x | x <- nubOrd $ map loadFile msgError]
                 let f x = lookup (loadFile x) errTimes
-                return $ sortOn (Down . f) msgError ++ msgWarn
+                return $
+                  if reversed
+                  then msgWarn ++ sortOn f msgError
+                  else sortOn (Down . f) msgError ++ msgWarn
 
             outputFill currTime (Just (loadedCount, ordMessages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
