@@ -173,7 +173,7 @@ withGhcidArgs act = do
 
 data TermSize = TermSize
     {termWidth :: Int
-    ,termHeight :: Maybe Int
+    ,termHeight :: Maybe Int -- ^ Nothing means the height is unlimited
     ,termWrap :: WordWrap
     }
 
@@ -210,9 +210,9 @@ mainWithTerminal termSize termOutput =
                             (if isJust w then WrapHard else termWrap term)
 
                 termSize <- return $
-                  if no_height_limit opts
-                  then termSize { termHeight = Nothing }
-                  else termSize
+                    if no_height_limit opts
+                    then termSize { termHeight = Nothing }
+                    else termSize
 
                 restyle <- do
                     useStyle <- case color opts of
@@ -225,9 +225,9 @@ mainWithTerminal termSize termOutput =
                     return $ if useStyle then id else map unescape
 
                 clear <- return $
-                  if clear opts
-                  then (clearScreen *>)
-                  else id
+                    if clear opts
+                    then (clearScreen *>)
+                    else id
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
                     runGhcid session waiter (return termSize) (clear . termOutput . restyle) opts
@@ -264,12 +264,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             TermSize{..} <- termSize
             let wrap = concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc)
             (msg, load, pad) <-
-              case termHeight of
-                Nothing -> return (wrap msg, wrap load, [])
-                Just termHeight -> do
-                  (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
-                  (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
-                  return (msg, load, replicate termHeight "")
+                case termHeight of
+                    Nothing -> return (wrap msg, wrap load, [])
+                    Just termHeight -> do
+                        (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
+                        (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
+                        return (msg, load, replicate termHeight "")
             let mergeSoft ((Esc x,WrapSoft):(Esc y,q):xs) = mergeSoft $ (Esc (x++y), q) : xs
                 mergeSoft ((x,_):xs) = x : mergeSoft xs
                 mergeSoft [] = []
