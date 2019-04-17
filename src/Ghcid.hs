@@ -268,12 +268,24 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     Nothing -> return (wrap msg, wrap load, [])
                     Just termHeight -> do
                         (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
-                        (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
+                        (termHeight, load) <-
+                            let takeRemainder' =
+                                    if reverse_errors
+                                    then -- When reversing the errors we want to crop out
+                                         -- the top instead of the bottom of the load
+                                         fmap reverse . takeRemainder termHeight . reverse
+                                    else takeRemainder termHeight
+                            in return $ takeRemainder' $ wrap load
                         return (msg, load, replicate termHeight "")
             let mergeSoft ((Esc x,WrapSoft):(Esc y,q):xs) = mergeSoft $ (Esc (x++y), q) : xs
                 mergeSoft ((x,_):xs) = x : mergeSoft xs
                 mergeSoft [] = []
-            termOutput $ map fromEsc ((if termWrap == WrapSoft then mergeSoft else map fst) $ load ++ msg) ++ pad
+
+                applyPadding x =
+                    if reverse_errors
+                    then pad ++ x
+                    else x ++ pad
+            termOutput $ applyPadding $ map fromEsc ((if termWrap == WrapSoft then mergeSoft else map fst) $ load ++ msg)
 
     when (ignoreLoaded && null reload) $ do
         putStrLn "--reload must be set when using --ignore-loaded"
