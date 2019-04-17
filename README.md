@@ -75,3 +75,6 @@ Due to limitations in `ghci`, these flags are only set _after_ the first load. I
 
 #### I want to match on the file/line/column to get jump-to-error functionality in my editor.
 You will variously see `file:line:col:message`, `file:line:col1-col2:msg` and `file:(line1,col1)-(line2,col2):message`, as these are the formats GHC uses. To match all of them you can use a regular expression such as `^(\\S*?):(?|(\\d+):(\\d+)(?:-\\d+)?|\\((\\d+),(\\d+)\\)-\\(\\d+,\\d+\\)):([^\n]*)`.
+
+#### What if the error message is too big for my console?
+You can let `ghcid` print more with `--no-height-limit`. The first error message might end up outside of the console view, so you can use `--reverse-errors` to flip the order of the errors and warnings. Further error messages are just a scroll away. Finally if you're going to be scrolling, you can achieve a cleaner experience with the `--clear` flag, which clears the console on reload.

@@ -6,6 +6,7 @@ module Ghcid(main, mainWithTerminal, TermSize(..), WordWrap(..)) where
 
 import Control.Exception
 import System.IO.Error
+import Control.Applicative
 import Control.Monad.Extra
 import Data.List.Extra
 import Data.Maybe
@@ -33,7 +34,6 @@ import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Wait
 
-import Data.Functor
 import Prelude
 
 
@@ -46,6 +46,9 @@ data Options = Options
     ,warnings :: Bool
     ,lint :: Maybe String
     ,no_status :: Bool
+    ,clear :: Bool
+    ,reverse_errors :: Bool
+    ,no_height_limit :: Bool
     ,height :: Maybe Int
     ,width :: Maybe Int
     ,topmost :: Bool
@@ -79,6 +82,9 @@ options = cmdArgsMode $ Options
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
+    ,clear = False &= name "clear" &= help "Clear screen when reloading"
+    ,reverse_errors = False &= help "Reverse output order (works best with --no-height-limit)"
+    ,no_height_limit = False &= name "no-height-limit" &= help "Disable height limit"
     ,height = Nothing &= help "Number of lines to use (defaults to console height)"
     ,width = Nothing &= name "w" &= help "Number of columns to use (defaults to console width)"
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
@@ -167,7 +173,7 @@ withGhcidArgs act = do
 
 data TermSize = TermSize
     {termWidth :: Int
-    ,termHeight :: Int
+    ,termHeight :: Maybe Int -- ^ Nothing means the height is unlimited
     ,termWrap :: WordWrap
     }
 
@@ -192,16 +198,21 @@ mainWithTerminal termSize termOutput =
                 opts <- return $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
                 when (topmost opts) terminalTopmost
 
-                termSize <- return $ case (width opts, height opts) of
-                    (Just w, Just h) -> return $ TermSize w h WrapHard
+                termSize <- case (width opts, height opts) of
+                    (Just w, Just h) -> return $ TermSize w (Just h) WrapHard
                     (w, h) -> do
                         term <- termSize
                         -- if we write to the final column of the window then it wraps automatically
                         -- so putStrLn width 'x' uses up two lines
                         return $ TermSize
                             (fromMaybe (pred $ termWidth term) w)
-                            (fromMaybe (termHeight term) h)
+                            (h <|> termHeight term)
                             (if isJust w then WrapHard else termWrap term)
+
+                termSize <- return $
+                    if no_height_limit opts
+                    then termSize { termHeight = Nothing }
+                    else termSize
 
                 restyle <- do
                     useStyle <- case color opts of
@@ -213,8 +224,13 @@ mainWithTerminal termSize termOutput =
                         when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
                     return $ if useStyle then id else map unescape
 
+                clear <- return $
+                    if clear opts
+                    then (clearScreen *>)
+                    else id
+
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid session waiter termSize (termOutput . restyle) opts
+                    runGhcid session waiter (return termSize) (clear . termOutput . restyle) opts
 
 
 
@@ -224,8 +240,8 @@ main = mainWithTerminal termSize termOutput
         termSize = do
             x <- Term.size
             return $ case x of
-                Nothing -> TermSize 80 8 WrapHard
-                Just t -> TermSize (Term.width t) (Term.height t) WrapSoft
+                Nothing -> TermSize 80 (Just 8) WrapHard
+                Just t -> TermSize (Term.width t) (Just $ Term.height t) WrapSoft
 
         termOutput xs = do
             outStr $ concatMap ('\n':) xs
@@ -247,9 +263,13 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 Just (loadedCount, msgs) -> prettyOutput currTime loadedCount $ filter isMessage msgs
             TermSize{..} <- termSize
             let wrap = concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc)
-            (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
-            (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
-            let pad = replicate termHeight ""
+            (msg, load, pad) <-
+                case termHeight of
+                    Nothing -> return (wrap msg, wrap load, [])
+                    Just termHeight -> do
+                        (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
+                        (termHeight, load) <- return $ takeRemainder termHeight $ wrap load
+                        return (msg, load, replicate termHeight "")
             let mergeSoft ((Esc x,WrapSoft):(Esc y,q):xs) = mergeSoft $ (Esc (x++y), q) : xs
                 mergeSoft ((x,_):xs) = x : mergeSoft xs
                 mergeSoft [] = []
@@ -307,7 +327,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 -- sort error messages by modtime, so newer edits cause the errors to float to the top - see #153
                 errTimes <- sequence [(x,) <$> getModTime x | x <- nubOrd $ map loadFile msgError]
                 let f x = lookup (loadFile x) errTimes
-                return $ sortOn (Down . f) msgError ++ msgWarn
+                    moduleSorted = sortOn (Down . f) msgError ++ msgWarn
+                return $ (if reverse_errors then reverse else id) moduleSorted
 
             outputFill currTime (Just (loadedCount, ordMessages)) ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
