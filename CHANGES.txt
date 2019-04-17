@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+0.7.4, released 2019-04-17
     #237, ability to cope better with large error messages
     #237, add --clear, --no-height-limit, --reverse-errors
 0.7.3, released 2019-04-15
