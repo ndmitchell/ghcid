@@ -78,7 +78,7 @@ options = cmdArgsMode $ Options
     {command = "" &= name "c" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,arguments = [] &= args &= typ "MODULE"
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
-    ,run = [] &= name "r" &= typ "EXPR" &= opt "main" &= help "Command to run after successful loading (defaults to main)"
+    ,run = [] &= name "r" &= typ "EXPR" &= opt "main" &= help "Command to run after successful loading (like --test but defaults to main)"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
     ,no_status = False &= name "S" &= help "Suppress status messages"
