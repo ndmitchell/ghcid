@@ -37,6 +37,7 @@ There are a few plugins that integrate Ghcid into editors, notably:
 
 * [VS Code](plugins/vscode/)
 * [nvim](plugins/nvim/)
+* [vim](https://github.com/aiya000/vim-ghcid-quickfix)
 * [Emacs](plugins/emacs/)
 
 ### Usage tips
