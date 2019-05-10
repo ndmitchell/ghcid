@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #245, link with -rtsopts to be able to use RTS flags
 0.7.4, released 2019-04-17
     #237, ability to cope better with large error messages
     #237, add --clear, --no-height-limit, --reverse-errors
