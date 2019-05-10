@@ -47,7 +47,7 @@ library
 executable ghcid
     hs-source-dirs: src
     default-language: Haskell2010
-    ghc-options: -main-is Ghcid.main -threaded
+    ghc-options: -main-is Ghcid.main -threaded -rtsopts
     main-is: Ghcid.hs
     build-depends:
         base >= 4.7 && < 5,
