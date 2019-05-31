@@ -3,7 +3,7 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, withSession,
+    Session(allowEval), withSession,
     sessionStart, sessionReload,
     sessionExecAsync,
     ) where
@@ -36,6 +36,7 @@ data Session = Session
     ,curdir :: IORef FilePath -- ^ The current working directory
     ,running :: Var Bool -- ^ Am I actively running an async command
     ,withThread :: ThreadId -- ^ Thread that called withSession
+    ,allowEval :: Bool  -- ^ Is the allow-eval flag set?
     }
 
 
@@ -53,6 +54,7 @@ withSession f = do
     running <- newVar False
     debugShutdown "Starting session"
     withThread <- myThreadId
+    let allowEval = False
     f Session{..} `finally` do
         debugShutdown "Start finally"
         modifyVar_ running $ const $ return False
@@ -109,7 +111,7 @@ sessionStart Session{..} cmd setup = do
     messages <- return $ qualify dir messages
 
     let loaded = loadedModules messages
-    evals <- performEvals v loaded
+    evals <- performEvals v allowEval loaded
 
     -- install a handler
     forkIO $ do
@@ -132,8 +134,9 @@ sessionRestart session@Session{..} = do
     sessionStart session cmd setup
 
 
-performEvals :: Ghci -> [FilePath] -> IO [Load]
-performEvals ghci reloaded = do
+performEvals :: Ghci -> Bool -> [FilePath] -> IO [Load]
+performEvals _ False _ = pure []
+performEvals ghci True reloaded = do
   cmds <- traverse getCommands reloaded
   fmap join $ flip traverse cmds $ \(file, cmds') ->
     flip traverse cmds' $ \(num, cmd) -> do
@@ -153,11 +156,14 @@ splitCommands [] = []
 splitCommands ((num, line) : ls)
   | isCommand line =
       let (cmds, xs) = span (isCommand . snd) ls
-       in (num, unlines $ fmap (drop 5) $ line : fmap snd cmds) : splitCommands xs
+       in (num, unlines $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
   | otherwise = splitCommands ls
 
 isCommand :: String -> Bool
-isCommand = isPrefixOf "-- > "
+isCommand = isPrefixOf commandPrefix
+
+commandPrefix :: String
+commandPrefix = "-- > "
 
 
 
@@ -181,7 +187,7 @@ sessionReload session@Session{..} = do
         loaded <- map ((dir </>) . snd) <$> showModules ghci
         let reloaded = loadedModules messages
         warn <- readIORef warnings
-        evals <- performEvals ghci reloaded
+        evals <- performEvals ghci allowEval reloaded
 
         -- only keep old warnings from files that are still loaded, but did not reload
         let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded

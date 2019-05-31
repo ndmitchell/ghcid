@@ -63,6 +63,7 @@ data Options = Options
     ,max_messages :: Maybe Int
     ,color :: ColorMode
     ,setup :: [String]
+    ,allow_eval :: Bool
     }
     deriving (Data,Typeable,Show)
 
@@ -99,6 +100,7 @@ options = cmdArgsMode $ Options
     ,max_messages = Nothing &= name "n" &= help "Maximum number of messages to print"
     ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
     ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
+    ,allow_eval = False &= name "allow-eval" &= help "Allow execution of arbitrary REPL commands in comments"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -230,7 +232,7 @@ mainWithTerminal termSize termOutput =
                     else id
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid session waiter (return termSize) (clear . termOutput . restyle) opts
+                    runGhcid session{allowEval = allow_eval opts} waiter (return termSize) (clear . termOutput . restyle) opts
 
 
 
