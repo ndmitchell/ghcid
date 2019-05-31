@@ -8,6 +8,7 @@ module Session(
     sessionExecAsync,
     ) where
 
+import Data.List (isPrefixOf)
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
@@ -23,6 +24,9 @@ import Data.Maybe
 import Data.List.Extra
 import Control.Applicative
 import Prelude
+import Data.Foldable
+import Data.Char
+import Data.Function
 
 
 data Session = Session
@@ -125,6 +129,25 @@ sessionRestart session@Session{..} = do
     sessionStart session cmd setup
 
 
+getCommands :: FilePath -> IO (FilePath, [String])
+getCommands fp = do
+  ls <- readFile fp
+  pure (fp, splitCommands $ lines ls)
+
+splitCommands :: [String] -> [String]
+splitCommands [] = []
+splitCommands (line : ls)
+  | isCommand line =
+      let (cmds, xs) = span isCommand ls
+       in (unlines $ fmap (drop 5) $ line : cmds) : splitCommands xs
+  | otherwise = splitCommands ls
+
+isCommand :: String -> Bool
+isCommand = isPrefixOf "-- > "
+
+
+
+
 -- | Reload, returning the same information as 'sessionStart'. In particular, any
 --   information that GHCi doesn't repeat (warnings from loaded modules) will be
 --   added back in.
@@ -144,6 +167,13 @@ sessionReload session@Session{..} = do
         loaded <- map ((dir </>) . snd) <$> showModules ghci
         let reloaded = loadedModules messages
         warn <- readIORef warnings
+
+        cmds <- traverse getCommands reloaded
+        for_ cmds $ \(file, cmds') -> when (not $ null cmds') $ do
+          putStrLn $ "running cmds for file: " ++ file
+          for_ cmds' $ \cmd -> do
+            putStrLn $ unlines $ zipWith (++) ("> " : repeat "  ") $ lines cmd
+            execStream ghci (intercalate " " $ lines cmd) $ \_ resp -> putStrLn resp
 
         -- only keep old warnings from files that are still loaded, but did not reload
         let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
