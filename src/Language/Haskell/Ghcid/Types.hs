@@ -45,6 +45,13 @@ data Load
       LoadConfig
         {loadFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
         }
+    | -- | A config file was loaded, usually a .ghci file (GHC 8.2 and above only)
+      EvalResult
+        {loadFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
+        ,loadFilePos :: (Int, Int)
+        ,evalCommand :: String
+        ,evalResult :: String
+        }
     deriving (Show, Eq, Ord)
 
 -- | Is a 'Load' a 'Message'?

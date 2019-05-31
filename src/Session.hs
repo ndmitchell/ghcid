@@ -108,6 +108,9 @@ sessionStart Session{..} cmd setup = do
     writeIORef curdir dir
     messages <- return $ qualify dir messages
 
+    let loaded = loadedModules messages
+    evals <- performEvals v loaded
+
     -- install a handler
     forkIO $ do
         waitForProcess $ process v
@@ -119,7 +122,7 @@ sessionStart Session{..} cmd setup = do
     -- handle what the process returned
     messages <- return $ mapMaybe tidyMessage messages
     writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
-    return (messages, loadedModules messages)
+    return (messages ++ evals, loaded)
 
 
 -- | Call 'sessionStart' at the previous command.
@@ -129,17 +132,28 @@ sessionRestart session@Session{..} = do
     sessionStart session cmd setup
 
 
-getCommands :: FilePath -> IO (FilePath, [String])
+performEvals :: Ghci -> [FilePath] -> IO [Load]
+performEvals ghci reloaded = do
+  cmds <- traverse getCommands reloaded
+  fmap join $ flip traverse cmds $ \(file, cmds') ->
+    flip traverse cmds' $ \(num, cmd) -> do
+      ref <- newIORef []
+      execStream ghci (intercalate " " $ lines cmd) $ \_ resp -> modifyIORef ref (++ resp)
+      resp <- readIORef ref
+      pure $ EvalResult file (num, 1) cmd resp
+
+
+getCommands :: FilePath -> IO (FilePath, [(Int, String)])
 getCommands fp = do
   ls <- readFile fp
-  pure (fp, splitCommands $ lines ls)
+  pure (fp, splitCommands $ zip [1..] $ lines ls)
 
-splitCommands :: [String] -> [String]
+splitCommands :: [(Int, String)] -> [(Int, String)]
 splitCommands [] = []
-splitCommands (line : ls)
+splitCommands ((num, line) : ls)
   | isCommand line =
-      let (cmds, xs) = span isCommand ls
-       in (unlines $ fmap (drop 5) $ line : cmds) : splitCommands xs
+      let (cmds, xs) = span (isCommand . snd) ls
+       in (num, unlines $ fmap (drop 5) $ line : fmap snd cmds) : splitCommands xs
   | otherwise = splitCommands ls
 
 isCommand :: String -> Bool
@@ -167,13 +181,7 @@ sessionReload session@Session{..} = do
         loaded <- map ((dir </>) . snd) <$> showModules ghci
         let reloaded = loadedModules messages
         warn <- readIORef warnings
-
-        cmds <- traverse getCommands reloaded
-        for_ cmds $ \(file, cmds') -> when (not $ null cmds') $ do
-          putStrLn $ "running cmds for file: " ++ file
-          for_ cmds' $ \cmd -> do
-            putStrLn $ unlines $ zipWith (++) ("> " : repeat "  ") $ lines cmd
-            execStream ghci (intercalate " " $ lines cmd) $ \_ resp -> putStrLn resp
+        evals <- performEvals ghci reloaded
 
         -- only keep old warnings from files that are still loaded, but did not reload
         let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
@@ -181,7 +189,7 @@ sessionReload session@Session{..} = do
         messages <- return $ messages ++ filter validWarn warn
 
         writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
-        return (messages, nubOrd $ loaded ++ reloaded)
+        return (messages ++ evals, nubOrd $ loaded ++ reloaded)
 
 
 -- | Run an exec operation asynchronously. Should not be a @:reload@ or similar.

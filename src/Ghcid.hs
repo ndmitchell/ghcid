@@ -256,11 +256,11 @@ runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let limitMessages = maybe id (take . max 1) max_messages
 
-    let outputFill :: String -> Maybe (Int, [Load]) -> [String] -> IO ()
-        outputFill currTime load msg = do
+    let outputFill :: String -> Maybe (Int, [Load]) -> [((FilePath, (Int, Int)), (String, String))] -> [String] -> IO ()
+        outputFill currTime load evals msg = do
             load <- return $ case load of
                 Nothing -> []
-                Just (loadedCount, msgs) -> prettyOutput currTime loadedCount $ filter isMessage msgs
+                Just (loadedCount, msgs) -> prettyOutput currTime loadedCount (filter isMessage msgs) evals
             TermSize{..} <- termSize
             let wrap = concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc)
             (msg, load, pad) <-
@@ -314,6 +314,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 outStrLn $ "%MESSAGES: " ++ show messages
                 outStrLn $ "%LOADED: " ++ show loaded
 
+            let evals = [((loadFile e, loadFilePos e), (evalCommand e, evalResult e)) | e@EvalResult {} <- messages]
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
             let hasErrors = countErrors /= 0 || (countWarnings /= 0 && not warnings)
@@ -342,13 +343,13 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     moduleSorted = sortOn (Down . f) msgError ++ msgWarn
                 return $ (if reverse_errors then reverse else id) moduleSorted
 
-            outputFill currTime (Just (loadedCount, ordMessages)) ["Running test..." | isJust test]
+            outputFill currTime (Just (loadedCount, ordMessages)) evals ["Running test..." | isJust test]
             forM_ outputfile $ \file ->
                 writeFile file $
                     if takeExtension file == ".json" then
                         showJSON [("loaded",map jString loaded),("messages",map jMessage $ filter isMessage messages)]
                     else
-                        unlines $ map unescape $ prettyOutput currTime loadedCount $ limitMessages ordMessages
+                        unlines $ map unescape $ prettyOutput currTime loadedCount (limitMessages ordMessages) evals
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -375,10 +376,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             currTime <- getShortTime
             if not $ null restartChanged then do
                 -- exit cleanly, since the whole thing is wrapped in a forever
-                unless no_status $ outputFill currTime Nothing $ "Restarting..." : map ("  " ++) restartChanged
+                unless no_status $ outputFill currTime Nothing evals $ "Restarting..." : map ("  " ++) restartChanged
                 return Continue
             else do
-                unless no_status $ outputFill currTime Nothing $ "Reloading..." : map ("  " ++) reason
+                unless no_status $ outputFill currTime Nothing evals $ "Reloading..." : map ("  " ++) reason
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
 
@@ -386,10 +387,24 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: String -> Int -> [Load] -> [String]
-prettyOutput currTime loadedCount [] =
-    [allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")"]
-prettyOutput _ _ xs = concatMap loadMessage xs
+prettyOutput :: String -> Int -> [Load] -> [((FilePath, (Int, Int)), (String, String))] -> [String]
+prettyOutput currTime loadedCount [] evals =
+    [allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")"
+    ] ++ concatMap printEval evals
+prettyOutput _ _ xs evals = concatMap loadMessage xs ++ concatMap printEval evals
+
+printEval :: ((FilePath, (Int, Int)), (String, String)) -> [String]
+printEval ((file, (line, col)), (msg, result)) = do
+  [ " "
+    , mconcat
+        [ file
+        , ":"
+        , show line
+        , ":"
+        , show col
+        ]
+    ] ++ (zipWith (++) (repeat "λ> ") $ lines msg)
+      ++ lines result
 
 
 showJSON :: [(String, [String])] -> String
