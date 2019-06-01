@@ -142,8 +142,8 @@ performEvals ghci True reloaded = do
     fmap join $ forM cmds $ \(file, cmds') ->
         forM cmds' $ \(num, cmd) -> do
             ref <- newIORef []
-            execStream ghci (unwords $ lines cmd) $ \_ resp -> modifyIORef ref (++ resp)
-            resp <- readIORef ref
+            execStream ghci (unwords $ lines cmd) $ \_ resp -> modifyIORef ref (resp :)
+            resp <- concat . reverse <$> readIORef ref
             return $ EvalResult file (num, 1) cmd resp
 
 
