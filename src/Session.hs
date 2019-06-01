@@ -27,6 +27,7 @@ import Prelude
 import Data.Foldable
 import Data.Char
 import Data.Function
+import System.IO.Extra
 
 
 data Session = Session
@@ -148,7 +149,7 @@ performEvals ghci True reloaded = do
 
 getCommands :: FilePath -> IO (FilePath, [(Int, String)])
 getCommands fp = do
-    ls <- readFile fp
+    ls <- readFileUTF8' fp
     return (fp, splitCommands $ zipFrom 1 $ lines ls)
 
 splitCommands :: [(Int, String)] -> [(Int, String)]
