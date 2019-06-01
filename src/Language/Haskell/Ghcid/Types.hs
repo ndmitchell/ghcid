@@ -45,7 +45,7 @@ data Load
       LoadConfig
         {loadFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
         }
-    | -- | A config file was loaded, usually a .ghci file (GHC 8.2 and above only)
+    | -- | A response to an eval comment
       EvalResult
         {loadFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
         ,loadFilePos :: (Int, Int)

@@ -391,12 +391,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 -- | Given an available height, and a set of messages to display, show them as best you can.
 prettyOutput :: String -> Int -> [Load] -> [((FilePath, (Int, Int)), (String, String))] -> [String]
 prettyOutput currTime loadedCount [] evals =
-    [allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")"
-    ] ++ concatMap printEval evals
+    (allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")")
+        : concatMap printEval evals
 prettyOutput _ _ xs evals = concatMap loadMessage xs ++ concatMap printEval evals
 
 printEval :: ((FilePath, (Int, Int)), (String, String)) -> [String]
-printEval ((file, (line, col)), (msg, result)) = do
+printEval ((file, (line, col)), (msg, result)) =
   [ " "
     , concat
         [ file
@@ -405,7 +405,7 @@ printEval ((file, (line, col)), (msg, result)) = do
         , ":"
         , show col
         ]
-    ] ++ (map ("$> " ++) $ lines msg)
+    ] ++ map ("$> " ++) (lines msg)
       ++ lines result
 
 
