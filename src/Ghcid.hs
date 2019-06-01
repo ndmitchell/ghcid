@@ -100,7 +100,7 @@ options = cmdArgsMode $ Options
     ,max_messages = Nothing &= name "n" &= help "Maximum number of messages to print"
     ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
     ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
-    ,allow_eval = False &= name "allow-eval" &= help "Allow execution of arbitrary REPL commands in comments"
+    ,allow_eval = False &= name "allow-eval" &= help "Execute REPL commands in comments"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -398,14 +398,14 @@ prettyOutput _ _ xs evals = concatMap loadMessage xs ++ concatMap printEval eval
 printEval :: ((FilePath, (Int, Int)), (String, String)) -> [String]
 printEval ((file, (line, col)), (msg, result)) = do
   [ " "
-    , mconcat
+    , concat
         [ file
         , ":"
         , show line
         , ":"
         , show col
         ]
-    ] ++ (zipWith (++) (repeat "λ> ") $ lines msg)
+    ] ++ (map ("$> " ++) $ lines msg)
       ++ lines result
 
 

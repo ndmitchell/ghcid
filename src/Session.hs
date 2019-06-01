@@ -135,29 +135,29 @@ sessionRestart session@Session{..} = do
 
 
 performEvals :: Ghci -> Bool -> [FilePath] -> IO [Load]
-performEvals _ False _ = pure []
+performEvals _ False _ = return []
 performEvals ghci True reloaded = do
-  cmds <- traverse getCommands reloaded
-  fmap join $ flip traverse cmds $ \(file, cmds') ->
-    flip traverse cmds' $ \(num, cmd) -> do
-      ref <- newIORef []
-      execStream ghci (intercalate " " $ lines cmd) $ \_ resp -> modifyIORef ref (++ resp)
-      resp <- readIORef ref
-      pure $ EvalResult file (num, 1) cmd resp
+    cmds <- mapM getCommands reloaded
+    fmap join $ forM cmds $ \(file, cmds') ->
+        forM cmds' $ \(num, cmd) -> do
+            ref <- newIORef []
+            execStream ghci (intercalate " " $ lines cmd) $ \_ resp -> modifyIORef ref (++ resp)
+            resp <- readIORef ref
+            return $ EvalResult file (num, 1) cmd resp
 
 
 getCommands :: FilePath -> IO (FilePath, [(Int, String)])
 getCommands fp = do
-  ls <- readFile fp
-  pure (fp, splitCommands $ zip [1..] $ lines ls)
+    ls <- readFile fp
+    return (fp, splitCommands $ zipFrom 1 $ lines ls)
 
 splitCommands :: [(Int, String)] -> [(Int, String)]
 splitCommands [] = []
 splitCommands ((num, line) : ls)
-  | isCommand line =
-      let (cmds, xs) = span (isCommand . snd) ls
-       in (num, unlines $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
-  | otherwise = splitCommands ls
+    | isCommand line =
+          let (cmds, xs) = span (isCommand . snd) ls
+           in (num, unlines $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
+    | otherwise = splitCommands ls
 
 isCommand :: String -> Bool
 isCommand = isPrefixOf commandPrefix
