@@ -167,7 +167,7 @@ isCommand :: String -> Bool
 isCommand = isPrefixOf commandPrefix
 
 commandPrefix :: String
-commandPrefix = "-- > "
+commandPrefix = "-- $> "
 
 
 
