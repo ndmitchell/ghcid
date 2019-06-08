@@ -232,7 +232,7 @@ mainWithTerminal termSize termOutput =
                     else id
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid session{allowEval = allow_eval opts} waiter (return termSize) (clear . termOutput . restyle) opts
+                    runGhcid (if allow_eval opts then enableEval session else session) waiter (return termSize) (clear . termOutput . restyle) opts
 
 
 

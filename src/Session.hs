@@ -3,7 +3,7 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session(allowEval), withSession,
+    Session, enableEval, withSession,
     sessionStart, sessionReload,
     sessionExecAsync,
     ) where
@@ -39,6 +39,9 @@ data Session = Session
     ,withThread :: ThreadId -- ^ Thread that called withSession
     ,allowEval :: Bool  -- ^ Is the allow-eval flag set?
     }
+
+enableEval :: Session -> Session
+enableEval s = s { allowEval = True }
 
 
 debugShutdown x = when False $ print ("DEBUG SHUTDOWN", x)
