@@ -4,7 +4,7 @@
 module Language.Haskell.Ghcid.Types(
     GhciError(..),
     Stream(..),
-    Load(..), Severity(..),
+    Load(..), Severity(..), EvalResult(..),
     isMessage, isLoading, isLoadConfig
     ) where
 
@@ -46,12 +46,15 @@ data Load
         {loadFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
         }
     | -- | A response to an eval comment
-      EvalResult
-        {loadFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
-        ,loadFilePos :: (Int, Int)
-        ,evalCommand :: String
-        ,evalResult :: String
-        }
+      Eval EvalResult
+    deriving (Show, Eq, Ord)
+
+data EvalResult = EvalResult
+    {evalFile :: FilePath -- ^ The file that was being loaded, @.ghci@.
+    ,evalFilePos :: (Int, Int)
+    ,evalCommand :: String
+    ,evalResult :: String
+    }
     deriving (Show, Eq, Ord)
 
 -- | Is a 'Load' a 'Message'?

@@ -258,7 +258,7 @@ runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let limitMessages = maybe id (take . max 1) max_messages
 
-    let outputFill :: String -> Maybe (Int, [Load]) -> [((FilePath, (Int, Int)), (String, String))] -> [String] -> IO ()
+    let outputFill :: String -> Maybe (Int, [Load]) -> [EvalResult] -> [String] -> IO ()
         outputFill currTime load evals msg = do
             load <- return $ case load of
                 Nothing -> []
@@ -316,7 +316,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 outStrLn $ "%MESSAGES: " ++ show messages
                 outStrLn $ "%LOADED: " ++ show loaded
 
-            let evals = [((loadFile e, loadFilePos e), (evalCommand e, evalResult e)) | e@EvalResult {} <- messages]
+            let evals = [e | Eval e <- messages]
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
             let hasErrors = countErrors /= 0 || (countWarnings /= 0 && not warnings)
@@ -389,14 +389,14 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: String -> Int -> [Load] -> [((FilePath, (Int, Int)), (String, String))] -> [String]
+prettyOutput :: String -> Int -> [Load] -> [EvalResult] -> [String]
 prettyOutput currTime loadedCount [] evals =
     (allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")")
         : concatMap printEval evals
 prettyOutput _ _ xs evals = concatMap loadMessage xs ++ concatMap printEval evals
 
-printEval :: ((FilePath, (Int, Int)), (String, String)) -> [String]
-printEval ((file, (line, col)), (msg, result)) =
+printEval :: EvalResult -> [String]
+printEval (EvalResult file (line, col) msg result) =
   [ " "
     , concat
         [ file
