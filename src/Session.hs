@@ -24,9 +24,6 @@ import Data.Maybe
 import Data.List.Extra
 import Control.Applicative
 import Prelude
-import Data.Foldable
-import Data.Char
-import Data.Function
 import System.IO.Extra
 
 
