@@ -8,7 +8,6 @@ module Session(
     sessionExecAsync,
     ) where
 
-import Data.List (isPrefixOf)
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
