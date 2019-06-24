@@ -13,6 +13,7 @@ import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Types
 import Data.IORef
+import System.Console.ANSI
 import System.Time.Extra
 import System.Process
 import System.FilePath
@@ -75,7 +76,10 @@ kill ghci = ignored $ do
     debugShutdown "Before terminateProcess"
     ignored $ terminateProcess $ process ghci
     debugShutdown "After terminateProcess"
-
+    -- Ctrl-C after a tests keeps the cursor hidden,
+    -- `setSGR []`didn't seem to be enough
+    -- See: https://github.com/ndmitchell/ghcid/issues/254
+    showCursor
 
 loadedModules :: [Load] -> [FilePath]
 loadedModules = nubOrd . map loadFile . filter (not . isLoadConfig)
