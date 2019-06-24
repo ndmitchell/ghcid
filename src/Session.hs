@@ -3,11 +3,12 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, withSession,
+    Session, enableEval, withSession,
     sessionStart, sessionReload,
     sessionExecAsync,
     ) where
 
+import Data.List (isPrefixOf)
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
@@ -23,6 +24,7 @@ import Data.Maybe
 import Data.List.Extra
 import Control.Applicative
 import Prelude
+import System.IO.Extra
 
 
 data Session = Session
@@ -32,7 +34,11 @@ data Session = Session
     ,curdir :: IORef FilePath -- ^ The current working directory
     ,running :: Var Bool -- ^ Am I actively running an async command
     ,withThread :: ThreadId -- ^ Thread that called withSession
+    ,allowEval :: Bool  -- ^ Is the allow-eval flag set?
     }
+
+enableEval :: Session -> Session
+enableEval s = s { allowEval = True }
 
 
 debugShutdown x = when False $ print ("DEBUG SHUTDOWN", x)
@@ -49,6 +55,7 @@ withSession f = do
     running <- newVar False
     debugShutdown "Starting session"
     withThread <- myThreadId
+    let allowEval = False
     f Session{..} `finally` do
         debugShutdown "Start finally"
         modifyVar_ running $ const $ return False
@@ -104,6 +111,9 @@ sessionStart Session{..} cmd setup = do
     writeIORef curdir dir
     messages <- return $ qualify dir messages
 
+    let loaded = loadedModules messages
+    evals <- performEvals v allowEval loaded
+
     -- install a handler
     forkIO $ do
         waitForProcess $ process v
@@ -115,7 +125,7 @@ sessionStart Session{..} cmd setup = do
     -- handle what the process returned
     messages <- return $ mapMaybe tidyMessage messages
     writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
-    return (messages, loadedModules messages)
+    return (messages ++ evals, loaded)
 
 
 -- | Call 'sessionStart' at the previous command.
@@ -123,6 +133,40 @@ sessionRestart :: Session -> IO ([Load], [FilePath])
 sessionRestart session@Session{..} = do
     Just (cmd, setup) <- readIORef command
     sessionStart session cmd setup
+
+
+performEvals :: Ghci -> Bool -> [FilePath] -> IO [Load]
+performEvals _ False _ = return []
+performEvals ghci True reloaded = do
+    cmds <- mapM getCommands reloaded
+    fmap join $ forM cmds $ \(file, cmds') ->
+        forM cmds' $ \(num, cmd) -> do
+            ref <- newIORef []
+            execStream ghci (unwords $ lines cmd) $ \_ resp -> modifyIORef ref (resp :)
+            resp <- concat . reverse <$> readIORef ref
+            return $ Eval $ EvalResult file (num, 1) cmd resp
+
+
+getCommands :: FilePath -> IO (FilePath, [(Int, String)])
+getCommands fp = do
+    ls <- readFileUTF8' fp
+    return (fp, splitCommands $ zipFrom 1 $ lines ls)
+
+splitCommands :: [(Int, String)] -> [(Int, String)]
+splitCommands [] = []
+splitCommands ((num, line) : ls)
+    | isCommand line =
+          let (cmds, xs) = span (isCommand . snd) ls
+           in (num, unlines $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
+    | otherwise = splitCommands ls
+
+isCommand :: String -> Bool
+isCommand = isPrefixOf commandPrefix
+
+commandPrefix :: String
+commandPrefix = "-- $> "
+
+
 
 
 -- | Reload, returning the same information as 'sessionStart'. In particular, any
@@ -144,6 +188,7 @@ sessionReload session@Session{..} = do
         loaded <- map ((dir </>) . snd) <$> showModules ghci
         let reloaded = loadedModules messages
         warn <- readIORef warnings
+        evals <- performEvals ghci allowEval reloaded
 
         -- only keep old warnings from files that are still loaded, but did not reload
         let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
@@ -151,7 +196,7 @@ sessionReload session@Session{..} = do
         messages <- return $ messages ++ filter validWarn warn
 
         writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
-        return (messages, nubOrd $ loaded ++ reloaded)
+        return (messages ++ evals, nubOrd $ loaded ++ reloaded)
 
 
 -- | Run an exec operation asynchronously. Should not be a @:reload@ or similar.
