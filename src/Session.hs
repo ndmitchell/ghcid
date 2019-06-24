@@ -79,6 +79,7 @@ kill ghci = ignored $ do
     debugShutdown "After terminateProcess"
     -- Ctrl-C after a tests keeps the cursor hidden,
     -- `setSGR []`didn't seem to be enough
+    -- See: https://github.com/ndmitchell/ghcid/issues/254
     showCursor
 
 loadedModules :: [Load] -> [FilePath]
