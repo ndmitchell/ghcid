@@ -119,11 +119,11 @@ sessionStart Session{..} cmd setup = do
 
     -- install a handler
     forkIO $ do
-        waitForProcess $ process v
+        code <- waitForProcess $ process v
         whenJustM (readIORef ghci) $ \ghci ->
             when (ghci == v) $ do
                 sleep 0.3 -- give anyone reading from the stream a chance to throw first
-                throwTo withThread $ ErrorCall $ "Command \"" ++ cmd ++ "\" exited unexpectedly"
+                throwTo withThread $ ErrorCall $ "Command \"" ++ cmd ++ "\" exited unexpectedly with " ++ show code
 
     -- handle what the process returned
     messages <- return $ mapMaybe tidyMessage messages
