@@ -42,6 +42,7 @@ data Options = Options
     {command :: String
     ,arguments :: [String]
     ,test :: [String]
+    ,test_message :: String
     ,run :: [String]
     ,warnings :: Bool
     ,lint :: Maybe String
@@ -79,6 +80,7 @@ options = cmdArgsMode $ Options
     {command = "" &= name "c" &= typ "COMMAND" &= help "Command to run (defaults to ghci or cabal repl)"
     ,arguments = [] &= args &= typ "MODULE"
     ,test = [] &= name "T" &= typ "EXPR" &= help "Command to run after successful loading"
+    ,test_message = "Running test..." &= typ "MESSAGE" &= help "Message to show before running the test (defaults to \"Running test...\")"
     ,run = [] &= name "r" &= typ "EXPR" &= opt "main" &= help "Command to run after successful loading (like --test but defaults to main)"
     ,warnings = False &= name "W" &= help "Allow tests to run even with warnings"
     ,lint = Nothing &= typ "COMMAND" &= name "lint" &= opt "hlint" &= help "Linter to run if there are no errors. Defaults to hlint."
@@ -345,7 +347,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     moduleSorted = sortOn (Down . f) msgError ++ msgWarn
                 return $ (if reverse_errors then reverse else id) moduleSorted
 
-            outputFill currTime (Just (loadedCount, ordMessages)) evals ["Running test..." | isJust test]
+            outputFill currTime (Just (loadedCount, ordMessages)) evals [test_message | isJust test]
             forM_ outputfile $ \file ->
                 writeFile file $
                     if takeExtension file == ".json" then
