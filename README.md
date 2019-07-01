@@ -79,3 +79,7 @@ You will variously see `file:line:col:message`, `file:line:col1-col2:msg` and `f
 
 #### What if the error message is too big for my console?
 You can let `ghcid` print more with `--no-height-limit`. The first error message might end up outside of the console view, so you can use `--reverse-errors` to flip the order of the errors and warnings. Further error messages are just a scroll away. Finally if you're going to be scrolling, you can achieve a cleaner experience with the `--clear` flag, which clears the console on reload.
+
+#### I use Alex (`.x`) and Happy (`.y`) files, how can I check them?
+
+Ghcid only notices when the `.hs` files change. To make it respond to other files you can pass the `.x` and `.y` files to `--restart`, e.g. `--restart=myparser.y`. As long as you set the initial command to something that runs Happy/Alex (e.g. `cabal repl`) then when those files change everything will restart, causing the initial command to be rerun.
