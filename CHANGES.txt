@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #262, add --test-message flag
     #253, try and keep the cursor visible after Ctrl-C
     #248, add --eval flag to evaluate code snippets
     #245, link with -rtsopts to be able to use RTS flags
