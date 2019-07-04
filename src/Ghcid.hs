@@ -202,21 +202,17 @@ mainWithTerminal termSize termOutput =
                 opts <- return $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
                 when (topmost opts) terminalTopmost
 
-                termSize <- case (width opts, height opts) of
-                    (Just w, Just h) -> return $ TermSize w (Just h) WrapHard
+                let noHeight = if no_height_limit opts then const Nothing else id
+                termSize <- return $ case (width opts, height opts) of
+                    (Just w, Just h) -> return $ TermSize w (noHeight $ Just h) WrapHard
                     (w, h) -> do
                         term <- termSize
                         -- if we write to the final column of the window then it wraps automatically
                         -- so putStrLn width 'x' uses up two lines
                         return $ TermSize
                             (fromMaybe (pred $ termWidth term) w)
-                            (h <|> termHeight term)
+                            (noHeight $ h <|> termHeight term)
                             (if isJust w then WrapHard else termWrap term)
-
-                termSize <- return $
-                    if no_height_limit opts
-                    then termSize { termHeight = Nothing }
-                    else termSize
 
                 restyle <- do
                     useStyle <- case color opts of
@@ -234,7 +230,7 @@ mainWithTerminal termSize termOutput =
                     else id
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid (if allow_eval opts then enableEval session else session) waiter (return termSize) (clear . termOutput . restyle) opts
+                    runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts
 
 
 
