@@ -127,8 +127,12 @@ sessionStart Session{..} cmd setup = do
 
     -- handle what the process returned
     messages <- return $ mapMaybe tidyMessage messages
-    writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
+    writeIORef warnings $ getWarnings messages
     return (messages ++ evals, loaded)
+
+
+getWarnings :: [Load] -> [Load]
+getWarnings messages = [m | m@Message{..} <- messages, loadSeverity == Warning]
 
 
 -- | Call 'sessionStart' at the previous command.
@@ -198,7 +202,7 @@ sessionReload session@Session{..} = do
         -- newest warnings always go first, so the file you hit save on most recently has warnings first
         messages <- return $ messages ++ filter validWarn warn
 
-        writeIORef warnings [m | m@Message{..} <- messages, loadSeverity == Warning]
+        writeIORef warnings $ getWarnings messages
         return (messages ++ evals, nubOrd $ loaded ++ reloaded)
 
 
