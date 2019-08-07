@@ -71,7 +71,7 @@ Ghcid automatically appends `-fno-code` to the command line, which makes the rel
 #### I get "During interactive linking, GHCi couldn't find the following symbol"
 This problem is a manifestation of [GHC bug 8025](https://ghc.haskell.org/trac/ghc/ticket/8025), which is fixed in GHC 8.4 and above. Ghcid automatically appends `-fno-code` to the command line, but for older GHC's you can supress that with `--test "return ()"` (to add a fake test) or `-c "ghci ..."` to manually specify the command to run.
 
-#### I only see source-spans or error messages on errors/warnings after the first load.
+#### I only see source-spans or colors on errors/warnings after the first load.
 Due to limitations in `ghci`, these flags are only set _after_ the first load. If you want them to apply from the start, pass them on the command line to `ghci` with something like `-c "ghci -ferror-spans -fdiagnostics-color=always"`.
 
 #### I want to match on the file/line/column to get jump-to-error functionality in my editor.
