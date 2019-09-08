@@ -122,6 +122,11 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
         require [allGoodMessage]
         write "Main.hs" "x"
         require ["Main.hs:1:1"," Parse error:"]
+
+        -- Github issue 275
+        write "Main.hs" "{-# LINE 42 \"foo.bar\" #-}\nx"
+        require ["foo.bar:42:1", "Parse error:"]
+
         write "Util.hs" "module Util where"
         write "Main.hs" "import Util\nmain = print 1"
         require [allGoodMessage]
