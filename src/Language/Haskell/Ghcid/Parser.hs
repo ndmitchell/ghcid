@@ -50,7 +50,6 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
         f (x:xs)
             | not $ " " `isPrefixOfE` x
             , Just (file,rest) <- breakFileColon x
-            , takeExtension file `elem` [".hs",".lhs",".hs-boot",".lhs-boot"]
              -- take position, including span if present
             , Just ((pos1, pos2), rest) <- parsePosition rest
             , (msg,las) <- span isMessageBody xs
