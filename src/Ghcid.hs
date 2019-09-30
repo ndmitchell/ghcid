@@ -366,7 +366,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                         whenNormal $ outStrLn "\n...done"
             whenJust lint $ \lintcmd ->
                 unless hasErrors $ do
-                    (exitcode, stdout, stderr) <- readProcessWithExitCode lintcmd loaded ""
+                    (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : loaded) ""
                     unless (exitcode == ExitSuccess) $ outStrLn (stdout ++ stderr)
 
             reason <- nextWait $ restart ++ reload ++ loaded
