@@ -161,9 +161,9 @@ autoOptions o@Options{..}
     where
         f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r, run = [], test = run ++ test}
 
-        -- in practice we're not expecting many arguments to have anything funky in them
-        escape x | ' ' `elem` x = "\"" ++ x ++ "\""
-                 | otherwise = x
+-- | Simple escaping for command line arguments. Wraps a string in double quotes if it contains a space.
+escape x | ' ' `elem` x = "\"" ++ x ++ "\""
+         | otherwise = x
 
 -- | Use arguments from .ghcid if present
 withGhcidArgs :: IO a -> IO a
@@ -366,7 +366,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                         whenNormal $ outStrLn "\n...done"
             whenJust lint $ \lintcmd ->
                 unless hasErrors $ do
-                    (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : loaded) ""
+                    (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : map escape loaded) ""
                     unless (exitcode == ExitSuccess) $ outStrLn (stdout ++ stderr)
 
             reason <- nextWait $ restart ++ reload ++ loaded
