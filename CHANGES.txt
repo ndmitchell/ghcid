@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #283, support Clashi
     #278, allow --lint to take a shell command rather than just an executable
     #275, fix error reporting with non .hs/.lhs filenames in LINE pragmas
 0.7.5, released 2019-07-04
