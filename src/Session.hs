@@ -150,7 +150,7 @@ performEvals ghci True reloaded = do
         forM cmds' $ \(num, cmd) -> do
             ref <- newIORef []
             execStream ghci (unwords $ lines cmd) $ \_ resp -> modifyIORef ref (resp :)
-            resp <- concat . reverse <$> readIORef ref
+            resp <- unlines . reverse <$> readIORef ref
             return $ Eval $ EvalResult file (num, 1) cmd resp
 
 
