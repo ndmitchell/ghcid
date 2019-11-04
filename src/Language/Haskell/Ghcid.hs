@@ -21,6 +21,7 @@ import Data.Maybe
 import Data.IORef
 import Control.Applicative
 import Data.Unique
+import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
 
 import System.Console.CmdArgs.Verbosity
 
@@ -191,6 +192,9 @@ startGhciProcess process echo0 = do
         -- so try a showModules to capture the information again
         r2 <- if any isLoading r1 then return [] else map (uncurry Loading) <$> showModules ghci
         execStream ghci "" echo0
+
+        installHandler sigINT (Catch $ quit ghci) Nothing
+
         return (ghci, r1 ++ r2)
 
 
