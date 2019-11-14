@@ -306,8 +306,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
     project <- if project /= "" then return project else takeFileName <$> getCurrentDirectory
 
-    -- fire, given a waiter, the messages/loaded
-    let fire nextWait (messages, loaded) = do
+    -- fire, given a waiter, the messages/loaded/touched
+    let fire nextWait (messages, loaded, touched) = do
             currTime <- getShortTime
             let loadedCount = length loaded
             whenLoud $ do
@@ -366,7 +366,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                         whenNormal $ outStrLn "\n...done"
             whenJust lint $ \lintcmd ->
                 unless hasErrors $ do
-                    (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : map escape loaded) ""
+                    (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : map escape touched) ""
                     unless (exitcode == ExitSuccess) $ outStrLn (stdout ++ stderr)
 
             reason <- nextWait $ restart ++ reload ++ loaded
@@ -383,7 +383,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
 
-    fire nextWait (messages, loaded)
+    fire nextWait (messages, loaded, loaded)
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.

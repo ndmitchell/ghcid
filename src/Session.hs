@@ -179,7 +179,7 @@ commandPrefix = "-- $> "
 -- | Reload, returning the same information as 'sessionStart'. In particular, any
 --   information that GHCi doesn't repeat (warnings from loaded modules) will be
 --   added back in.
-sessionReload :: Session -> IO ([Load], [FilePath])
+sessionReload :: Session -> IO ([Load], [FilePath], [FilePath])
 sessionReload session@Session{..} = do
     -- kill anything async, set stuck if you didn't succeed
     old <- modifyVar running $ \b -> return (False, b)
@@ -187,7 +187,9 @@ sessionReload session@Session{..} = do
         Just ghci <- readIORef ghci
         fmap isNothing $ timeout 5 $ interrupt ghci
 
-    if stuck then sessionRestart session else do
+    if stuck
+      then (\(messages,loaded) -> (messages,loaded,loaded)) <$> sessionRestart session
+      else do
         -- actually reload
         Just ghci <- readIORef ghci
         dir <- readIORef curdir
@@ -203,7 +205,7 @@ sessionReload session@Session{..} = do
         messages <- return $ messages ++ filter validWarn warn
 
         writeIORef warnings $ getWarnings messages
-        return (messages ++ evals, nubOrd $ loaded ++ reloaded)
+        return (messages ++ evals, nubOrd (loaded ++ reloaded), reloaded)
 
 
 -- | Run an exec operation asynchronously. Should not be a @:reload@ or similar.
