@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #287, only lint reloaded files
 0.7.6, released 2019-10-13
     #283, support Clashi
     #278, allow --lint to take a shell command rather than just an executable
