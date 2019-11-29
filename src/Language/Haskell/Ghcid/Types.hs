@@ -12,7 +12,7 @@ import Data.Data
 import Control.Exception.Base (Exception)
 
 -- | GHCi shut down
-data GhciError = UnexpectedExit String String
+data GhciError = UnexpectedExit String String (Maybe String)
     deriving (Show,Eq,Ord,Typeable,Data)
 
 -- | Make GhciError an exception
