@@ -181,15 +181,14 @@ data TermSize = TermSize
     ,termWrap :: WordWrap
     }
 
--- | Modify IO to catch runtime exceptions.
+-- | On the 'UnexpectedExit' exception exit with a nice error message.
 handleErrors :: IO () -> IO ()
-handleErrors = handle $ \err -> case err of
-    UnexpectedExit cmd _ mmsg -> do
-        putStr $ "Command \"" ++ cmd ++ "\" exited unexpectedly"
-        case mmsg of
-            Just msg -> putStrLn $ " with error message: " <> msg
-            Nothing -> putStrLn ""
-        exitFailure
+handleErrors = handle $ \(UnexpectedExit cmd _ mmsg) -> do
+    putStr $ "Command \"" ++ cmd ++ "\" exited unexpectedly"
+    putStrLn $ case mmsg of
+        Just msg -> " with error message: " <> msg
+        Nothing -> ""
+    exitFailure
 
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO TermSize -> ([String] -> IO ()) -> IO ()

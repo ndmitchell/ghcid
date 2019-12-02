@@ -119,14 +119,13 @@ startGhciProcess process echo0 = do
                 res2 <- onceFork $ consume Stderr (finish Stderr)
                 res1 <- res1
                 res2 <- res2
+                let raise msg err = throwIO $ case cmdspec process of
+                        ShellCommand cmd -> UnexpectedExit cmd msg err
+                        RawCommand exe args -> UnexpectedExit (unwords (exe:args)) msg err
                 case (res1, res2) of
                     (Right v1, Right v2) -> return (v1, v2)
-                    (_, Left err) -> case cmdspec process of
-                        ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg err
-                        RawCommand exe args -> throwIO $ UnexpectedExit (unwords (exe:args)) msg err
-                    (_, Right _) -> case cmdspec process of
-                        ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg Nothing
-                        RawCommand exe args -> throwIO $ UnexpectedExit (unwords (exe:args)) msg Nothing
+                    (_, Left err) -> raise msg err
+                    (_, Right _) -> raise msg Nothing
 
         -- held while interrupting, and briefly held when starting an exec
         -- ensures exec values queue up behind an ongoing interrupt and no two interrupts run at once
