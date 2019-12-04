@@ -12,11 +12,12 @@ import Data.Data
 import Control.Exception.Base (Exception)
 
 -- | GHCi shut down
-data GhciError = UnexpectedExit {
-    _ghciErrorCmd :: String
-  , _ghciErrorMsg :: String
-  , _ghciErrorLastStdErr :: Maybe String
-  } deriving (Show, Eq, Ord, Typeable, Data)
+data GhciError = UnexpectedExit
+    {ghciErrorCmd :: String
+    ,ghciErrorMsg :: String
+    ,ghciErrorLastStdErr :: Maybe String
+    }
+    deriving (Show, Eq, Ord, Typeable, Data)
 
 -- | Make GhciError an exception
 instance Exception GhciError
