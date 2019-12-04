@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #288, include the last line of stderr in shutdown messages
 0.7.7, released 2019-11-24
     #287, only lint reloaded files
 0.7.6, released 2019-10-13
