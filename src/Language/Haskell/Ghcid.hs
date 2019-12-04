@@ -96,19 +96,20 @@ startGhciProcess process echo0 = do
                 syncReplay
 
         -- Consume from a stream until EOF (return Nothing) or some predicate returns Just
-        let consume :: Stream -> (String -> IO (Maybe a)) -> IO (Maybe a)
+        let consume :: Stream -> (String -> IO (Maybe a)) -> IO (Either (Maybe String) a)
             consume name finish = do
                 let h = if name == Stdout then out else err
-                fix $ \rec -> do
+                flip fix Nothing $ \rec oldMsg -> do
                     el <- tryBool isEOFError $ hGetLine h
                     case el of
-                        Left _ -> return Nothing
+                        Left _ -> return $ Left oldMsg
                         Right l -> do
                             whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
-                            res <- finish $ removePrefix l
+                            let msg = removePrefix l
+                            res <- finish msg
                             case res of
-                                Nothing -> rec
-                                Just a -> return $ Just a
+                                Nothing -> rec $ Just msg
+                                Just a -> return $ Right a
 
         let consume2 :: String -> (Stream -> String -> IO (Maybe a)) -> IO (a,a)
             consume2 msg finish = do
@@ -118,11 +119,13 @@ startGhciProcess process echo0 = do
                 res2 <- onceFork $ consume Stderr (finish Stderr)
                 res1 <- res1
                 res2 <- res2
-                case liftM2 (,) res1 res2 of
-                    Nothing -> case cmdspec process of
-                        ShellCommand cmd -> throwIO $ UnexpectedExit cmd msg
-                        RawCommand exe args -> throwIO $ UnexpectedExit (unwords (exe:args)) msg
-                    Just v -> return v
+                let raise msg err = throwIO $ case cmdspec process of
+                        ShellCommand cmd -> UnexpectedExit cmd msg err
+                        RawCommand exe args -> UnexpectedExit (unwords (exe:args)) msg err
+                case (res1, res2) of
+                    (Right v1, Right v2) -> return (v1, v2)
+                    (_, Left err) -> raise msg err
+                    (_, Right _) -> raise msg Nothing
 
         -- held while interrupting, and briefly held when starting an exec
         -- ensures exec values queue up behind an ongoing interrupt and no two interrupts run at once

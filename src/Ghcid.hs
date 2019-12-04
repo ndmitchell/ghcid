@@ -181,10 +181,19 @@ data TermSize = TermSize
     ,termWrap :: WordWrap
     }
 
+-- | On the 'UnexpectedExit' exception exit with a nice error message.
+handleErrors :: IO () -> IO ()
+handleErrors = handle $ \(UnexpectedExit cmd _ mmsg) -> do
+    putStr $ "Command \"" ++ cmd ++ "\" exited unexpectedly"
+    putStrLn $ case mmsg of
+        Just msg -> " with error message: " <> msg
+        Nothing -> ""
+    exitFailure
+
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO TermSize -> ([String] -> IO ()) -> IO ()
 mainWithTerminal termSize termOutput =
-    handle (\(UnexpectedExit cmd _) -> do putStrLn $ "Command \"" ++ cmd ++ "\" exited unexpectedly"; exitFailure) $
+    handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
             setVerbosity Normal -- undo any --verbose flags
 
