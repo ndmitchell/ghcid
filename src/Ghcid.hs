@@ -186,7 +186,7 @@ handleErrors :: IO () -> IO ()
 handleErrors = handle $ \(UnexpectedExit cmd _ mmsg) -> do
     putStr $ "Command \"" ++ cmd ++ "\" exited unexpectedly"
     putStrLn $ case mmsg of
-        Just msg -> " with error message: " <> msg
+        Just msg -> " with error message: " ++ msg
         Nothing -> ""
     exitFailure
 
