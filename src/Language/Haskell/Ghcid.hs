@@ -88,8 +88,10 @@ startGhciProcess process echo0 = do
                 -- useful to avoid overloaded strings by showing the ['a','b','c'] form, see #109
                 let showStr xs = "[" ++ intercalate "," (map show xs) ++ "]"
                 let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
-                writeInp $ "INTERNAL_GHCID.putStrLn " ++ showStr msg ++ "\n" ++
-                        "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ showStr msg
+                -- Prepend a leading \n to try and avoid junk already on stdout,
+                -- e.g. https://github.com/ndmitchell/ghcid/issues/291
+                writeInp $ "\nINTERNAL_GHCID.putStrLn " ++ showStr msg ++ "\n" ++
+                           "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ showStr msg
                 return $ isInfixOf msg
         let syncFresh = do
                 modifyVar_ syncCount $ return . succ
