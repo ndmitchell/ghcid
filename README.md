@@ -48,16 +48,20 @@ There are a few plugins that integrate Ghcid into editors, notably:
 
 In general, to use `ghcid`, you first need to get `ghci` working well for you. In particular, craft a command line or `.ghci` file such that when you start `ghci` it has loaded all the files you care about (check `:show modules`). If you want to use `--test` check that whatever expression you want to use works in that `ghci` session. Getting `ghci` started properly is one of the hardest things of using `ghcid`, and while `ghcid` has a lot of defaults for common cases, it doesn't always work out of the box.
 
+### Evaluation
+
+Using the `ghci` session that `ghcid` manages you can also evaluate expressions:
+
+* You can pass any `ghci` expression with the `--test` flag, e.g. `--test=:main`, which will be run whenever the code is warning free (or pass `--warnings` for when the code is merely error free).
+* If you pass the `--allow-eval` flag then comments in the source files such as `-- $> expr` will run `expr` after loading - see [this blog post](https://jkeuhlen.com/2019/10/19/Compile-Your-Comments-In-Ghcid.html) for more details.
+
 ### FAQ
 
 #### This isn't as good as full IDE
-I've gone for simplicity over features. It's a point in the design space, but not necessarily the best point in the design space for you. For "real" IDEs see [the Haskell wiki](http://www.haskell.org/haskellwiki/IDEs).
+I've gone for simplicity over features. It's a point in the design space, but not necessarily the best point in the design space for you. For a "real" IDE see [Ghcide](https://github.com/digital-asset/ghcide).
 
 #### If I delete a file and put it back it gets stuck.
 Yes, that's a [bug in GHCi](https://ghc.haskell.org/trac/ghc/ticket/9648). If you see GHCi getting confused just kill `ghcid` and start it again.
-
-#### I want to run my tests when files change.
-You can pass any `ghci` expression with the `--test` flag, e.g. `--test=:main`, which will be run whenever the code is warning free (or pass `--warnings` for when the code is merely error free).
 
 #### I want to run arbitrary commands when arbitrary files change.
 This project reloads `ghci` when files loaded by `ghci` change. If you want a more general mechanism something like [Steel Overseer](https://github.com/schell/steeloverseer) or [Watchman](https://facebook.github.io/watchman/) will probably work better.
