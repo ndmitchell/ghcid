@@ -145,7 +145,7 @@ autoOptions o@Options{..}
         stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
         let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
-        let opts = ["-fno-code" | null test && null run] ++ ghciFlagsRequired ++ ghciFlagsUseful
+        let opts = ["-fno-code" | null test && null run && not allow_eval] ++ ghciFlagsRequired ++ ghciFlagsUseful
         return $ case () of
             _ | Just stack <- stack ->
                 let flags = if null arguments then

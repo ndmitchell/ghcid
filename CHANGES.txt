@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #293, passing --allow-eval should disable -fno-code by default
     #291, try and be more robust to mucking with the console
 0.8, released 2019-12-04
 *   Add an extra field to GhciError
