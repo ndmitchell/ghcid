@@ -87,3 +87,7 @@ You can let `ghcid` print more with `--no-height-limit`. The first error message
 #### I use Alex (`.x`) and Happy (`.y`) files, how can I check them?
 
 Ghcid only notices when the `.hs` files change. To make it respond to other files you can pass the `.x` and `.y` files to `--restart`, e.g. `--restart=myparser.y`. As long as you set the initial command to something that runs Happy/Alex (e.g. `cabal repl`) then when those files change everything will restart, causing the initial command to be rerun.
+
+### How do I run pass command arguments with --test?
+
+`ghcid ... --test Main.main --setup ":set args myargs"`
