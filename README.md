@@ -58,7 +58,11 @@ Using the `ghci` session that `ghcid` manages you can also evaluate expressions:
 ### FAQ
 
 #### This isn't as good as full IDE
-I've gone for simplicity over features. It's a point in the design space, but not necessarily the best point in the design space for you. For a "real" IDE see [Ghcide](https://github.com/digital-asset/ghcide).
+I've gone for simplicity over features. It's a point in the design space, but not necessarily the best point in the design space for you. Other points in the design space include:
+
+* [ghcide](https://github.com/digital-asset/ghcide) - a real IDE in your editor.
+* [reflex-ghci](https://github.com/reflex-frp/reflex-ghci) - like Ghcid but with more terminal UI features.
+* [reflex-ghcide](https://github.com/mpickering/reflex-ghcide) - a full IDE in the terminal.
 
 #### If I delete a file and put it back it gets stuck.
 Yes, that's a [bug in GHCi](https://ghc.haskell.org/trac/ghc/ticket/9648). If you see GHCi getting confused just kill `ghcid` and start it again.
