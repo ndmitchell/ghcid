@@ -91,3 +91,7 @@ Ghcid only notices when the `.hs` files change. To make it respond to other file
 #### How do I run pass command arguments with --test?
 
 `ghcid ... --test Main.main --setup ":set args myargs"`
+
+#### Why do I get "addWatch: resource exhausted (No space left on device)" on my Mac?
+
+The Mac has a fairly low limit on the number of file handles available. You can increase it with: `sudo sysctl -w fs.inotify.max_user_watches=262144; sudo sysctl -p`
