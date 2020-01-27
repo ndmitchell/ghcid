@@ -90,7 +90,7 @@ assertApproxInfix want got = do
     -- Spacing and quotes tend to be different on different GHCi versions
     let simple = lower . filter (\x -> isLetter x || isDigit x || x == ':') . unescape
         got2 = simple $ unwords got
-    all (`isInfixOf` got2) (map simple want) @?
+    all ((`isInfixOf` got2) . simple) want @?
         "Expected " ++ show want ++ ", got " ++ show got
 
 
