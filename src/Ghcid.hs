@@ -259,9 +259,11 @@ main = mainWithTerminal termSize termOutput
 
 data Continue = Continue
 
+data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
+
 -- If we return successfully, we restart the whole process
 -- Use Continue not () so that inadvertant exits don't restart
-runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
+runGhcid :: Session -> Waiter ReloadMode -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let limitMessages = maybe id (take . max 1) max_messages
 
@@ -316,7 +318,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
     project <- if project /= "" then return project else takeFileName <$> getCurrentDirectory
 
     -- fire, given a waiter, the messages/loaded/touched
-    let fire nextWait (messages, loaded, touched) = do
+    let
+      fire
+        :: ([(FilePath, ReloadMode)] -> IO (Either String [(FilePath, ReloadMode)]))
+        -> ([Load], [FilePath], [FilePath])
+        -> IO Continue
+      fire nextWait (messages, loaded, touched) = do
             currTime <- getShortTime
             let loadedCount = length loaded
             whenLoud $ do
@@ -378,19 +385,28 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : map escape touched) ""
                     unless (exitcode == ExitSuccess) $ outStrLn (stdout ++ stderr)
 
-            reason <- nextWait $ restart ++ reload ++ loaded
-            whenLoud $ outStrLn $ "%RELOADING: " ++ unwords reason
-            restartTimes2 <- mapM getModTime restart
-            let restartChanged = [s | (False, s) <- zip (zipWith (==) restartTimes restartTimes2) restart]
+            reason <- nextWait $ map (,Restart) restart
+                              ++ map (,Reload) reload
+                              ++ map (,Reload) loaded
+
+            let reason1 = case reason of
+                  Left err ->
+                    (Reload, ["Error when waiting, if this happens repeatedly, raise a ghcid bug.", err])
+                  Right files ->
+                    case partition (\(f, mode) -> mode == Reload) files of
+                      (_, rs@(_:_)) -> (Restart, map fst rs)
+                      (rl, _) -> (Reload, map fst rl)
+
             currTime <- getShortTime
-            if not $ null restartChanged then do
-                -- exit cleanly, since the whole thing is wrapped in a forever
-                unless no_status $ outputFill currTime Nothing evals $ "Restarting..." : map ("  " ++) restartChanged
-                return Continue
-            else do
-                unless no_status $ outputFill currTime Nothing evals $ "Reloading..." : map ("  " ++) reason
+            case reason1 of
+              (Reload, reason2) -> do
+                unless no_status $ outputFill currTime Nothing evals $ "Reloading..." : map ("  " ++) reason2
                 nextWait <- waitFiles waiter
                 fire nextWait =<< sessionReload session
+              (Restart, reason2) -> do
+                -- exit cleanly, since the whole thing is wrapped in a forever
+                unless no_status $ outputFill currTime Nothing evals $ "Restarting..." : map ("  " ++) reason2
+                return Continue
 
     fire nextWait (messages, loaded, loaded)
 

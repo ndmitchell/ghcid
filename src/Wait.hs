@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 
 -- | Use 'withWaiterPoll' or 'withWaiterNotify' to create a 'Waiter' object,
 --   then access it (single-threaded) by using 'waitFiles'.
@@ -9,6 +10,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Control.Monad.Extra
 import Data.List.Extra
+import Data.Tuple.Extra
 import System.FilePath
 import Control.Exception.Extra
 import System.Directory.Extra
@@ -20,13 +22,14 @@ import System.FSNotify
 import Language.Haskell.Ghcid.Util
 
 
-data Waiter = WaiterPoll Seconds
-            | WaiterNotify WatchManager (MVar ()) (Var (Map.Map FilePath StopListening))
+data Waiter a
+  = WaiterPoll Seconds
+  | WaiterNotify WatchManager (MVar ()) (Var (Map.Map (FilePath, a) StopListening))
 
-withWaiterPoll :: Seconds -> (Waiter -> IO a) -> IO a
+withWaiterPoll :: Seconds -> (Waiter a -> IO b) -> IO b
 withWaiterPoll x f = f $ WaiterPoll x
 
-withWaiterNotify :: (Waiter -> IO a) -> IO a
+withWaiterNotify :: (Waiter a -> IO b) -> IO b
 withWaiterNotify f = withManagerConf defaultConfig{confDebounce=NoDebounce} $ \manager -> do
     mvar <- newEmptyMVar
     var <- newVar Map.empty
@@ -53,57 +56,65 @@ listContentsInside test dir = do
 --   starting from when 'waitFiles' was initially called.
 --
 --   Returns a message about why you are continuing (usually a file name).
-waitFiles :: Waiter -> IO ([FilePath] -> IO [String])
+waitFiles :: forall a.  Ord a => Waiter a -> IO ([(FilePath, a)] -> IO (Either String [(FilePath, a)]))
 waitFiles waiter = do
     base <- getCurrentTime
-    return $ \files -> handle (\(e :: IOError) -> do sleep 1.0; return ["Error when waiting, if this happens repeatedly, raise a ghcid bug.",show e]) $ do
-        whenLoud $ outStrLn $ "%WAITING: " ++ unwords files
+    return $ \files -> handle onError (go base files)
+ where
+    onError :: IOError -> IO (Either String [(FilePath, a)])
+    onError e = sleep 1.0 >> pure (Left (show e))
+
+    go :: UTCTime -> [(FilePath, a)] -> IO (Either String [(FilePath, a)])
+    go base files = do
+        whenLoud $ outStrLn $ "%WAITING: " ++ unwords (map fst files)
         -- As listContentsInside returns directories, we are waiting on them explicitly and so
         -- will pick up new files, as creating a new file changes the containing directory's modtime.
-        files <- fmap concat $ forM files $ \file ->
-            ifM (doesDirectoryExist file) (listContentsInside (return . not . isPrefixOf "." . takeFileName) file) (return [file])
+        files <- concatForM files $ \(file, a) ->
+            ifM (doesDirectoryExist file) (fmap (,a) <$> listContentsInside (return . not . isPrefixOf "." . takeFileName) file) (return [(file, a)])
         case waiter of
             WaiterPoll t -> return ()
             WaiterNotify manager kick mp -> do
-                dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map takeDirectory files
+                dirs <-
+                  fmap Set.fromList $ mapM (firstM canonicalizePathSafe) $ nubOrd $ map (first takeDirectory) files
                 modifyVar_ mp $ \mp -> do
                     let (keep,del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
                     sequence_ $ Map.elems del
-                    new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
+                    new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \(dir, a) -> do
                         can <- watchDir manager (fromString dir) (const True) $ \event -> do
                             whenLoud $ outStrLn $ "%NOTIFY: " ++ show event
                             void $ tryPutMVar kick ()
-                        return (dir, can)
+                        return ((dir, a), can)
                     let mp2 = keep `Map.union` Map.fromList new
-                    whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
+                    whenLoud $ outStrLn $ "%WAITING: " ++ unwords (map fst (Map.keys mp2))
                     return mp2
                 void $ tryTakeMVar kick
-        new <- mapM getModTime files
+        new <- mapM (getModTime . fst) files
         case [x | (x,Just t) <- zip files new, t > base] of
-            [] -> recheck files new
-            xs -> return xs
-    where
-        recheck files old = do
+            [] -> Right <$> recheck files new
+            xs -> return (Right xs)
+
+    recheck :: [(FilePath, a)] -> [Maybe UTCTime] -> IO [(String, a)]
+    recheck files old = do
             sleep 0.1
             case waiter of
                 WaiterPoll t -> sleep $ max 0 $ t - 0.1 -- subtract the initial 0.1 sleep from above
                 WaiterNotify _ kick _ -> do
                     takeMVar kick
                     whenLoud $ outStrLn "%WAITING: Notify signaled"
-            new <- mapM getModTime files
+            new <- mapM getModTime (map fst files)
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
                 [] -> recheck files new
                 xs -> do
                     let disappeared = [x | (x, Just _, Nothing) <- zip3 files old new]
-                    when (disappeared /= []) $ do
+                    when (not (null disappeared)) $ do
                         -- if someone is deleting a needed file, give them some space to put the file back
                         -- typically caused by VIM
                         -- but try not to
-                        whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords disappeared
+                        whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords (map fst disappeared)
                         -- at most 20 iterations, but stop as soon as the file returns
                         void $ flip firstJustM (replicate 20 ()) $ \_ -> do
                             sleep 0.05
-                            new <- mapM getModTime files
+                            new <- mapM (getModTime . fst) files
                             return $ if null [x | (x, Just _, Nothing) <- zip3 files old new] then Just () else Nothing
                     return xs
 
