@@ -101,12 +101,12 @@ waitFiles waiter = do
                 WaiterNotify _ kick _ -> do
                     takeMVar kick
                     whenLoud $ outStrLn "%WAITING: Notify signaled"
-            new <- mapM getModTime (map fst files)
+            new <- mapM (getModTime . fst) files
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
                 [] -> recheck files new
                 xs -> do
                     let disappeared = [x | (x, Just _, Nothing) <- zip3 files old new]
-                    when (not (null disappeared)) $ do
+                    unless (null disappeared) $ do
                         -- if someone is deleting a needed file, give them some space to put the file back
                         -- typically caused by VIM
                         -- but try not to
