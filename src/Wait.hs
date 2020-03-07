@@ -10,7 +10,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Control.Monad.Extra
 import Data.List.Extra
-import Data.Tuple.Extra
 import System.FilePath
 import Control.Exception.Extra
 import System.Directory.Extra
@@ -22,14 +21,14 @@ import System.FSNotify
 import Language.Haskell.Ghcid.Util
 
 
-data Waiter a
+data Waiter
   = WaiterPoll Seconds
-  | WaiterNotify WatchManager (MVar ()) (Var (Map.Map (FilePath, a) StopListening))
+  | WaiterNotify WatchManager (MVar ()) (Var (Map.Map FilePath StopListening))
 
-withWaiterPoll :: Seconds -> (Waiter a -> IO b) -> IO b
+withWaiterPoll :: Seconds -> (Waiter -> IO a) -> IO a
 withWaiterPoll x f = f $ WaiterPoll x
 
-withWaiterNotify :: (Waiter a -> IO b) -> IO b
+withWaiterNotify :: (Waiter -> IO a) -> IO a
 withWaiterNotify f = withManagerConf defaultConfig{confDebounce=NoDebounce} $ \manager -> do
     mvar <- newEmptyMVar
     var <- newVar Map.empty
@@ -56,7 +55,7 @@ listContentsInside test dir = do
 --   starting from when 'waitFiles' was initially called.
 --
 --   Returns a message about why you are continuing (usually a file name).
-waitFiles :: forall a.  Ord a => Waiter a -> IO ([(FilePath, a)] -> IO (Either String [(FilePath, a)]))
+waitFiles :: forall a.  Ord a => Waiter -> IO ([(FilePath, a)] -> IO (Either String [(FilePath, a)]))
 waitFiles waiter = do
     base <- getCurrentTime
     return $ \files -> handle onError (go base files)
@@ -74,18 +73,17 @@ waitFiles waiter = do
         case waiter of
             WaiterPoll t -> return ()
             WaiterNotify manager kick mp -> do
-                dirs <-
-                  fmap Set.fromList $ mapM (firstM canonicalizePathSafe) $ nubOrd $ map (first takeDirectory) files
+                dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map (takeDirectory . fst) files
                 modifyVar_ mp $ \mp -> do
                     let (keep,del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
                     sequence_ $ Map.elems del
-                    new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \(dir, a) -> do
+                    new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
                         can <- watchDir manager (fromString dir) (const True) $ \event -> do
                             whenLoud $ outStrLn $ "%NOTIFY: " ++ show event
                             void $ tryPutMVar kick ()
-                        return ((dir, a), can)
+                        return (dir, can)
                     let mp2 = keep `Map.union` Map.fromList new
-                    whenLoud $ outStrLn $ "%WAITING: " ++ unwords (map fst (Map.keys mp2))
+                    whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
                     return mp2
                 void $ tryTakeMVar kick
         new <- mapM (getModTime . fst) files
@@ -110,7 +108,7 @@ waitFiles waiter = do
                         -- if someone is deleting a needed file, give them some space to put the file back
                         -- typically caused by VIM
                         -- but try not to
-                        whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords (map fst disappeared)
+                        whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords (nubOrd (map fst disappeared))
                         -- at most 20 iterations, but stop as soon as the file returns
                         void $ flip firstJustM (replicate 20 ()) $ \_ -> do
                             sleep 0.05

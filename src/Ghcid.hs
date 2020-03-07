@@ -263,7 +263,7 @@ data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
 
 -- If we return successfully, we restart the whole process
 -- Use Continue not () so that inadvertant exits don't restart
-runGhcid :: Session -> Waiter ReloadMode -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
+runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let limitMessages = maybe id (take . max 1) max_messages
 
@@ -394,6 +394,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     (Reload, ["Error when waiting, if this happens repeatedly, raise a ghcid bug.", err])
                   Right files ->
                     case partition (\(f, mode) -> mode == Reload) files of
+                      -- Prefer restarts over reloads. E.g., in case of both '--reload=dir'
+                      -- and '--restart=dir', ghcid would restart instead of reload.
                       (_, rs@(_:_)) -> (Restart, map fst rs)
                       (rl, _) -> (Reload, map fst rl)
 
