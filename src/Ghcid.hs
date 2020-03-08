@@ -134,21 +134,21 @@ As a result, we prefer to give users full control with a .ghci file, if availabl
 -}
 autoOptions :: Options -> IO Options
 autoOptions o@Options{..}
-    | command /= "" = return $ f [command] []
+    | command /= "" = pure $ f [command] []
     | otherwise = do
         curdir <- getCurrentDirectory
         files <- getDirectoryContents "."
 
         -- use unsafePerformIO to get nicer pattern matching for logic (read-only operations)
-        let findStack dir = flip catchIOError (const $ return Nothing) $ do
+        let findStack dir = flip catchIOError (const $ pure Nothing) $ do
                 let yaml = dir </> "stack.yaml"
                 b <- doesFileExist yaml &&^ doesDirectoryExist (dir </> ".stack-work")
-                return $ if b then Just yaml else Nothing
+                pure $ if b then Just yaml else Nothing
         stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
         let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
         let opts = ["-fno-code" | null test && null run && not allow_eval] ++ ghciFlagsRequired ++ ghciFlagsUseful
-        return $ case () of
+        pure $ case () of
             _ | Just stack <- stack ->
                 let flags = if null arguments then
                                 "stack ghci --test --bench" :
@@ -215,32 +215,32 @@ mainWithTerminal termSize termOutput =
                 outStrLn $ "%VERSION: " ++ showVersion version
             withCurrentDirectory (directory opts) $ do
                 opts <- autoOptions opts
-                opts <- return $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
+                opts <- pure $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
                 when (topmost opts) terminalTopmost
 
                 let noHeight = if no_height_limit opts then const Nothing else id
-                termSize <- return $ case (width opts, height opts) of
-                    (Just w, Just h) -> return $ TermSize w (noHeight $ Just h) WrapHard
+                termSize <- pure $ case (width opts, height opts) of
+                    (Just w, Just h) -> pure $ TermSize w (noHeight $ Just h) WrapHard
                     (w, h) -> do
                         term <- termSize
                         -- if we write to the final column of the window then it wraps automatically
                         -- so putStrLn width 'x' uses up two lines
-                        return $ TermSize
+                        pure $ TermSize
                             (fromMaybe (pred $ termWidth term) w)
                             (noHeight $ h <|> termHeight term)
                             (if isJust w then WrapHard else termWrap term)
 
                 restyle <- do
                     useStyle <- case color opts of
-                        Always -> return True
-                        Never -> return False
+                        Always -> pure True
+                        Never -> pure False
                         Auto -> hSupportsANSI stdout
                     when useStyle $ do
                         h <- lookupEnv "HSPEC_OPTIONS"
                         when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
-                    return $ if useStyle then id else map unescape
+                    pure $ if useStyle then id else map unescape
 
-                clear <- return $
+                clear <- pure $
                     if clear opts
                     then (clearScreen *>)
                     else id
@@ -255,7 +255,7 @@ main = mainWithTerminal termSize termOutput
     where
         termSize = do
             x <- Term.size
-            return $ case x of
+            pure $ case x of
                 Nothing -> TermSize 80 (Just 8) WrapHard
                 Just t -> TermSize (Term.width t) (Just $ Term.height t) WrapSoft
 
@@ -268,7 +268,7 @@ data Continue = Continue
 
 data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
 
--- If we return successfully, we restart the whole process
+-- If we pure successfully, we restart the whole process
 -- Use Continue not () so that inadvertant exits don't restart
 runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
@@ -276,16 +276,16 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
     let outputFill :: String -> Maybe (Int, [Load]) -> [EvalResult] -> [String] -> IO ()
         outputFill currTime load evals msg = do
-            load <- return $ case load of
+            load <- pure $ case load of
                 Nothing -> []
                 Just (loadedCount, msgs) -> prettyOutput currTime loadedCount (filter isMessage msgs) evals
             TermSize{..} <- termSize
             let wrap = concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc)
             (msg, load, pad) <-
                 case termHeight of
-                    Nothing -> return (wrap msg, wrap load, [])
+                    Nothing -> pure (wrap msg, wrap load, [])
                     Just termHeight -> do
-                        (termHeight, msg) <- return $ takeRemainder termHeight $ wrap msg
+                        (termHeight, msg) <- pure $ takeRemainder termHeight $ wrap msg
                         (termHeight, load) <-
                             let takeRemainder' =
                                     if reverse_errors
@@ -293,8 +293,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                                          -- the top instead of the bottom of the load
                                          fmap reverse . takeRemainder termHeight . reverse
                                     else takeRemainder termHeight
-                            in return $ takeRemainder' $ wrap load
-                        return (msg, load, replicate termHeight "")
+                            in pure $ takeRemainder' $ wrap load
+                        pure (msg, load, replicate termHeight "")
             let mergeSoft ((Esc x,WrapSoft):(Esc y,q):xs) = mergeSoft $ (Esc (x++y), q) : xs
                 mergeSoft ((x,_):xs) = x : mergeSoft xs
                 mergeSoft [] = []
@@ -317,12 +317,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
         exitFailure
 
-    restart <- return $ nubOrd $ restart ++ [x | LoadConfig x <- messages]
+    restart <- pure $ nubOrd $ restart ++ [x | LoadConfig x <- messages]
     -- Note that we capture restarting items at this point, not before invoking the command
     -- The reason is some restart items may be generated by the command itself
     restartTimes <- mapM getModTime restart
 
-    project <- if project /= "" then return project else takeFileName <$> getCurrentDirectory
+    project <- if project /= "" then pure project else takeFileName <$> getCurrentDirectory
 
     -- fire, given a waiter, the messages/loaded/touched
     let
@@ -341,7 +341,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             let (countErrors, countWarnings) = both sum $ unzip
                     [if loadSeverity == Error then (1,0) else (0,1) | m@Message{..} <- messages, loadMessage /= []]
             let hasErrors = countErrors /= 0 || (countWarnings /= 0 && not warnings)
-            test <- return $
+            test <- pure $
                 if null test || hasErrors then Nothing
                 else Just $ intercalate "\n" test
 
@@ -364,7 +364,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                 errTimes <- sequence [(x,) <$> getModTime x | x <- nubOrd $ map loadFile msgError]
                 let f x = lookup (loadFile x) errTimes
                     moduleSorted = sortOn (Down . f) msgError ++ msgWarn
-                return $ (if reverse_errors then reverse else id) moduleSorted
+                pure $ (if reverse_errors then reverse else id) moduleSorted
 
             outputFill currTime (Just (loadedCount, ordMessages)) evals [test_message | isJust test]
             forM_ outputfile $ \file ->
@@ -415,7 +415,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
               (Restart, reason2) -> do
                 -- exit cleanly, since the whole thing is wrapped in a forever
                 unless no_status $ outputFill currTime Nothing evals $ "Restarting..." : map ("  " ++) reason2
-                return Continue
+                pure Continue
 
     fire nextWait (messages, loaded, loaded)
 

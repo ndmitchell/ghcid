@@ -43,7 +43,7 @@ listContentsInside test dir = do
     (dirs,files) <- partitionM doesDirectoryExist =<< listContents dir
     recurse <- filterM test dirs
     rest <- concatMapM (listContentsInside test) recurse
-    return $ addTrailingPathSeparator dir : files ++ rest
+    pure $ addTrailingPathSeparator dir : files ++ rest
 
 -- | Given the pattern:
 --
@@ -54,11 +54,11 @@ listContentsInside test dir = do
 --   This continues as soon as either @File1.hs@ or @File2.hs@ changes,
 --   starting from when 'waitFiles' was initially called.
 --
---   Returns a message about why you are continuing (usually a file name).
+--   pures a message about why you are continuing (usually a file name).
 waitFiles :: forall a.  Ord a => Waiter -> IO ([(FilePath, a)] -> IO (Either String [(FilePath, a)]))
 waitFiles waiter = do
     base <- getCurrentTime
-    return $ \files -> handle onError (go base files)
+    pure $ \files -> handle onError (go base files)
  where
     onError :: IOError -> IO (Either String [(FilePath, a)])
     onError e = sleep 1.0 >> pure (Left (show e))
@@ -66,12 +66,12 @@ waitFiles waiter = do
     go :: UTCTime -> [(FilePath, a)] -> IO (Either String [(FilePath, a)])
     go base files = do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords (map fst files)
-        -- As listContentsInside returns directories, we are waiting on them explicitly and so
+        -- As listContentsInside pures directories, we are waiting on them explicitly and so
         -- will pick up new files, as creating a new file changes the containing directory's modtime.
         files <- concatForM files $ \(file, a) ->
-            ifM (doesDirectoryExist file) (fmap (,a) <$> listContentsInside (return . not . isPrefixOf "." . takeFileName) file) (return [(file, a)])
+            ifM (doesDirectoryExist file) (fmap (,a) <$> listContentsInside (pure . not . isPrefixOf "." . takeFileName) file) (pure [(file, a)])
         case waiter of
-            WaiterPoll t -> return ()
+            WaiterPoll t -> pure ()
             WaiterNotify manager kick mp -> do
                 dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map (takeDirectory . fst) files
                 modifyVar_ mp $ \mp -> do
@@ -81,15 +81,15 @@ waitFiles waiter = do
                         can <- watchDir manager (fromString dir) (const True) $ \event -> do
                             whenLoud $ outStrLn $ "%NOTIFY: " ++ show event
                             void $ tryPutMVar kick ()
-                        return (dir, can)
+                        pure (dir, can)
                     let mp2 = keep `Map.union` Map.fromList new
                     whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
-                    return mp2
+                    pure mp2
                 void $ tryTakeMVar kick
         new <- mapM (getModTime . fst) files
         case [x | (x,Just t) <- zip files new, t > base] of
             [] -> Right <$> recheck files new
-            xs -> return (Right xs)
+            xs -> pure (Right xs)
 
     recheck :: [(FilePath, a)] -> [Maybe UTCTime] -> IO [(String, a)]
     recheck files old = do
@@ -109,13 +109,13 @@ waitFiles waiter = do
                         -- typically caused by VIM
                         -- but try not to
                         whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords (nubOrd (map fst disappeared))
-                        -- at most 20 iterations, but stop as soon as the file returns
+                        -- at most 20 iterations, but stop as soon as the file pures
                         void $ flip firstJustM (replicate 20 ()) $ \_ -> do
                             sleep 0.05
                             new <- mapM (getModTime . fst) files
-                            return $ if null [x | (x, Just _, Nothing) <- zip3 files old new] then Just () else Nothing
-                    return xs
+                            pure $ if null [x | (x, Just _, Nothing) <- zip3 files old new] then Just () else Nothing
+                    pure xs
 
 
 canonicalizePathSafe :: FilePath -> IO FilePath
-canonicalizePathSafe x = canonicalizePath x `catch` \(_ :: IOError) -> return x
+canonicalizePathSafe x = canonicalizePath x `catch` \(_ :: IOError) -> pure x

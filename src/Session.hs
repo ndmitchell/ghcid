@@ -58,7 +58,7 @@ withSession f = do
     let allowEval = False
     f Session{..} `finally` do
         debugShutdown "Start finally"
-        modifyVar_ running $ const $ return False
+        modifyVar_ running $ const $ pure False
         whenJustM (readIORef ghci) $ \v -> do
             writeIORef ghci Nothing
             debugShutdown "Calling kill"
@@ -91,7 +91,7 @@ qualify dir xs = [x{loadFile = dir </> loadFile x} | x <- xs]
 --   the list of files that were observed (both those loaded and those that failed to load).
 sessionStart :: Session -> String -> [String] -> IO ([Load], [FilePath])
 sessionStart Session{..} cmd setup = do
-    modifyVar_ running $ const $ return False
+    modifyVar_ running $ const $ pure False
     writeIORef command $ Just (cmd, setup)
 
     -- cleanup any old instances
@@ -104,7 +104,7 @@ sessionStart Session{..} cmd setup = do
     (v, messages) <- mask $ \unmask -> do
         (v, messages) <- unmask $ startGhci cmd Nothing $ const outStrLn
         writeIORef ghci $ Just v
-        return (v, messages)
+        pure (v, messages)
 
     -- do whatever preparation was requested
     exec v $ unlines setup
@@ -112,7 +112,7 @@ sessionStart Session{..} cmd setup = do
     -- deal with current directory
     (dir, _) <- showPaths v
     writeIORef curdir dir
-    messages <- return $ qualify dir messages
+    messages <- pure $ qualify dir messages
 
     let loaded = loadedModules messages
     evals <- performEvals v allowEval loaded
@@ -126,9 +126,9 @@ sessionStart Session{..} cmd setup = do
                 throwTo withThread $ ErrorCall $ "Command \"" ++ cmd ++ "\" exited unexpectedly with " ++ show code
 
     -- handle what the process returned
-    messages <- return $ mapMaybe tidyMessage messages
+    messages <- pure $ mapMaybe tidyMessage messages
     writeIORef warnings $ getWarnings messages
-    return (messages ++ evals, loaded)
+    pure (messages ++ evals, loaded)
 
 
 getWarnings :: [Load] -> [Load]
@@ -143,7 +143,7 @@ sessionRestart session@Session{..} = do
 
 
 performEvals :: Ghci -> Bool -> [FilePath] -> IO [Load]
-performEvals _ False _ = return []
+performEvals _ False _ = pure []
 performEvals ghci True reloaded = do
     cmds <- mapM getCommands reloaded
     fmap join $ forM cmds $ \(file, cmds') ->
@@ -151,13 +151,13 @@ performEvals ghci True reloaded = do
             ref <- newIORef []
             execStream ghci (unwords $ lines cmd) $ \_ resp -> modifyIORef ref (resp :)
             resp <- unlines . reverse <$> readIORef ref
-            return $ Eval $ EvalResult file (num, 1) cmd resp
+            pure $ Eval $ EvalResult file (num, 1) cmd resp
 
 
 getCommands :: FilePath -> IO (FilePath, [(Int, String)])
 getCommands fp = do
     ls <- readFileUTF8' fp
-    return (fp, splitCommands $ zipFrom 1 $ lines ls)
+    pure (fp, splitCommands $ zipFrom 1 $ lines ls)
 
 splitCommands :: [(Int, String)] -> [(Int, String)]
 splitCommands [] = []
@@ -182,8 +182,8 @@ commandPrefix = "-- $> "
 sessionReload :: Session -> IO ([Load], [FilePath], [FilePath])
 sessionReload session@Session{..} = do
     -- kill anything async, set stuck if you didn't succeed
-    old <- modifyVar running $ \b -> return (False, b)
-    stuck <- if not old then return False else do
+    old <- modifyVar running $ \b -> pure (False, b)
+    stuck <- if not old then pure False else do
         Just ghci <- readIORef ghci
         fmap isNothing $ timeout 5 $ interrupt ghci
 
@@ -202,10 +202,10 @@ sessionReload session@Session{..} = do
         -- only keep old warnings from files that are still loaded, but did not reload
         let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
         -- newest warnings always go first, so the file you hit save on most recently has warnings first
-        messages <- return $ messages ++ filter validWarn warn
+        messages <- pure $ messages ++ filter validWarn warn
 
         writeIORef warnings $ getWarnings messages
-        return (messages ++ evals, nubOrd (loaded ++ reloaded), reloaded)
+        pure (messages ++ evals, nubOrd (loaded ++ reloaded), reloaded)
 
 
 -- | Run an exec operation asynchronously. Should not be a @:reload@ or similar.
@@ -215,14 +215,14 @@ sessionExecAsync :: Session -> String -> (String -> IO ()) -> IO ()
 sessionExecAsync Session{..} cmd done = do
     Just ghci <- readIORef ghci
     stderr <- newIORef ""
-    modifyVar_ running $ const $ return True
+    modifyVar_ running $ const $ pure True
     caller <- myThreadId
-    void $ flip forkFinally (either (throwTo caller) (const $ return ())) $ do
+    void $ flip forkFinally (either (throwTo caller) (const $ pure ())) $ do
         execStream ghci cmd $ \strm msg ->
             when (msg /= "*** Exception: ExitSuccess") $ do
                 when (strm == Stderr) $ writeIORef stderr msg
                 outStrLn msg
-        old <- modifyVar running $ \b -> return (False, b)
+        old <- modifyVar running $ \b -> pure (False, b)
         -- don't fire Done if someone interrupted us
         stderr <- readIORef stderr
         when old $ done stderr
