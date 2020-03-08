@@ -8,7 +8,6 @@ import Control.Exception
 import System.IO.Error
 import Control.Applicative
 import Control.Monad.Extra
-import qualified Data.Foldable as Foldable
 import Data.List.Extra
 import Data.Maybe
 import Data.Ord
@@ -161,8 +160,7 @@ autoOptions o@Options{..}
               | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
               | cabal /= [] ->
                   let useCabal =
-                          let prefix =
-                                  [ "cabal", "repl" ] ++ Foldable.toList target
+                          let prefix = [ "cabal", "repl" ] ++ maybeToList target
                               suffix = map ("--ghc-options=" ++) opts
                           in  prefix ++ suffix
                       useGHCI = "cabal exec -- ghci":opts
