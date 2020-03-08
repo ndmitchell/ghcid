@@ -92,7 +92,7 @@ allGoodMessage = setSGRCode [SetColor Foreground Dull Green] ++  "All good" ++ s
 getModTime :: FilePath -> IO (Maybe UTCTime)
 getModTime file = handleJust
     (\e -> if isDoesNotExistError e then Just () else Nothing)
-    (\_ -> return Nothing)
+    (\_ -> pure Nothing)
     (Just <$> getModificationTime file)
 
 -- | Returns both the amount left (could have been taken more) and the list
@@ -106,7 +106,7 @@ getShortTime = formatTime defaultTimeLocale "%H:%M:%S" <$> getZonedTime
 
 -- | Get the smallest difference that can be reported by two modification times
 getModTimeResolution :: IO Seconds
-getModTimeResolution = return getModTimeResolutionCache
+getModTimeResolution = pure getModTimeResolutionCache
 
 {-# NOINLINE getModTimeResolutionCache #-}
 -- Cache the result so only computed once per run
@@ -122,11 +122,11 @@ getModTimeResolutionCache = unsafePerformIO $ withTempDir $ \dir -> do
         flip loopM 0 $ \j -> do
             writeFile file $ show (i,j)
             t2 <- getModificationTime file
-            return $ if t1 == t2 then Left $ j+1 else Right ()
+            pure $ if t1 == t2 then Left $ j+1 else Right ()
 
     -- GHC 7.6 and below only have 1 sec resolution timestamps
-    mtime <- return $ if compilerVersion < makeVersion [7,8] then max mtime 1 else mtime
+    mtime <- pure $ if compilerVersion < makeVersion [7,8] then max mtime 1 else mtime
 
     putStrLn $ "Longest file modification time lag was " ++ show (ceiling (mtime * 1000)) ++ "ms"
     -- add a little bit of safety, but if it's really quick, don't make it that much slower
-    return $ mtime + min 0.1 mtime
+    pure $ mtime + min 0.1 mtime

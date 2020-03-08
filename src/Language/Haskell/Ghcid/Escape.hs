@@ -32,7 +32,7 @@ explode :: Esc -> [Either Esc Char]
 explode = unfoldr unesc
 
 implode :: [Either Esc Char] -> Esc
-implode = Esc . concatMap (either fromEsc return)
+implode = Esc . concatMap (either fromEsc pure)
 
 unescape :: String -> String
 unescape = unescapeE . Esc
@@ -52,7 +52,7 @@ stripInfixE :: String -> Esc -> Maybe (Esc, Esc)
 stripInfixE needle haystack | Just rest <- stripPrefixE needle haystack = Just (Esc [], rest)
 stripInfixE needle e = case unesc e of
     Nothing -> Nothing
-    Just (x,xs) -> first (app $ fromEither $ fmap (Esc . return) x) <$> stripInfixE needle xs
+    Just (x,xs) -> first (app $ fromEither $ fmap (Esc . pure) x) <$> stripInfixE needle xs
 
 
 spanE, breakE :: (Char -> Bool) -> Esc -> (Esc, Esc)

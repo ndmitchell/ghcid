@@ -92,26 +92,26 @@ startGhciProcess process echo0 = do
                 -- e.g. https://github.com/ndmitchell/ghcid/issues/291
                 writeInp $ "\nINTERNAL_GHCID.putStrLn " ++ showStr msg ++ "\n" ++
                            "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ showStr msg
-                return $ isInfixOf msg
+                pure $ isInfixOf msg
         let syncFresh = do
-                modifyVar_ syncCount $ return . succ
+                modifyVar_ syncCount $ pure . succ
                 syncReplay
 
-        -- Consume from a stream until EOF (return Nothing) or some predicate returns Just
+        -- Consume from a stream until EOF (pure Nothing) or some predicate returns Just
         let consume :: Stream -> (String -> IO (Maybe a)) -> IO (Either (Maybe String) a)
             consume name finish = do
                 let h = if name == Stdout then out else err
                 flip fix Nothing $ \rec oldMsg -> do
                     el <- tryBool isEOFError $ hGetLine h
                     case el of
-                        Left _ -> return $ Left oldMsg
+                        Left _ -> pure $ Left oldMsg
                         Right l -> do
                             whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
                             let msg = removePrefix l
                             res <- finish msg
                             case res of
                                 Nothing -> rec $ Just msg
-                                Just a -> return $ Right a
+                                Just a -> pure $ Right a
 
         let consume2 :: String -> (Stream -> String -> IO (Maybe a)) -> IO (a,a)
             consume2 msg finish = do
@@ -125,7 +125,7 @@ startGhciProcess process echo0 = do
                         ShellCommand cmd -> UnexpectedExit cmd msg err
                         RawCommand exe args -> UnexpectedExit (unwords (exe:args)) msg err
                 case (res1, res2) of
-                    (Right v1, Right v2) -> return (v1, v2)
+                    (Right v1, Right v2) -> pure (v1, v2)
                     (_, Left err) -> raise msg err
                     (_, Right _) -> raise msg Nothing
 
@@ -137,27 +137,27 @@ startGhciProcess process echo0 = do
         isRunning <- newLock
 
         let ghciExec command echo = do
-                withLock isInterrupting $ return ()
+                withLock isInterrupting $ pure ()
                 res <- withLockTry isRunning $ do
                     writeInp command
                     stop <- syncFresh
                     void $ consume2 command $ \strm s ->
-                        if stop s then return $ Just () else do echo strm s; return Nothing
+                        if stop s then pure $ Just () else do echo strm s; pure Nothing
                 when (isNothing res) $
                     fail "Ghcid.exec, computation is already running, must be used single-threaded"
 
         let ghciInterrupt = withLock isInterrupting $
-                whenM (fmap isNothing $ withLockTry isRunning $ return ()) $ do
+                whenM (fmap isNothing $ withLockTry isRunning $ pure ()) $ do
                     whenLoud $ outStrLn "%INTERRUPT"
                     interruptProcessGroupOf ghciProcess
                     -- let the person running ghciExec finish, since their sync messages
                     -- may have been the ones that got interrupted
                     syncReplay
                     -- now wait for the person doing ghciExec to have actually left the lock
-                    withLock isRunning $ return ()
+                    withLock isRunning $ pure ()
                     -- there may have been two syncs sent, so now do a fresh sync to clear everything
                     stop <- syncFresh
-                    void $ consume2 "Interrupt" $ \_ s -> return $ if stop s then Just () else Nothing
+                    void $ consume2 "Interrupt" $ \_ s -> pure $ if stop s then Just () else Nothing
 
         ghciUnique <- newUnique
         let ghci = Ghci{..}
@@ -169,10 +169,10 @@ startGhciProcess process echo0 = do
         consume2 "" $ \strm s -> do
             stop <- readIORef sync
             if stop s then
-                return $ Just ()
+                pure $ Just ()
             else do
                 -- there may be some initial prompts on stdout before I set the prompt properly
-                s <- return $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
+                s <- pure $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
                 whenLoud $ outStrLn $ "%STDOUT2: " ++ s
                 modifyIORef (if strm == Stdout then stdout else stderr) (s:)
                 when (any (`isPrefixOf` s) [ "GHCi, version "
@@ -190,13 +190,13 @@ startGhciProcess process echo0 = do
                         writeInp $ ":set " ++ flag
                     writeIORef sync =<< syncFresh
                 echo0 strm s
-                return Nothing
+                pure Nothing
         r1 <- parseLoad . reverse <$> ((++) <$> readIORef stderr <*> readIORef stdout)
         -- see #132, if hide-source-paths was turned on the modules didn't get printed out properly
         -- so try a showModules to capture the information again
-        r2 <- if any isLoading r1 then return [] else map (uncurry Loading) <$> showModules ghci
+        r2 <- if any isLoading r1 then pure [] else map (uncurry Loading) <$> showModules ghci
         execStream ghci "" echo0
-        return (ghci, r1 ++ r2)
+        pure (ghci, r1 ++ r2)
 
 
 -- | Start GHCi by running the given shell command, a helper around 'startGhciProcess'.
@@ -239,7 +239,7 @@ execBuffer ghci cmd echo = do
 
 -- | Send a command, get lines of result. Must be called single-threaded.
 exec :: Ghci -> String -> IO [String]
-exec ghci cmd = execBuffer ghci cmd $ \_ _ -> return ()
+exec ghci cmd = execBuffer ghci cmd $ \_ _ -> pure ()
 
 -- | List the modules currently loaded, with module name and source file.
 showModules :: Ghci -> IO [(String,FilePath)]
@@ -257,7 +257,7 @@ reload ghci = parseLoad <$> exec ghci ":reload"
 quit :: Ghci -> IO ()
 quit ghci =  do
     interrupt ghci
-    handle (\UnexpectedExit{} -> return ()) $ void $ exec ghci ":quit"
+    handle (\UnexpectedExit{} -> pure ()) $ void $ exec ghci ":quit"
     -- Be aware that waitForProcess has a race condition, see https://github.com/haskell/process/issues/46.
     -- Therefore just ignore the exception anyway, its probably already terminated.
     ignored $ void $ waitForProcess $ process ghci

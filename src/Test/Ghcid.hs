@@ -77,10 +77,10 @@ withGhcid args script = do
     res <- bracket
         (flip forkFinally (const $ signalBarrier done ()) $
             withArgs (["--no-title","--no-status"]++args) $
-                mainWithTerminal (return $ TermSize 100 (Just 50) WrapHard) output)
+                mainWithTerminal (pure $ TermSize 100 (Just 50) WrapHard) output)
         killThread $ \_ -> script require
     waitBarrier done
-    return res
+    pure res
 
 
 -- | Since different versions of GHCi give different messages, we only try to find what

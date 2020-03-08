@@ -44,9 +44,9 @@ terminalTopmost :: IO ()
 terminalTopmost = do
     wnd <- getConsoleWindow
     setWindowPos wnd hWND_TOPMOST 0 0 0 0 (sWP_NOMOVE .|. sWP_NOSIZE)
-    return ()
+    pure ()
 #else
-terminalTopmost = return ()
+terminalTopmost = pure ()
 #endif
 
 
@@ -56,7 +56,7 @@ data WindowIcon = IconOK | IconWarning | IconError
 setWindowIcon :: WindowIcon -> IO ()
 #if defined(mingw32_HOST_OS)
 setWindowIcon x = do
-    ico <- return $ case x of
+    ico <- pure $ case x of
         IconOK -> iDI_ASTERISK
         IconWarning -> iDI_EXCLAMATION
         IconError -> iDI_HAND
@@ -65,9 +65,9 @@ setWindowIcon x = do
     -- SMALL is the system tray, BIG is the taskbar and Alt-Tab screen
     sendMessage wnd wM_SETICON iCON_SMALL $ fromIntegral $ castPtrToUINTPtr icon
     sendMessage wnd wM_SETICON iCON_BIG $ fromIntegral $ castPtrToUINTPtr icon
-    return ()
+    pure ()
 #else
-setWindowIcon _ = return ()
+setWindowIcon _ = pure ()
 #endif
 
 
@@ -81,7 +81,7 @@ withWindowIcon act = do
     act `finally` do
         sendMessage wnd wM_SETICON iCON_BIG icoBig
         sendMessage wnd wM_SETICON iCON_SMALL icoSmall
-        return ()
+        pure ()
 #else
 withWindowIcon act = act
 #endif

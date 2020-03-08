@@ -102,7 +102,7 @@ parsePosition x
             x <- lit "," x
             (c,x) <- digit x
             x <- lit ")" x
-            return ((l,c),x)
+            pure ((l,c),x)
 
 
 -- After the file location, message bodies are indented (perhaps prefixed by a line number)
