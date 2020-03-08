@@ -163,13 +163,9 @@ autoOptions o@Options{..}
                   let useCabal =
                           let prefix =
                                   [ "cabal", "repl" ] ++ Foldable.toList target
-
                               suffix = map ("--ghc-options=" ++) opts
-
                           in  prefix ++ suffix
-
                       useGHCI = "cabal exec -- ghci":opts
-
                   in  f (if null arguments then useCabal else useGHCI) cabal
               | otherwise -> f ("ghci":opts) []
     where
