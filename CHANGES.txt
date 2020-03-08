@@ -1,5 +1,7 @@
 Changelog for ghcid (* = breaking change)
 
+    #302, --target option for specifying targets for cabal repl
+    #300, restart on file changes detected by --restart=dir/
 0.8.1, released 2020-01-09
     #293, passing --allow-eval should disable -fno-code by default
     #291, try and be more robust to mucking with the console
