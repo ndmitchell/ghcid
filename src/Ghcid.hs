@@ -65,6 +65,7 @@ data Options = Options
     ,color :: ColorMode
     ,setup :: [String]
     ,allow_eval :: Bool
+    ,target :: Maybe String
     }
     deriving (Data,Typeable,Show)
 
@@ -103,6 +104,7 @@ options = cmdArgsMode $ Options
     ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
     ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
     ,allow_eval = False &= name "allow-eval" &= help "Execute REPL commands in comments"
+    ,target = Nothing &= typ "TARGET" &= help "Cabal target to build (e.g. lib:foo)"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -156,7 +158,12 @@ autoOptions o@Options{..}
                                 "stack exec --test --bench -- ghci" : opts
                 in f flags $ stack:cabal
               | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
-              | cabal /= [] -> f (if null arguments then "cabal repl":map ("--ghc-options=" ++) opts else "cabal exec -- ghci":opts) cabal
+              | cabal /= [] ->
+                  let useCabal =
+                              [ "cabal", "repl" ] ++ maybeToList target
+                          ++  map ("--ghc-options=" ++) opts
+                      useGHCI = "cabal exec -- ghci":opts
+                  in  f (if null arguments then useCabal else useGHCI) cabal
               | otherwise -> f ("ghci":opts) []
     where
         f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r, run = [], test = run ++ test}
