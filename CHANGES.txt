@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #306, fix --target to work on exe: targets
 0.8.2, released 2020-03-08
     #302, --target option for specifying targets for cabal repl
     #300, restart on file changes detected by --restart=dir/
