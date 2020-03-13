@@ -1,5 +1,21 @@
-;; Really basic ghcid+stack support in emacs with compilation-mode
+;;; ghcid.el --- Really basic ghcid+stack support in emacs with compilation-mode -*- lexical-binding: t -*-
+
+;; Author: Matthew Wraith <wraithm@gmail.com>
+;;         Yorick Sijsling
+;; Maintainer: Matthew Wraith <wraithm@gmail.com>
+;;             Yorick Sijsling
+;;             Vasiliy Yorkin <vasiliy.yorkin@gmail.com>
+;;             Neil Mitchell <ndmitchell@gmail.com>
+;; URL: https://github.com/ndmitchell/ghcid
+;; Version: 1.0
+;; Created: 26 Sep 2014
+;; Keywords: tools, files, Haskell
+
+;;; Commentary:
+
 ;; Use M-x ghcid to launch
+
+;;; Code:
 
 (require 'term)
 
@@ -131,3 +147,5 @@ you ran this command from."
 
 
 (provide 'ghcid)
+
+;;; ghcid.el ends here
