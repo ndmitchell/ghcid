@@ -1,9 +1,13 @@
 ;;; ghcid.el --- Really basic ghcid+stack support in emacs with compilation-mode -*- lexical-binding: t -*-
 
-;; Author: Neil Mitchell <ndmitchell@gmail.com>
-;; Maintainer: Neil Mitchell <ndmitchell@gmail.com>
+;; Author: Matthew Wraith <wraithm@gmail.com>
+;;         Yorick Sijsling
+;; Maintainer: Matthew Wraith <wraithm@gmail.com>
+;;             Yorick Sijsling
+;;             Vasiliy Yorkin <vasiliy.yorkin@gmail.com>
+;;             Neil Mitchell <ndmitchell@gmail.com>
 ;; URL: https://github.com/ndmitchell/ghcid
-;; Version: 0.8.3
+;; Version: 1.0
 ;; Created: 26 Sep 2014
 ;; Keywords: tools, files, Haskell
 
