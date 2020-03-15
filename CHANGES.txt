@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #309, use cabal repl --repl-options to avoid errors
 0.8.3, released 2020-03-10
     #306, fix --target to work on exe: targets
 0.8.2, released 2020-03-08

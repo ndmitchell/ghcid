@@ -160,11 +160,9 @@ autoOptions o@Options{..}
                 in f flags $ stack:cabal
               | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
               | cabal /= [] ->
-                  let useCabal =
-                              [ "cabal", "repl" ] ++ maybeToList target
-                          ++  map ("--ghc-options=" ++) opts
-                      useGHCI = "cabal exec -- ghci":opts
-                  in  f (if null arguments then useCabal else useGHCI) cabal
+                  let useCabal = ["cabal","repl"] ++ maybeToList target ++ map ("--repl-options=" ++) opts
+                      useGhci = "cabal exec -- ghci":opts
+                  in  f (if null arguments then useCabal else useGhci) cabal
               | otherwise -> f ("ghci":opts) []
     where
         f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r, run = [], test = run ++ test}
