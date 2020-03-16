@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #311, allow --target with Stack
 0.8.4, released 2020-03-15
     #309, use cabal repl --repl-options to avoid errors
 0.8.3, released 2020-03-10
