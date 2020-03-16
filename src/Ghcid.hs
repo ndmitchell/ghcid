@@ -65,7 +65,7 @@ data Options = Options
     ,color :: ColorMode
     ,setup :: [String]
     ,allow_eval :: Bool
-    ,target :: Maybe String
+    ,target :: [String]
     }
     deriving (Data,Typeable,Show)
 
@@ -104,7 +104,7 @@ options = cmdArgsMode $ Options
     ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
     ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
     ,allow_eval = False &= name "allow-eval" &= help "Execute REPL commands in comments"
-    ,target = Nothing &= typ "TARGET" &= help "Cabal target to build (e.g. lib:foo)"
+    ,target = [] &= typ "TARGET" &= help "Target Component to build (e.g. lib:foo for Cabal, foo:lib for Stack)"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
 
@@ -144,15 +144,20 @@ autoOptions o@Options{..}
                 let yaml = dir </> "stack.yaml"
                 b <- doesFileExist yaml &&^ doesDirectoryExist (dir </> ".stack-work")
                 pure $ if b then Just yaml else Nothing
-        stack <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
+        stackFile <- firstJustM findStack [".",".."] -- stack file might be parent, see #62
 
         let cabal = map (curdir </>) $ filter ((==) ".cabal" . takeExtension) files
-        let isLib = isPrefixOf "lib:"
-        let opts = ["-fno-code" | null test && null run && not allow_eval && all isLib target] ++ ghciFlagsRequired ++ ghciFlagsUseful
+        let isLib = isPrefixOf "lib:"  -- `lib:foo` is the Cabal format
+        let noCode = [ "-fno-code"
+                     | null test
+                       && null run
+                       && not allow_eval
+                       && (isJust stackFile || all isLib target) ]
+        let opts = noCode ++ ghciFlagsRequired ++ ghciFlagsUseful
         pure $ case () of
-            _ | Just stack <- stack ->
+            _ | Just stack <- stackFile ->
                 let flags = if null arguments then
-                                "stack ghci --test --bench" :
+                                "stack ghci" : target ++ "--test --bench" :
                                 ["--no-load" | ".ghci" `elem` files] ++
                                 map ("--ghci-options=" ++) opts
                             else
@@ -160,7 +165,7 @@ autoOptions o@Options{..}
                 in f flags $ stack:cabal
               | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
               | cabal /= [] ->
-                  let useCabal = ["cabal","repl"] ++ maybeToList target ++ map ("--repl-options=" ++) opts
+                  let useCabal = ["cabal","repl"] ++ target ++ map ("--repl-options=" ++) opts
                       useGhci = "cabal exec -- ghci":opts
                   in  f (if null arguments then useCabal else useGhci) cabal
               | otherwise -> f ("ghci":opts) []
