@@ -217,6 +217,8 @@ mainWithTerminal termSize termOutput =
                 outStrLn $ "%OS: " ++ os
                 outStrLn $ "%ARCH: " ++ arch
                 outStrLn $ "%VERSION: " ++ showVersion version
+                args <- getArgs
+                outStrLn $ "%ARGUMENTS: " ++ show args
             withCurrentDirectory (directory opts) $ do
                 opts <- autoOptions opts
                 opts <- pure $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
