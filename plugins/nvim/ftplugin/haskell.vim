@@ -335,6 +335,7 @@ function! s:ghcid(...) abort
     silent normal! G
     set norelativenumber
     set nonumber
+    set filetype=haskell
     let s:ghcid_job_id = b:terminal_job_id
   endif
 
