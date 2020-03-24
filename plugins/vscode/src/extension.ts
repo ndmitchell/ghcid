@@ -162,8 +162,7 @@ export function activate(context: vscode.ExtensionContext) {
         // TODO support multiple roots
         // TODO support multiple 'ghcid.txt's
         // TODO consider using RxJS to more easily manage subscriptions
-        cleanup()
-        oldWatcher = watchOutput(path.dirname(uri.fsPath), uri.fsPath);
+        if (!oldWatcher) oldWatcher = watchOutput(path.dirname(uri.fsPath), uri.fsPath);
     })
 }
 
