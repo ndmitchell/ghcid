@@ -86,7 +86,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
             return f(2,3,4,5);
         return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
     }
-    return [].concat(... split(clean(lines(s))).map(parse));
+    return [].concat(... split(lines(s)).map(clean).map(parse));
 }
 
 function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri, vscode.Diagnostic[]][] {
