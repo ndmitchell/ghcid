@@ -28,10 +28,6 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         var cont = [];
         var res = [];
         for (let x of xs) {
-            if (x.match(/\s*\|$/))
-                continue
-            if (x.match(/(\d+)?\s*\|/))
-                continue
             if (isMessageBody(x))
                 cont.push(x);
             else {
@@ -42,6 +38,20 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         if (cont.length > 0) res.push(cont);
         return res;
     }
+
+    function clean(lines: string[]): string[] {
+        const newlines: string[] = []
+        for (const line of lines) {
+            if (/In the/.test(line)) break
+
+            if (line.match(/\s*\|$/)) break
+            if (line.match(/(\d+)?\s*\|/)) break
+
+            newlines.push(line)
+        }
+        return newlines
+    }
+
     function dedent(lines: string[]): string[] {
         const indentation = Math.min(...lines.filter(line => line !== '').map(line => line.match(/^\s*/)[0].length))
         return lines.map(line => line.slice(indentation))
@@ -76,7 +86,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
             return f(2,3,4,5);
         return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
     }
-    return [].concat(... split(lines(s)).map(parse));
+    return [].concat(... split(clean(lines(s))).map(parse));
 }
 
 function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri, vscode.Diagnostic[]][] {
