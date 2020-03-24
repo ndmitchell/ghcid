@@ -87,14 +87,9 @@ function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri
 
 function watchOutput(root : string, file : string) : fs.FSWatcher {
     let d = vscode.languages.createDiagnosticCollection('ghcid');
-    let last = [];
     let go = () => {
-        let next = parseGhcidOutput(root, fs.readFileSync(file, "utf8"));
-        let next2 = next.map(x => pair(x[0], [x[1]]));
-        for (let x of last)
-            next2.push(pair(x[0], []));
-        d.set(groupDiagnostic(next2));
-        last = next;
+        d.clear()
+        d.set(groupDiagnostic(parseGhcidOutput(root, fs.readFileSync(file, "utf8")).map(x => pair(x[0], [x[1]]))));
     };
     let watcher = fs.watch(file, go);
     go();
