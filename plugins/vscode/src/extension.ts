@@ -2,7 +2,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as child_process from 'child_process';
 import * as os from 'os';
 import * as crypto from 'crypto'
 
