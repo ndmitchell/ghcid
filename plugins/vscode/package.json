@@ -19,7 +19,8 @@
         "Linters"
     ],
     "activationEvents": [
-        "onCommand:extension.startGhcid"
+        "onCommand:extension.startGhcid",
+        "workspaceContains:**/ghcid.txt"
     ],
     "main": "./out/src/extension",
     "contributes": {

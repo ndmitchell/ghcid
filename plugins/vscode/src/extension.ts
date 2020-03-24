@@ -161,6 +161,16 @@ export function activate(context: vscode.ExtensionContext) {
         oldTerminal.show();
         return watchOutput(vscode.workspace.rootPath, file);
     });
+
+    const watcher = vscode.workspace.createFileSystemWatcher('**/ghcid.txt')
+    context.subscriptions.push(watcher);
+    watcher.onDidCreate(uri => {
+        // TODO support multiple roots
+        // TODO support multiple 'ghcid.txt's
+        // TODO consider using RxJS to more easily manage subscriptions
+        cleanup()
+        oldWatcher = watchOutput(path.dirname(uri.fsPath), uri.fsPath);
+    })
 }
 
 // this method is called when your extension is deactivated
