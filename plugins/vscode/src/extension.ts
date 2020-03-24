@@ -96,10 +96,32 @@ function watchOutput(root : string, file : string) : fs.FSWatcher {
     return watcher;
 }
 
+async function autoWatch(context: vscode.ExtensionContext) {
+    // TODO support multiple roots
+    const watcher = vscode.workspace.createFileSystemWatcher('**/ghcid.txt')
+    context.subscriptions.push(watcher);
+    const uri2diags = new Map<string, vscode.DiagnosticCollection>()
+    context.subscriptions.push({ dispose: () => Array.from(uri2diags.values()).forEach(diag => diag.dispose()) });
+
+    const onUpdate = (uri: vscode.Uri) => {
+        const diags = uri2diags.get(uri.fsPath) || vscode.languages.createDiagnosticCollection()
+        uri2diags.set(uri.fsPath, diags)
+        diags.clear()
+        diags.set(groupDiagnostic(parseGhcidOutput(path.dirname(uri.fsPath), fs.readFileSync(uri.fsPath, "utf8")).map(x => pair(x[0], [x[1]]))));
+    }
+
+    (await vscode.workspace.findFiles('**/ghcid.txt')).forEach(onUpdate)
+    watcher.onDidCreate(onUpdate)
+    watcher.onDidChange(onUpdate)
+    watcher.onDidDelete(uri => {
+        uri2diags.get(uri.fsPath)?.dispose()
+        uri2diags.delete(uri.fsPath)
+    })
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
@@ -156,14 +178,7 @@ export function activate(context: vscode.ExtensionContext) {
         return watchOutput(vscode.workspace.rootPath, file);
     });
 
-    const watcher = vscode.workspace.createFileSystemWatcher('**/ghcid.txt')
-    context.subscriptions.push(watcher);
-    watcher.onDidCreate(uri => {
-        // TODO support multiple roots
-        // TODO support multiple 'ghcid.txt's
-        // TODO consider using RxJS to more easily manage subscriptions
-        if (!oldWatcher) oldWatcher = watchOutput(path.dirname(uri.fsPath), uri.fsPath);
-    })
+    await autoWatch(context)
 }
 
 // this method is called when your extension is deactivated
