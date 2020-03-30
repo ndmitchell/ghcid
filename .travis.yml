@@ -1,11 +1,11 @@
 language: minimal
 env:
-- GHCVER=7.10
 - GHCVER=8.0
 - GHCVER=8.2
 - GHCVER=8.4
 - GHCVER=8.6
 - GHCVER=8.8
+- GHCVER=8.10
 - GHCVER=head
 
 script:
