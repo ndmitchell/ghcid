@@ -31,3 +31,8 @@ Run:
 
 * Create a personal token following [the instructions](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token), which involves visiting [this page](https://ndmitchell.visualstudio.com/_usersSettings/tokens).
 * Run `vsce publish -p <token>`.
+
+## Authors
+
+- [**@ndmitchell**](https://github.com/ndmitchell) Neil Mitchell
+- [**@chrismwendt**](https://github.com/chrismwendt) Chris Wendt
