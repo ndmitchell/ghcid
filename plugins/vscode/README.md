@@ -1,26 +1,21 @@
 # VSCode haskell-ghcid
 
-Integrates with [`ghcid`](https://github.com/ndmitchell/ghcid). To use:
+Shows errors and warnings from [`ghcid`](https://github.com/ndmitchell/ghcid) in the Problems pane and inline as red squiggles in the editor. Updates when files are saved.
 
-* Get your project working so typing `ghcid` in the project root works. If you need to pass special flags to `ghcid` create a `.ghcid` file in the project root with the extra flags, e.g. `--command=cabal repl` or similar.
+## Usage
+
+Simply run `ghcid -o ghcid.txt`! `-o` instructs `ghcid` to write its output to a file every time it recompiles your code. This extension will automatically find and watch that file for updates.
+
+## Spawning `ghcid` in VS Code
+
+Alternatively, you can tell VS Code to spawn `ghcid` in an embedded terminal:
+
+* Get your project working so typing `ghcid` in the project root works. If you need to pass special flags to `ghcid`, create a `.ghcid` file in the project root with the extra flags, e.g. `--command=cabal repl` or similar.
 * Run the VS Code command (`Ctrl+Shift+P`) named "Start Ghcid".
-
-These steps cause `ghcid` to be spawned as a fresh terminal, errors to appear in the VS Code Problems pane, red squiggles in the editor. Even though the errors are in the proper problems pane, I personally still prefer the output provided by the `ghcid` terminal, so still look at that.
-
-## Other available commands
-
-In addition to having the extension start `ghcid` itself, if you have to start `ghcid` in a special way, you can attach the extension to a running copy:
-
-* Run `ghcid -o ghcid.txt` which will produce a file `ghcid.txt` which updates every time `ghcid` updates.
-* Open `ghcid.txt` in VS Code as the active editor. Run the VS Code command (`Ctrl+Shift+P`) named "Watch Ghcid output".
-
-## Features
-
-Shows errors and warnings from Haskell in the Problems pane and inline in the document. Updates when files are saved.
 
 ## Requirements
 
-Requires [`ghcid`](https://github.com/ndmitchell/ghcid) installed and on the `$PATH`.
+Requires [`ghcid`](https://github.com/ndmitchell/ghcid) to be installed and on your `$PATH`.
 
 ## Local installation
 
@@ -36,3 +31,8 @@ Run:
 
 * Create a personal token following [the instructions](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token), which involves visiting [this page](https://ndmitchell.visualstudio.com/_usersSettings/tokens).
 * Run `vsce publish -p <token>`.
+
+## Authors
+
+- [**@ndmitchell**](https://github.com/ndmitchell) Neil Mitchell
+- [**@chrismwendt**](https://github.com/chrismwendt) Chris Wendt

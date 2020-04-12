@@ -2,7 +2,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as child_process from 'child_process';
 import * as os from 'os';
 import * as crypto from 'crypto'
 
@@ -40,6 +39,24 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         return res;
     }
 
+    function clean(lines: string[]): string[] {
+        const newlines: string[] = []
+        for (const line of lines) {
+            if (/In the/.test(line)) break
+
+            if (line.match(/\s*\|$/)) break
+            if (line.match(/(\d+)?\s*\|/)) break
+
+            newlines.push(line)
+        }
+        return newlines
+    }
+
+    function dedent(lines: string[]): string[] {
+        const indentation = Math.min(...lines.filter(line => line !== '').map(line => line.match(/^\s*/)[0].length))
+        return lines.map(line => line.slice(indentation))
+    }
+
     function parse(xs : string[]) : [vscode.Uri, vscode.Diagnostic][] {
         let r1 = /(..[^:]+):([0-9]+):([0-9]+):/
         let r2 = /(..[^:]+):([0-9]+):([0-9]+)-([0-9]+):/
@@ -56,8 +73,8 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
                     sev = vscode.DiagnosticSeverity.Warning;
                 s = s.substr(i+1).trim();
             }
-            let msg = [].concat([s],xs.slice(1)).join('\n');
-            return [pair(file, new vscode.Diagnostic(range, msg, sev))];
+            let msg = [].concat(/^\s*$/.test(s) ? [] : [s], xs.slice(1));
+            return [pair(file, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev))];
         };
         if (xs[0].startsWith("All good"))
             return [];
@@ -67,9 +84,9 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
             return f(2,3,2,4);
         if (m = xs[0].match(r3))
             return f(2,3,4,5);
-        return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), xs.join('\n'))]];
+        return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
     }
-    return [].concat(... split(lines(s)).map(parse));
+    return [].concat(... split(lines(s)).map(clean).map(parse));
 }
 
 function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri, vscode.Diagnostic[]][] {
@@ -88,24 +105,41 @@ function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri
 
 function watchOutput(root : string, file : string) : fs.FSWatcher {
     let d = vscode.languages.createDiagnosticCollection('ghcid');
-    let last = [];
     let go = () => {
-        let next = parseGhcidOutput(root, fs.readFileSync(file, "utf8"));
-        let next2 = next.map(x => pair(x[0], [x[1]]));
-        for (let x of last)
-            next2.push(pair(x[0], []));
-        d.set(groupDiagnostic(next2));
-        last = next;
+        d.clear()
+        d.set(groupDiagnostic(parseGhcidOutput(root, fs.readFileSync(file, "utf8")).map(x => pair(x[0], [x[1]]))));
     };
     let watcher = fs.watch(file, go);
     go();
     return watcher;
 }
 
+async function autoWatch(context: vscode.ExtensionContext) {
+    // TODO support multiple roots
+    const watcher = vscode.workspace.createFileSystemWatcher('**/ghcid.txt')
+    context.subscriptions.push(watcher);
+    const uri2diags = new Map<string, vscode.DiagnosticCollection>()
+    context.subscriptions.push({ dispose: () => Array.from(uri2diags.values()).forEach(diag => diag.dispose()) });
+
+    const onUpdate = (uri: vscode.Uri) => {
+        const diags = uri2diags.get(uri.fsPath) || vscode.languages.createDiagnosticCollection()
+        uri2diags.set(uri.fsPath, diags)
+        diags.clear()
+        diags.set(groupDiagnostic(parseGhcidOutput(path.dirname(uri.fsPath), fs.readFileSync(uri.fsPath, "utf8")).map(x => pair(x[0], [x[1]]))));
+    }
+
+    (await vscode.workspace.findFiles('**/ghcid.txt')).forEach(onUpdate)
+    watcher.onDidCreate(onUpdate)
+    watcher.onDidChange(onUpdate)
+    watcher.onDidDelete(uri => {
+        uri2diags.get(uri.fsPath)?.dispose()
+        uri2diags.delete(uri.fsPath)
+    })
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
@@ -161,6 +195,8 @@ export function activate(context: vscode.ExtensionContext) {
         oldTerminal.show();
         return watchOutput(vscode.workspace.rootPath, file);
     });
+
+    await autoWatch(context)
 }
 
 // this method is called when your extension is deactivated

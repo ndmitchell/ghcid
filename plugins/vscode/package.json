@@ -5,7 +5,7 @@
     "version": "0.2.1",
     "publisher": "ndmitchell",
     "homepage": "https://github.com/ndmitchell/ghcid",
-    "author": "Neil Mitchell",
+    "author": "Neil Mitchell, Chris Wendt",
     "engines": {
         "vscode": "^1.13.0"
     },
@@ -19,7 +19,8 @@
         "Linters"
     ],
     "activationEvents": [
-        "onCommand:extension.startGhcid"
+        "onCommand:extension.startGhcid",
+        "workspaceContains:**/ghcid.txt"
     ],
     "main": "./out/src/extension",
     "contributes": {
@@ -50,7 +51,8 @@
         "@types/mocha": "^2.2.48",
         "@types/node": "^6.14.2",
         "mocha": "^5.2.0",
-        "typescript": "^2.9.2",
+        "typescript": "^3.8.3",
+        "vsce": "^1.74.0",
         "vscode": "^1.1.26"
     }
 }
