@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #314, report GHC panics as error messages
 0.8.5, released 2020-03-19
     #311, allow --target with Stack
 0.8.4, released 2020-03-15
