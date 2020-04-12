@@ -62,11 +62,17 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             | Just file <- stripPrefixE "<no location info>: can't find file: " x
             = Message Error (unescapeE file) (0,0) (0,0) [fromEsc x] : f xs
 
+        -- <no location info>: error:
+        f (x:xs)
+            | unescapeE x == "<no location info>: error:"
+            , (xs,rest) <- span leadingWhitespaceE xs
+            = Message Error "<unknown>" (0,0) (0,0) (map fromEsc $ x:xs) : f rest
+
         -- Module imports form a cycle:
         --   module `Module' (Module.hs) imports itself
         f (x:xs)
             | unescapeE x == "Module imports form a cycle:"
-            , (xs,rest) <- span (isPrefixOfE " ") xs
+            , (xs,rest) <- span leadingWhitespaceE xs
             , let ms = [takeWhile (/= ')') x | x <- xs, '(':x <- [dropWhile (/= '(') $ unescapeE x]]
             = [Message Error m (0,0) (0,0) (map fromEsc $ x:xs) | m <- nubOrd ms] ++ f rest
 
@@ -78,6 +84,9 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
         f (_:xs) = f xs
         f [] = []
 
+leadingWhitespaceE :: Esc -> Bool
+leadingWhitespaceE x =
+    isPrefixOfE " " x || isPrefixOfE "\t" x
 
 -- 1:2:
 -- 1:2-4:
