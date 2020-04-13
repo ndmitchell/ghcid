@@ -2,7 +2,7 @@
     "name": "haskell-ghcid",
     "displayName": "haskell-ghcid",
     "description": "Integrate ghcid into VS Code",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "publisher": "ndmitchell",
     "homepage": "https://github.com/ndmitchell/ghcid",
     "author": "Neil Mitchell, Chris Wendt",
