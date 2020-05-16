@@ -18,10 +18,7 @@
         "Programming Languages",
         "Linters"
     ],
-    "activationEvents": [
-        "onCommand:extension.startGhcid",
-        "workspaceContains:**/ghcid.txt"
-    ],
+    "activationEvents": ["*"],
     "main": "./out/src/extension",
     "contributes": {
         "commands": [
