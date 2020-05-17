@@ -34,5 +34,5 @@ Run:
 
 ## Authors
 
-- [**@ndmitchell**](https://github.com/ndmitchell) Neil Mitchell
-- [**@chrismwendt**](https://github.com/chrismwendt) Chris Wendt
+* [**@ndmitchell**](https://github.com/ndmitchell) Neil Mitchell
+* [**@chrismwendt**](https://github.com/chrismwendt) Chris Wendt
