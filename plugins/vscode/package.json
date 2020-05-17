@@ -18,6 +18,10 @@
         "Programming Languages",
         "Linters"
     ],
+    "//": [
+        "Activate unconditionally on startup to register file watchers.",
+        "See https://github.com/ndmitchell/ghcid/pull/317"
+    ],
     "activationEvents": ["*"],
     "main": "./out/src/extension",
     "contributes": {
