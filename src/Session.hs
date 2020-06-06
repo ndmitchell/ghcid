@@ -165,6 +165,9 @@ splitCommands ((num, line) : ls)
     | isCommand line =
           let (cmds, xs) = span (isCommand . snd) ls
            in (num, unwords $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
+    | isMultilineCommandPrefix line =
+          let (cmds, xs) = break (isMultilineCommandSuffix . snd) ls
+           in (num, unlines (wrapGhciMultiline (fmap snd cmds))) : splitCommands (drop1 xs)
     | otherwise = splitCommands ls
 
 isCommand :: String -> Bool
@@ -173,8 +176,20 @@ isCommand = isPrefixOf commandPrefix
 commandPrefix :: String
 commandPrefix = "-- $> "
 
+isMultilineCommandPrefix :: String -> Bool
+isMultilineCommandPrefix = (==) multilineCommandPrefix
 
+multilineCommandPrefix :: String
+multilineCommandPrefix = "{- $>"
 
+isMultilineCommandSuffix :: String -> Bool
+isMultilineCommandSuffix = (==) multilineCommandSuffix
+
+multilineCommandSuffix :: String
+multilineCommandSuffix = "<$ -}"
+
+wrapGhciMultiline :: [String] -> [String]
+wrapGhciMultiline xs = [":{"] ++ xs ++ [":}"]
 
 -- | Reload, returning the same information as 'sessionStart'. In particular, any
 --   information that GHCi doesn't repeat (warnings from loaded modules) will be

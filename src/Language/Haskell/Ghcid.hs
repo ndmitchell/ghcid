@@ -184,6 +184,7 @@ startGhciProcess process echo0 = do
                     writeInp "import qualified System.IO as INTERNAL_GHCID"
                     writeInp ":unset +t +s" -- see https://github.com/ndmitchell/ghcid/issues/162
                     writeInp $ ":set prompt " ++ ghcid_prefix
+                    writeInp $ ":set prompt-cont " ++ ghcid_prefix
 
                     -- failure isn't harmful, so do them one-by-one
                     forM_ (ghciFlagsRequired ++ ghciFlagsRequiredVersioned) $ \flag ->
