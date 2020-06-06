@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #319, allow eval multiline commands
 0.8.6, released 2020-04-13
     #314, report GHC panics as error messages
 0.8.5, released 2020-03-19
