@@ -149,7 +149,7 @@ performEvals ghci True reloaded = do
     fmap join $ forM cmds $ \(file, cmds') ->
         forM cmds' $ \(num, cmd) -> do
             ref <- newIORef []
-            execStream ghci (unwords $ lines cmd) $ \_ resp -> modifyIORef ref (resp :)
+            execStream ghci cmd $ \_ resp -> modifyIORef ref (resp :)
             resp <- unlines . reverse <$> readIORef ref
             pure $ Eval $ EvalResult file (num, 1) cmd resp
 
@@ -164,7 +164,7 @@ splitCommands [] = []
 splitCommands ((num, line) : ls)
     | isCommand line =
           let (cmds, xs) = span (isCommand . snd) ls
-           in (num, unlines $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
+           in (num, unwords $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
     | otherwise = splitCommands ls
 
 isCommand :: String -> Bool
