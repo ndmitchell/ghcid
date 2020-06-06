@@ -53,7 +53,14 @@ In general, to use `ghcid`, you first need to get `ghci` working well for you. I
 Using the `ghci` session that `ghcid` manages you can also evaluate expressions:
 
 * You can pass any `ghci` expression with the `--test` flag, e.g. `--test=:main`, which will be run whenever the code is warning free (or pass `--warnings` for when the code is merely error free).
-* If you pass the `--allow-eval` flag then comments in the source files such as `-- $> expr` will run `expr` after loading - see [this blog post](https://jkeuhlen.com/2019/10/19/Compile-Your-Comments-In-Ghcid.html) for more details.
+* If you pass the `--allow-eval` flag then comments in the source files such as `-- $> expr` will run `expr` after loading - see [this blog post](https://jkeuhlen.com/2019/10/19/Compile-Your-Comments-In-Ghcid.html) for more details. Multiline comments are also supported with the following syntax:
+
+      {- $>
+      expr1
+      expr2
+      ...
+      exprN
+      <$ -}
 
 ### FAQ
 

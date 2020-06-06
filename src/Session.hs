@@ -149,7 +149,7 @@ performEvals ghci True reloaded = do
     fmap join $ forM cmds $ \(file, cmds') ->
         forM cmds' $ \(num, cmd) -> do
             ref <- newIORef []
-            execStream ghci (unwords $ lines cmd) $ \_ resp -> modifyIORef ref (resp :)
+            execStream ghci cmd $ \_ resp -> modifyIORef ref (resp :)
             resp <- unlines . reverse <$> readIORef ref
             pure $ Eval $ EvalResult file (num, 1) cmd resp
 
@@ -164,7 +164,10 @@ splitCommands [] = []
 splitCommands ((num, line) : ls)
     | isCommand line =
           let (cmds, xs) = span (isCommand . snd) ls
-           in (num, unlines $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
+           in (num, unwords $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
+    | isMultilineCommandPrefix line =
+          let (cmds, xs) = break (isMultilineCommandSuffix . snd) ls
+           in (num, unlines (wrapGhciMultiline (fmap snd cmds))) : splitCommands (drop1 xs)
     | otherwise = splitCommands ls
 
 isCommand :: String -> Bool
@@ -173,8 +176,20 @@ isCommand = isPrefixOf commandPrefix
 commandPrefix :: String
 commandPrefix = "-- $> "
 
+isMultilineCommandPrefix :: String -> Bool
+isMultilineCommandPrefix = (==) multilineCommandPrefix
 
+multilineCommandPrefix :: String
+multilineCommandPrefix = "{- $>"
 
+isMultilineCommandSuffix :: String -> Bool
+isMultilineCommandSuffix = (==) multilineCommandSuffix
+
+multilineCommandSuffix :: String
+multilineCommandSuffix = "<$ -}"
+
+wrapGhciMultiline :: [String] -> [String]
+wrapGhciMultiline xs = [":{"] ++ xs ++ [":}"]
 
 -- | Reload, returning the same information as 'sessionStart'. In particular, any
 --   information that GHCi doesn't repeat (warnings from loaded modules) will be
