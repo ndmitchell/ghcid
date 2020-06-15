@@ -201,10 +201,27 @@ handleErrors = handle $ \(UnexpectedExit cmd _ mmsg) -> do
         Nothing -> ""
     exitFailure
 
+finallyPrintStopped :: Options -> IO () -> IO ()
+finallyPrintStopped opts x = x `finally` do
+        outputfile opts `forM_` \file -> do
+            writeFile file "ghcid has stopped\n"
+
+
 -- | Like 'main', but run with a fake terminal for testing
 mainWithTerminal :: IO TermSize -> ([String] -> IO ()) -> IO ()
-mainWithTerminal termSize termOutput =
-    handleErrors $
+mainWithTerminal termSize termOutput = do
+    opts <- withGhcidArgs $ cmdArgsRun options
+    whenLoud $ do
+        outStrLn $ "%OS: " ++ os
+        outStrLn $ "%ARCH: " ++ arch
+        outStrLn $ "%VERSION: " ++ showVersion version
+        args <- getArgs
+        outStrLn $ "%ARGUMENTS: " ++ show args
+    mainWithTerminalWithOpts termSize termOutput opts
+
+mainWithTerminalWithOpts :: IO TermSize -> ([String] -> IO ()) -> Options -> IO ()
+mainWithTerminalWithOpts termSize termOutput opts = do
+    finallyPrintStopped opts $ handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
             setVerbosity Normal -- undo any --verbose flags
 
@@ -212,13 +229,6 @@ mainWithTerminal termSize termOutput =
             hSetBuffering stdout LineBuffering
             hSetBuffering stderr NoBuffering
             origDir <- getCurrentDirectory
-            opts <- withGhcidArgs $ cmdArgsRun options
-            whenLoud $ do
-                outStrLn $ "%OS: " ++ os
-                outStrLn $ "%ARCH: " ++ arch
-                outStrLn $ "%VERSION: " ++ showVersion version
-                args <- getArgs
-                outStrLn $ "%ARGUMENTS: " ++ show args
             withCurrentDirectory (directory opts) $ do
                 opts <- autoOptions opts
                 opts <- pure $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
