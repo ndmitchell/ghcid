@@ -94,7 +94,7 @@ options = cmdArgsMode $ Options
     ,topmost = False &= name "t" &= help "Set window topmost (Windows only)"
     ,no_title = False &= help "Don't update the shell title/icon"
     ,project = "" &= typ "NAME" &= help "Name of the project, defaults to current directory"
-    ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file)"
+    ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file, unless when using stack or a custom command)"
     ,reload = [] &= typ "PATH" &= help "Reload when the given file or directory contents change (defaults to none)"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
