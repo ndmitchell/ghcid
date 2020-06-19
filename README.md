@@ -62,6 +62,8 @@ Using the `ghci` session that `ghcid` manages you can also evaluate expressions:
       exprN
       <$ -}
 
+Expressions that read from standard input are likely to hang, given that Ghcid already uses the standard input to interact with Ghci.
+
 ### FAQ
 
 #### This isn't as good as full IDE
