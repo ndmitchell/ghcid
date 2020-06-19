@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+    #321, print Ghcide has stopped to the output file.
 0.8.7, released 2020-06-06
     #319, allow eval multiline commands
 0.8.6, released 2020-04-13
