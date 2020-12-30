@@ -75,8 +75,8 @@ startGhciProcess process echo0 = do
         -- Send them an empty line
         hPutStrLn inp ""
 
-        -- I'd like the GHCi prompt to go away, but that's not possible, so I set it to a special
-        -- string and filter that out.
+        -- We don't use the GHCi prompt, so set it to a special string and filter that out.
+        -- It could be removed as per https://github.com/ndmitchell/ghcid/issues/333
         let ghcid_prefix = "#~GHCID-START~#"
         let removePrefix = dropPrefixRepeatedly ghcid_prefix
 
