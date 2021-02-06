@@ -54,7 +54,7 @@ listContentsInside test dir = do
 --   This continues as soon as either @File1.hs@ or @File2.hs@ changes,
 --   starting from when 'waitFiles' was initially called.
 --
---   pures a message about why you are continuing (usually a file name).
+--   returns a message about why you are continuing (usually a file name).
 waitFiles :: forall a.  Ord a => Waiter -> IO ([(FilePath, a)] -> IO (Either String [(FilePath, a)]))
 waitFiles waiter = do
     base <- getCurrentTime
@@ -66,7 +66,7 @@ waitFiles waiter = do
     go :: UTCTime -> [(FilePath, a)] -> IO (Either String [(FilePath, a)])
     go base files = do
         whenLoud $ outStrLn $ "%WAITING: " ++ unwords (map fst files)
-        -- As listContentsInside pures directories, we are waiting on them explicitly and so
+        -- As listContentsInside returns directories, we are waiting on them explicitly and so
         -- will pick up new files, as creating a new file changes the containing directory's modtime.
         files <- concatForM files $ \(file, a) ->
             ifM (doesDirectoryExist file) (fmap (,a) <$> listContentsInside (pure . not . isPrefixOf "." . takeFileName) file) (pure [(file, a)])
@@ -109,7 +109,7 @@ waitFiles waiter = do
                         -- typically caused by VIM
                         -- but try not to
                         whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords (nubOrd (map fst disappeared))
-                        -- at most 20 iterations, but stop as soon as the file pures
+                        -- at most 20 iterations, but stop as soon as the file returns
                         void $ flip firstJustM (replicate 20 ()) $ \_ -> do
                             sleep 0.05
                             new <- mapM (getModTime . fst) files
