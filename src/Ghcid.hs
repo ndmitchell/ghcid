@@ -290,7 +290,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         outputFill currTime load evals msg = do
             load <- pure $ case load of
                 Nothing -> []
-                Just (loadedCount, msgs) -> prettyOutput currTime loadedCount (filter isMessage msgs) evals
+                Just (loadedCount, msgs) -> prettyOutput opts currTime loadedCount (filter isMessage msgs) evals
             TermSize{..} <- termSize
             let wrap = concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc)
             (msg, load, pad) <-
@@ -362,7 +362,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
             let updateTitle extra = unless no_title $ setTitle $ unescape $
                     let f n msg = if n == 0 then "" else show n ++ " " ++ msg ++ ['s' | n > 1]
-                    in (if countErrors == 0 && countWarnings == 0 then allGoodMessage ++ ", at " ++ currTime else f countErrors "error" ++
+                    in (if countErrors == 0 && countWarnings == 0 then allGoodMessage target ++ ", at " ++ currTime else f countErrors "error" ++
                        (if countErrors >  0 && countWarnings >  0 then ", " else "") ++ f countWarnings "warning") ++
                        " " ++ extra ++ [' ' | extra /= ""] ++ "- " ++ project
 
@@ -384,7 +384,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     if takeExtension file == ".json" then
                         showJSON [("loaded",map jString loaded),("messages",map jMessage $ filter isMessage messages)]
                     else
-                        unlines $ map unescape $ prettyOutput currTime loadedCount (limitMessages ordMessages) evals
+                        unlines $ map unescape $ prettyOutput opts currTime loadedCount (limitMessages ordMessages) evals
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -433,11 +433,16 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
-prettyOutput :: String -> Int -> [Load] -> [EvalResult] -> [String]
-prettyOutput currTime loadedCount [] evals =
-    (allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")")
+prettyOutput :: Options -> String -> Int -> [Load] -> [EvalResult] -> [String]
+prettyOutput Options{..} currTime loadedCount [] evals =
+    (allGoodMessage target ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")")
         : concatMap printEval evals
-prettyOutput _ _ xs evals = concatMap loadMessage xs ++ concatMap printEval evals
+prettyOutput Options{..} _ _ xs evals =
+    heading target
+        : concatMap loadMessage xs ++ concatMap printEval evals
+    where
+        heading | any ((Error ==) . loadSeverity) xs = errorMessage
+                | otherwise                          = warningMessage
 
 printEval :: EvalResult -> [String]
 printEval (EvalResult file (line, col) msg result) =

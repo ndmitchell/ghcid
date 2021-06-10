@@ -7,7 +7,7 @@ module Language.Haskell.Ghcid.Util(
     takeRemainder,
     outStr, outStrLn,
     ignored,
-    allGoodMessage,
+    allGoodMessage, errorMessage, warningMessage,
     getModTime, getModTimeResolution, getShortTime
     ) where
 
@@ -85,8 +85,16 @@ ignored act = do
     waitBarrier bar
 
 -- | The message to show when no errors have been reported
-allGoodMessage :: String
-allGoodMessage = setSGRCode [SetColor Foreground Dull Green] ++  "All good" ++ setSGRCode []
+allGoodMessage :: [String] -> String
+allGoodMessage target = setSGRCode [SetColor Foreground Dull Green] ++ "All good " ++ setSGRCode [] ++ "in " ++ concat target 
+
+-- | The message to show when errors have been reported
+errorMessage :: [String] -> String
+errorMessage target = setSGRCode [SetColor Foreground Dull Red] ++ "Error " ++ setSGRCode [] ++ "in " ++ concat target
+
+-- | The message to show when only warnings have been reported
+warningMessage :: [String] -> String
+warningMessage target = setSGRCode [SetColor Foreground Dull Magenta] ++ "Warning " ++ setSGRCode [] ++ "in " ++ concat target
 
 -- | Given a 'FilePath' return either 'Nothing' (file does not exist) or 'Just' (the modification time)
 getModTime :: FilePath -> IO (Maybe UTCTime)
