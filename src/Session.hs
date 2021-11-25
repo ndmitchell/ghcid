@@ -3,8 +3,8 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, enableEval, withSession,
-    sessionStart, sessionReload,
+    Session, enableEval, customizeSingleLineCommandMarker,
+    withSession, sessionStart, sessionReload,
     sessionExecAsync,
     ) where
 
@@ -35,10 +35,14 @@ data Session = Session
     ,running :: Var Bool -- ^ Am I actively running an async command
     ,withThread :: ThreadId -- ^ Thread that called withSession
     ,allowEval :: Bool  -- ^ Is the allow-eval flag set?
+    ,singleLineCommandMarker :: String -- ^ alternative to "$>" for single line commands
     }
 
 enableEval :: Session -> Session
 enableEval s = s { allowEval = True }
+
+customizeSingleLineCommandMarker :: String -> Session -> Session
+customizeSingleLineCommandMarker m s = s { singleLineCommandMarker = m }
 
 
 debugShutdown x = when False $ print ("DEBUG SHUTDOWN", x)
@@ -56,6 +60,7 @@ withSession f = do
     debugShutdown "Starting session"
     withThread <- myThreadId
     let allowEval = False
+    let singleLineCommandMarker = "$>"
     f Session{..} `finally` do
         debugShutdown "Start finally"
         modifyVar_ running $ const $ pure False
@@ -119,7 +124,7 @@ sessionStart Session{..} cmd setup = do
     messages <- pure $ map (qualify dir) messages
 
     let loaded = loadedModules dir messages
-    evals <- performEvals v allowEval loaded
+    evals <- performEvals v allowEval singleLineCommandMarker loaded
 
     -- install a handler
     forkIO $ do
@@ -146,9 +151,9 @@ sessionRestart session@Session{..} = do
     sessionStart session cmd setup
 
 
-performEvals :: Ghci -> Bool -> [FilePath] -> IO [Load]
-performEvals _ False _ = pure []
-performEvals ghci True reloaded = do
+performEvals :: Ghci -> Bool -> String -> [FilePath] -> IO [Load]
+performEvals _ False _ _ = pure []
+performEvals ghci True singleLineCommandMarker reloaded = do
     cmds <- mapM getCommands reloaded
     fmap join $ forM cmds $ \(file, cmds') ->
         forM cmds' $ \(num, cmd) -> do
@@ -156,29 +161,28 @@ performEvals ghci True reloaded = do
             execStream ghci cmd $ \_ resp -> modifyIORef ref (resp :)
             resp <- unlines . reverse <$> readIORef ref
             pure $ Eval $ EvalResult file (num, 1) cmd resp
+    where
+      getCommands :: FilePath -> IO (FilePath, [(Int, String)])
+      getCommands fp = do
+          ls <- readFileUTF8' fp
+          pure (fp, splitCommands $ zipFrom 1 $ lines ls)
 
+      splitCommands :: [(Int, String)] -> [(Int, String)]
+      splitCommands [] = []
+      splitCommands ((num, line) : ls)
+          | isCommand line =
+                let (cmds, xs) = span (isCommand . snd) ls
+                 in (num, unwords $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
+          | isMultilineCommandPrefix line =
+                let (cmds, xs) = break (isMultilineCommandSuffix . snd) ls
+                 in (num, unlines (wrapGhciMultiline (fmap snd cmds))) : splitCommands (drop1 xs)
+          | otherwise = splitCommands ls
 
-getCommands :: FilePath -> IO (FilePath, [(Int, String)])
-getCommands fp = do
-    ls <- readFileUTF8' fp
-    pure (fp, splitCommands $ zipFrom 1 $ lines ls)
+      isCommand :: String -> Bool
+      isCommand = isPrefixOf commandPrefix
 
-splitCommands :: [(Int, String)] -> [(Int, String)]
-splitCommands [] = []
-splitCommands ((num, line) : ls)
-    | isCommand line =
-          let (cmds, xs) = span (isCommand . snd) ls
-           in (num, unwords $ fmap (drop $ length commandPrefix) $ line : fmap snd cmds) : splitCommands xs
-    | isMultilineCommandPrefix line =
-          let (cmds, xs) = break (isMultilineCommandSuffix . snd) ls
-           in (num, unlines (wrapGhciMultiline (fmap snd cmds))) : splitCommands (drop1 xs)
-    | otherwise = splitCommands ls
-
-isCommand :: String -> Bool
-isCommand = isPrefixOf commandPrefix
-
-commandPrefix :: String
-commandPrefix = "-- $> "
+      commandPrefix :: String
+      commandPrefix = "-- " ++ singleLineCommandMarker ++ " "
 
 isMultilineCommandPrefix :: String -> Bool
 isMultilineCommandPrefix = (==) multilineCommandPrefix
@@ -216,7 +220,8 @@ sessionReload session@Session{..} = do
         loaded <- map ((dir </>) . snd) <$> showModules ghci
         let reloaded = loadedModules dir messages
         warn <- readIORef warnings
-        evals <- performEvals ghci allowEval reloaded
+        evals <-
+          performEvals ghci allowEval singleLineCommandMarker reloaded
 
         -- only keep old warnings from files that are still loaded, but did not reload
         let validWarn w = loadFile w `elem` loaded && loadFile w `notElem` reloaded
