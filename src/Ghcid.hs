@@ -326,7 +326,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         map (":set " ++) (ghciFlagsUseful ++ ghciFlagsUsefulVersioned) ++ setup
 
     when (null loaded && not ignoreLoaded) $ do
-        putStrLn $ "\nNo files loaded, GHCi is not working properly.\nCommand: " ++ command
+        putStrLn $ "\nNo files loaded, GHCi not configured properly.\nCommand: " ++ command
         exitFailure
 
     restart <- pure $ nubOrd $ restart ++ [x | LoadConfig x <- messages]
