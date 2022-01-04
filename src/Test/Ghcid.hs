@@ -22,6 +22,7 @@ import Test.Tasty.HUnit
 import Ghcid
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
+import Test.Common
 import Data.Functor
 import Prelude
 
@@ -116,7 +117,7 @@ rename from to = do
 -- ACTUAL TEST SUITE
 
 basicTest :: TestTree
-basicTest = testCase "Ghcid basic" $ freshDir $ do
+basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
     write "Main.hs" "main = print 1"
     withGhcid ["-cghci -fwarn-unused-binds Main.hs"] $ \require -> do
         require [allGoodMessage]
@@ -169,7 +170,7 @@ basicTest = testCase "Ghcid basic" $ freshDir $ do
 
 
 cdTest :: TestTree
-cdTest = testCase "Cd basic" $ freshDir $ do
+cdTest = disable19650 $ testCase "Cd basic" $ freshDir $ do
     write "foo/Main.hs" "main = print 1"
     write "foo/Util.hs" "import Bob"
     write "foo/.ghci" ":load Main"
