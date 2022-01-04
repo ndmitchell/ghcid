@@ -11,7 +11,7 @@ import Language.Haskell.Ghcid.Util
 
 
 apiTests :: TestTree
-apiTests = testGroup "API test"
+apiTests = testGroup "API test" $ take 1
     [testCase "No files" $ withTempDir $ \dir -> do
         (ghci,load) <- startGhci "ghci -ignore-dot-ghci" (Just dir) $ const putStrLn
         load @?= []
