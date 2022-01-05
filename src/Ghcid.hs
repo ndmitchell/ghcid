@@ -326,7 +326,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         map (":set " ++) (ghciFlagsUseful ++ ghciFlagsUsefulVersioned) ++ setup
 
     when (null loaded && not ignoreLoaded) $ do
-        putStrLn $ "\nNo files loaded by the command, which isn't allowed (no files to watch).\nCommand: " ++ command
+        putStrLn $ "\nNo files loaded, meaning ghcid will never refresh, so aborting.\nCommand: " ++ command
         exitFailure
 
     restart <- pure $ nubOrd $ restart ++ [x | LoadConfig x <- messages]
