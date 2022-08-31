@@ -16,7 +16,7 @@
 ;; Use M-x ghcid to launch
 
 ;;; Code:
-
+(require 'compile)
 (require 'term)
 
 ;; Set ghcid-target to change the stack target
