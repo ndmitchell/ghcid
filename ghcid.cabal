@@ -55,7 +55,7 @@ executable ghcid
         time >= 1.5,
         directory >= 1.2,
         containers,
-        fsnotify,
+        fsnotify >= 0.4,
         extra >= 1.6.20,
         process >= 1.1,
         cmdargs >= 0.10,
