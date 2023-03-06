@@ -73,20 +73,37 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
                     sev = vscode.DiagnosticSeverity.Warning;
                 s = s.substr(i+1).trim();
             }
-            let msg = [].concat(/^\s*$/.test(s) ? [] : [s], xs.slice(1));
+            let msg = [].concat(/^\s*$/.test(s) ? [] : [s], clean(xs).slice(1));
             return pair(uri, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev));
         };
         if (! xs || xs.length === 0 || xs[0].startsWith("All good"))
             return [];
-        if (m = xs[0].match(r1))
+        if (m = xs[0].match(r1)){
+            // Try to infer the range from the annotation (if present). Example:
+            //
+            //    |
+            // 57 |     forkIO $ print "hello"
+            //    |              ^^^^^
+            for (let i = 1; i < xs.length; i++) {
+                const gutter = xs[i].match(/^\d+ \| /)
+                if (gutter) {
+                    const match = xs[i+1].match(/\^+/)
+                    if (match) {
+                        const start = match.index - gutter[0].length
+                        const end = start + match[0].length
+                        return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,start,parseInt(m[2])-1,end))]
+                    }
+                }
+            }
             return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[3])))];
+        }
         if (m = xs[0].match(r2))
             return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[4])))];
         if (m = xs[0].match(r3))
             return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[4])-1,parseInt(m[5])))];
         return [[vscode.Uri.parse('untitled:ghcid-errors'), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
     }
-    return [].concat(... split(lines(s)).map(clean).map(parse));
+    return [].concat(... split(lines(s)).map(parse));
 }
 
 function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri, vscode.Diagnostic[]][] {
