@@ -42,10 +42,14 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
     function clean(lines: string[]): string[] {
         const newlines: string[] = []
         for (const line of lines) {
-            if (/In the/.test(line)) break
             if (/Ghcid has stopped./.test(line)) break
-            if (line.match(/\s*\|$/)) break
-            if (line.match(/(\d+)?\s*\|/)) break
+
+            // "In the expression: ..."
+            if (/In the/.test(line)) continue
+            if (/In a stmt/.test(line)) continue
+
+            // Line annotations like "57 | ..."
+            if (line.match(/^(\d+)?\s+\|/)) break
 
             newlines.push(line)
         }
@@ -65,13 +69,13 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         let mkDiagnostic = (range: vscode.Range): [vscode.Uri, vscode.Diagnostic] => {
             const file = m[1].replace(/\\/g, '/');
             let uri = vscode.Uri.file(path.isAbsolute(file) ? file : path.join(dir, file));
-            var s = xs[0].substring(m[0].length).trim();
+            var s = xs[0].slice(m[0].length).trim();
             let i = s.indexOf(':');
             var sev = vscode.DiagnosticSeverity.Error;
             if (i !== -1) {
-                if (s.substr(0, i).toLowerCase() == 'warning')
+                if (s.slice(0, i).toLowerCase() == 'warning')
                     sev = vscode.DiagnosticSeverity.Warning;
-                s = s.substr(i+1).trim();
+                s = s.slice(i+1).trim();
             }
             let msg = [].concat(/^\s*$/.test(s) ? [] : [s], clean(xs).slice(1));
             return pair(uri, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev));
