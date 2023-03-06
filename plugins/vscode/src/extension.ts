@@ -64,7 +64,8 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         var m : RegExpMatchArray;
         let f = (l1,c1,l2,c2) => {
             let range = new vscode.Range(parseInt(m[l1])-1,parseInt(m[c1])-1,parseInt(m[l2])-1,parseInt(m[c2]));
-            let file = vscode.Uri.file(path.isAbsolute(m[1]) ? m[1] : path.join(dir, m[1]));
+            const file = m[1].replace(/\\/g, '/');
+            let uri = vscode.Uri.file(path.isAbsolute(file) ? file : path.join(dir, file));
             var s = xs[0].substring(m[0].length).trim();
             let i = s.indexOf(':');
             var sev = vscode.DiagnosticSeverity.Error;
@@ -74,7 +75,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
                 s = s.substr(i+1).trim();
             }
             let msg = [].concat(/^\s*$/.test(s) ? [] : [s], xs.slice(1));
-            return [pair(file, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev))];
+            return [pair(uri, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev))];
         };
         if (! xs || xs.length === 0 || xs[0].startsWith("All good"))
             return [];
@@ -84,7 +85,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
             return f(2,3,2,4);
         if (m = xs[0].match(r3))
             return f(2,3,4,5);
-        return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
+        return [[vscode.Uri.parse('untitled:ghcid-errors'), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
     }
     return [].concat(... split(lines(s)).map(clean).map(parse));
 }
@@ -185,12 +186,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
         let ghcidCommand : string = vscode.workspace.getConfiguration('ghcid').get('command');
 
-        let opts : vscode.TerminalOptions =
-            os.type().startsWith("Windows") ?
-                {shellPath: "cmd.exe", shellArgs: ["/k", ghcidCommand]} :
-                {shellPath: ghcidCommand, shellArgs: []};
-        opts.name = "ghcid";
-        opts.shellArgs.push("--outputfile=" + file);
+        let opts : vscode.TerminalOptions = {
+            name: "ghcid",
+            shellPath: os.type().startsWith("Windows") ? "cmd.exe" : ghcidCommand,
+            shellArgs: [...(os.type().startsWith("Windows") ? ["/k", ghcidCommand] : []), "--outputfile=" + file]
+        }
         oldTerminal = vscode.window.createTerminal(opts);
         oldTerminal.show();
         return watchOutput(vscode.workspace.rootPath, file);
