@@ -62,8 +62,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         let r2 = /(..[^:]+):([0-9]+):([0-9]+)-([0-9]+):/
         let r3 = /(..[^:]+):\(([0-9]+),([0-9]+)\)-\(([0-9]+),([0-9]+)\):/
         var m : RegExpMatchArray;
-        let f = (l1,c1,l2,c2) => {
-            let range = new vscode.Range(parseInt(m[l1])-1,parseInt(m[c1])-1,parseInt(m[l2])-1,parseInt(m[c2]));
+        let mkDiagnostic = (range: vscode.Range): [vscode.Uri, vscode.Diagnostic] => {
             const file = m[1].replace(/\\/g, '/');
             let uri = vscode.Uri.file(path.isAbsolute(file) ? file : path.join(dir, file));
             var s = xs[0].substring(m[0].length).trim();
@@ -75,16 +74,16 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
                 s = s.substr(i+1).trim();
             }
             let msg = [].concat(/^\s*$/.test(s) ? [] : [s], xs.slice(1));
-            return [pair(uri, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev))];
+            return pair(uri, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev));
         };
         if (! xs || xs.length === 0 || xs[0].startsWith("All good"))
             return [];
         if (m = xs[0].match(r1))
-            return f(2,3,2,3);
+            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[3])))];
         if (m = xs[0].match(r2))
-            return f(2,3,2,4);
+            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[4])))];
         if (m = xs[0].match(r3))
-            return f(2,3,4,5);
+            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[4])-1,parseInt(m[5])))];
         return [[vscode.Uri.parse('untitled:ghcid-errors'), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
     }
     return [].concat(... split(lines(s)).map(clean).map(parse));
