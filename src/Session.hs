@@ -81,11 +81,15 @@ kill ghci = ignored $ do
     -- See: https://github.com/ndmitchell/ghcid/issues/254
     showCursor
 
-loadedModules :: [Load] -> [FilePath]
-loadedModules = nubOrd . map loadFile . filter (not . isLoadConfig)
+loadedModules :: FilePath -> [Load] -> [FilePath]
+loadedModules dir = nubOrd . map (loadFile . qualify dir) . filter predicate
+    where
+      predicate Message{loadFile = loadFile} = loadFile /= "<unknown>"
+      predicate Loading{loadFile = loadFile} = loadFile /= "<unknown>"
+      predicate _ = False
 
-qualify :: FilePath -> [Load] -> [Load]
-qualify dir xs = [x{loadFile = dir </> loadFile x} | x <- xs]
+qualify :: FilePath -> Load -> Load
+qualify dir message = message{loadFile = dir </> loadFile message}
 
 -- | Spawn a new Ghci process at a given command line. Returns the load messages, plus
 --   the list of files that were observed (both those loaded and those that failed to load).
@@ -112,9 +116,9 @@ sessionStart Session{..} cmd setup = do
     -- deal with current directory
     (dir, _) <- showPaths v
     writeIORef curdir dir
-    messages <- pure $ qualify dir messages
+    messages <- pure $ map (qualify dir) messages
 
-    let loaded = loadedModules messages
+    let loaded = loadedModules dir messages
     evals <- performEvals v allowEval loaded
 
     -- install a handler
@@ -208,9 +212,9 @@ sessionReload session@Session{..} = do
         -- actually reload
         Just ghci <- readIORef ghci
         dir <- readIORef curdir
-        messages <- mapMaybe tidyMessage . qualify dir <$> reload ghci
+        messages <- mapMaybe tidyMessage <$> reload ghci
         loaded <- map ((dir </>) . snd) <$> showModules ghci
-        let reloaded = loadedModules messages
+        let reloaded = loadedModules dir messages
         warn <- readIORef warnings
         evals <- performEvals ghci allowEval reloaded
 

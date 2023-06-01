@@ -64,7 +64,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
 
         -- <no location info>: error:
         f (x:xs)
-            | unescapeE x == "<no location info>: error:"
+            | "<no location info>: error:" `isPrefixOfE` x
             , (xs,rest) <- span leadingWhitespaceE xs
             = Message Error "<unknown>" (0,0) (0,0) (map fromEsc $ x:xs) : f rest
 
