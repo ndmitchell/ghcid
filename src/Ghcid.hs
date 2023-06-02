@@ -57,6 +57,7 @@ data Options = Options
     ,project :: String
     ,reload :: [FilePath]
     ,restart :: [FilePath]
+    ,start_command :: String
     ,directory :: FilePath
     ,outputfile :: [FilePath]
     ,ignoreLoaded :: Bool
@@ -96,6 +97,7 @@ options = cmdArgsMode $ Options
     ,project = "" &= typ "NAME" &= help "Name of the project, defaults to current directory"
     ,restart = [] &= typ "PATH" &= help "Restart the command when the given file or directory contents change (defaults to .ghci and any .cabal file, unless when using stack or a custom command)"
     ,reload = [] &= typ "PATH" &= help "Reload when the given file or directory contents change (defaults to none)"
+    ,start_command = "" &= typ "COMMAND" &= help "Command to run when starting or restarting, e.g. hpack"
     ,directory = "." &= typDir &= name "C" &= help "Set the current directory"
     ,outputfile = [] &= typFile &= name "o" &= help "File to write the full output to"
     ,ignoreLoaded = False &= explicit &= name "ignore-loaded" &= help "Keep going if no files are loaded. Requires --reload to be set."
@@ -134,7 +136,7 @@ As a result, we prefer to give users full control with a .ghci file, if availabl
 -}
 autoOptions :: Options -> IO Options
 autoOptions o@Options{..}
-    | command /= "" = pure $ f [command] []
+    | command /= "" = pure $ updateOptions [command] []
     | otherwise = do
         curdir <- getCurrentDirectory
         files <- getDirectoryContents "."
@@ -162,15 +164,21 @@ autoOptions o@Options{..}
                                 map ("--ghci-options=" ++) opts
                             else
                                 "stack exec --test --bench -- ghci" : opts
-                in f flags $ stack:cabal
-              | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
+                in updateOptions flags $ stack:cabal
+              | ".ghci" `elem` files -> updateOptions ("ghci":opts) [curdir </> ".ghci"]
               | cabal /= [] ->
                   let useCabal = ["cabal","repl"] ++ target ++ map ("--repl-options=" ++) opts
                       useGhci = "cabal exec -- ghci":opts
-                  in  f (if null arguments then useCabal else useGhci) cabal
-              | otherwise -> f ("ghci":opts) []
+                  in  updateOptions (if null arguments then useCabal else useGhci) cabal
+              | otherwise -> updateOptions ("ghci":opts) []
     where
-        f c r = o{command = unwords $ c ++ map escape arguments, arguments = [], restart = restart ++ r, run = [], test = run ++ test}
+        updateOptions command' restart' =
+          o { command = unwords $ command' ++ map escape arguments
+            , arguments = []
+            , restart = restart ++ restart'
+            , run = []
+            , test = run ++ test
+            }
 
 -- | Simple escaping for command line arguments. Wraps a string in double quotes if it contains a space.
 escape x | ' ' `elem` x = "\"" ++ x ++ "\""
@@ -320,6 +328,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
     when (ignoreLoaded && null reload) $ do
         putStrLn "--reload must be set when using --ignore-loaded"
         exitFailure
+
+    callCommand start_command
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command $
