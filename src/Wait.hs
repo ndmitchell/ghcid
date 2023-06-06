@@ -76,9 +76,15 @@ waitFiles waiter = do
             -- The polling case is handled in `recheck` below.
             WaiterPoll t -> pure ()
             WaiterNotify manager kick mp -> do
+                -- Collect the set of directories containing files we're watching.
                 dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map (takeDirectory . fst) files
+                whenLoud $ outStrLn $ "%DIRS: " ++ show dirs
                 modifyVar_ mp $ \mp -> do
+                    -- `keep` is every element of `mp` that's in `dirs`.
                     let (keep, del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
+                    whenLoud $ outStrLn $ "%KEEP: " ++ show (Map.keys keep)
+                    whenLoud $ outStrLn $ "%DEL: " ++ show (Map.keys del)
+                    -- Run the finalizers.
                     sequence_ $ Map.elems del
                     new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
                         can <- watchDir manager (fromString dir) (const True) $ \event -> do
