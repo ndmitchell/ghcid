@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- | Use 'withWaiterPoll' or 'withWaiterNotify' to create a 'Waiter' object,
 --   then access it (single-threaded) by using 'waitFiles'.
@@ -19,20 +20,46 @@ import System.Console.CmdArgs
 import System.Time.Extra
 import System.FSNotify
 import Language.Haskell.Ghcid.Util
+import GHC.Float.RealFracMethods (floorDoubleInt)
 
-
-data Waiter
-  = WaiterPoll Seconds
-  | WaiterNotify WatchManager (MVar ()) (Var (Map.Map FilePath StopListening))
+data Waiter =
+  WaiterNotify
+    { waiterWatcher :: WatchManager
+    -- ^ The inner watcher used to receive events.
+    , waiterKick :: MVar ()
+    -- ^ A channel used to trigger files being rechecked.
+    , waiterMp :: Var (Map.Map FilePath StopListening)
+    -- ^ A map of finalizers for directories being watched.
+    --
+    -- TODO: Document the semantics of this, and which directories are actually
+    -- stored in here.
+    }
 
 withWaiterPoll :: Seconds -> (Waiter -> IO a) -> IO a
-withWaiterPoll x f = f $ WaiterPoll x
+withWaiterPoll interval f = withManagerConf config $ \manager -> do
+    mvar <- newEmptyMVar
+    var <- newVar Map.empty
+    f $ WaiterNotify
+          { waiterWatcher = manager
+          , waiterKick = mvar
+          , waiterMp = var
+          }
+  where
+    config = defaultConfig { confWatchMode = WatchModePoll { watchModePollInterval = secondsToMicroseconds interval } }
+
+    secondsToMicroseconds :: Seconds -> Int
+    secondsToMicroseconds seconds = floorDoubleInt (seconds * 1000000)
+
 
 withWaiterNotify :: (Waiter -> IO a) -> IO a
 withWaiterNotify f = withManagerConf defaultConfig $ \manager -> do
     mvar <- newEmptyMVar
     var <- newVar Map.empty
-    f $ WaiterNotify manager mvar var
+    f $ WaiterNotify
+          { waiterWatcher = manager
+          , waiterKick = mvar
+          , waiterMp = var
+          }
 
 -- `listContentsInside test dir` will list files and directories inside `dir`,
 -- recursing into those subdirectories which pass `test`.
@@ -56,7 +83,7 @@ listContentsInside test dir = do
 --
 --   returns a message about why you are continuing (usually a file name).
 waitFiles :: forall a.  Ord a => Waiter -> IO ([(FilePath, a)] -> IO (Either String [(FilePath, a)]))
-waitFiles waiter = do
+waitFiles WaiterNotify{..} = do
     base <- getCurrentTime
     pure $ \files -> handle onError (go base files)
  where
@@ -72,29 +99,25 @@ waitFiles waiter = do
             ifM (doesDirectoryExist file)
                 (fmap (,a) <$> listContentsInside (pure . not . isPrefixOf "." . takeFileName) file)
                 (pure [(file, a)])
-        case waiter of
-            -- The polling case is handled in `recheck` below.
-            WaiterPoll t -> pure ()
-            WaiterNotify manager kick mp -> do
-                -- Collect the set of directories containing files we're watching.
-                dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map (takeDirectory . fst) files
-                whenLoud $ outStrLn $ "%DIRS: " ++ show dirs
-                modifyVar_ mp $ \mp -> do
-                    -- `keep` is every element of `mp` that's in `dirs`.
-                    let (keep, del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
-                    whenLoud $ outStrLn $ "%KEEP: " ++ show (Map.keys keep)
-                    whenLoud $ outStrLn $ "%DEL: " ++ show (Map.keys del)
-                    -- Run the finalizers.
-                    sequence_ $ Map.elems del
-                    new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
-                        can <- watchDir manager (fromString dir) (const True) $ \event -> do
-                            whenLoud $ outStrLn $ "%NOTIFY: " ++ show event
-                            void $ tryPutMVar kick ()
-                        pure (dir, can)
-                    let mp2 = keep `Map.union` Map.fromList new
-                    whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
-                    pure mp2
-                void $ tryTakeMVar kick
+        -- Collect the set of directories containing files we're watching.
+        dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map (takeDirectory . fst) files
+        whenLoud $ outStrLn $ "%DIRS: " ++ show dirs
+        modifyVar_ waiterMp $ \mp -> do
+            -- `keep` is every element of `mp` that's in `dirs`.
+            let (keep, del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
+            whenLoud $ outStrLn $ "%KEEP: " ++ show (Map.keys keep)
+            whenLoud $ outStrLn $ "%DEL: " ++ show (Map.keys del)
+            -- Run the finalizers.
+            sequence_ $ Map.elems del
+            new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
+                can <- watchDir waiterWatcher (fromString dir) (const True) $ \event -> do
+                    whenLoud $ outStrLn $ "%NOTIFY: " ++ show event
+                    void $ tryPutMVar waiterKick ()
+                pure (dir, can)
+            let mp2 = keep `Map.union` Map.fromList new
+            whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
+            pure mp2
+        void $ tryTakeMVar waiterKick
         new <- mapM (getModTime . fst) files
         case [x | (x,Just t) <- zip files new, t > base] of
             [] -> Right <$> recheck files new
@@ -103,11 +126,8 @@ waitFiles waiter = do
     recheck :: [(FilePath, a)] -> [Maybe UTCTime] -> IO [(String, a)]
     recheck files old = do
             sleep 0.1
-            case waiter of
-                WaiterPoll t -> sleep $ max 0 $ t - 0.1 -- subtract the initial 0.1 sleep from above
-                WaiterNotify _ kick _ -> do
-                    takeMVar kick
-                    whenLoud $ outStrLn "%WAITING: Notify signaled"
+            takeMVar waiterKick
+            whenLoud $ outStrLn "%WAITING: Notify signaled"
             new <- mapM (getModTime . fst) files
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
                 [] -> recheck files new
