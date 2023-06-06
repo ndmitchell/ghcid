@@ -69,13 +69,16 @@ waitFiles waiter = do
         -- As listContentsInside returns directories, we are waiting on them explicitly and so
         -- will pick up new files, as creating a new file changes the containing directory's modtime.
         files <- concatForM files $ \(file, a) ->
-            ifM (doesDirectoryExist file) (fmap (,a) <$> listContentsInside (pure . not . isPrefixOf "." . takeFileName) file) (pure [(file, a)])
+            ifM (doesDirectoryExist file)
+                (fmap (,a) <$> listContentsInside (pure . not . isPrefixOf "." . takeFileName) file)
+                (pure [(file, a)])
         case waiter of
+            -- The polling case is handled in `recheck` below.
             WaiterPoll t -> pure ()
             WaiterNotify manager kick mp -> do
                 dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map (takeDirectory . fst) files
                 modifyVar_ mp $ \mp -> do
-                    let (keep,del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
+                    let (keep, del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
                     sequence_ $ Map.elems del
                     new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
                         can <- watchDir manager (fromString dir) (const True) $ \event -> do
