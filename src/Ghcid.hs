@@ -414,6 +414,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : map escape touched) ""
                     unless (exitcode == ExitSuccess) $ outStrLn (stdout ++ stderr)
 
+            whenLoud $ outStrLn $ "%NEXTWAIT"
             reason <- nextWait $ map (,Restart) restart
                               ++ map (,Reload) reload
                               ++ map (,Reload) loaded

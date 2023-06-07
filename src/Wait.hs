@@ -130,6 +130,7 @@ waitFiles WaiterNotify{..} = do
             whenLoud $ outStrLn "%WAITING: Notify signaled"
             new <- mapM (getModTime . fst) files
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
+                -- No changes, continue waiting until the next kick.
                 [] -> recheck files new
                 xs -> do
                     let disappeared = [x | (x, Just _, Nothing) <- zip3 files old new]
