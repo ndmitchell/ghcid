@@ -84,6 +84,7 @@ listContentsInside test dir = do
 --   returns a message about why you are continuing (usually a file name).
 waitFiles :: forall a.  Ord a => Waiter -> IO ([(FilePath, a)] -> IO (Either String [(FilePath, a)]))
 waitFiles WaiterNotify{..} = do
+    whenLoud $ outStrLn "%WAITFILES"
     base <- getCurrentTime
     pure $ \files -> handle onError (go base files)
  where
@@ -92,7 +93,8 @@ waitFiles WaiterNotify{..} = do
 
     go :: UTCTime -> [(FilePath, a)] -> IO (Either String [(FilePath, a)])
     go base files = do
-        whenLoud $ outStrLn $ "%WAITING: " ++ unwords (map fst files)
+        whenLoud $ outStrLn "%GO"
+        whenLoud $ outStrLn $ "%WAITING: " ++ show (length files) ++ " files"
         -- As listContentsInside returns directories, we are waiting on them explicitly and so
         -- will pick up new files, as creating a new file changes the containing directory's modtime.
         files <- concatForM files $ \(file, a) ->
@@ -101,12 +103,12 @@ waitFiles WaiterNotify{..} = do
                 (pure [(file, a)])
         -- Collect the set of directories containing files we're watching.
         dirs <- fmap Set.fromList $ mapM canonicalizePathSafe $ nubOrd $ map (takeDirectory . fst) files
-        whenLoud $ outStrLn $ "%DIRS: " ++ show dirs
+        whenLoud $ outStrLn $ "%DIRS: " ++ (show $ length dirs)
         modifyVar_ waiterMp $ \mp -> do
             -- `keep` is every element of `mp` that's in `dirs`.
             let (keep, del) = Map.partitionWithKey (\k v -> k `Set.member` dirs) mp
-            whenLoud $ outStrLn $ "%KEEP: " ++ show (Map.keys keep)
-            whenLoud $ outStrLn $ "%DEL: " ++ show (Map.keys del)
+            whenLoud $ outStrLn $ "%KEEP: " ++ show (length $ Map.keys keep)
+            whenLoud $ outStrLn $ "%DEL: " ++ show (length $ Map.keys del)
             -- Run the finalizers.
             sequence_ $ Map.elems del
             new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
@@ -115,7 +117,7 @@ waitFiles WaiterNotify{..} = do
                     void $ tryPutMVar waiterKick ()
                 pure (dir, can)
             let mp2 = keep `Map.union` Map.fromList new
-            whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
+            whenLoud $ outStrLn $ "%WAITING: " ++ show (length $ Map.keys mp2) ++ " mp"
             pure mp2
         void $ tryTakeMVar waiterKick
         new <- mapM (getModTime . fst) files
@@ -125,6 +127,7 @@ waitFiles WaiterNotify{..} = do
 
     recheck :: [(FilePath, a)] -> [Maybe UTCTime] -> IO [(String, a)]
     recheck files old = do
+            whenLoud $ outStrLn "%RECHECK"
             sleep 0.1
             takeMVar waiterKick
             whenLoud $ outStrLn "%WAITING: Notify signaled"

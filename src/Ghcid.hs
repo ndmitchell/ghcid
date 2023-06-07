@@ -227,6 +227,7 @@ mainWithTerminal termSize termOutput = do
         outStrLn $ "%ARGUMENTS: " ++ show args
     flip finally (printStopped opts) $ handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
+            whenLoud $ outStrLn "%MAINWITHTERMINAL"
             -- On certain Cygwin terminals stdout defaults to BlockBuffering
             hSetBuffering stdout LineBuffering
             hSetBuffering stderr NoBuffering
@@ -290,6 +291,8 @@ data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
 -- Use Continue not () so that inadvertant exits don't restart
 runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} = do
+    whenLoud $ outStrLn "%RUNGHCID"
+
     let limitMessages = maybe id (take . max 1) max_messages
 
     let outputFill :: String -> Maybe (Int, [Load]) -> [EvalResult] -> [String] -> IO ()
@@ -351,6 +354,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         -> ([Load], [FilePath], [FilePath])
         -> IO Continue
       fire nextWait (messages, loaded, touched) = do
+            whenLoud $ outStrLn "%FIRE"
+
             currTime <- getShortTime
             let loadedCount = length loaded
             whenLoud $ do
