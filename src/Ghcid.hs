@@ -227,8 +227,6 @@ mainWithTerminal termSize termOutput = do
         outStrLn $ "%ARGUMENTS: " ++ show args
     flip finally (printStopped opts) $ handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
-            setVerbosity Normal -- undo any --verbose flags
-
             -- On certain Cygwin terminals stdout defaults to BlockBuffering
             hSetBuffering stdout LineBuffering
             hSetBuffering stderr NoBuffering
