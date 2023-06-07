@@ -418,6 +418,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             reason <- nextWait $ map (,Restart) restart
                               ++ map (,Reload) reload
                               ++ map (,Reload) loaded
+            whenLoud $ outStrLn $ "%NEXTWAIT done"
 
             let reason1 = case reason of
                   Left err ->
