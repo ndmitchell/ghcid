@@ -1,5 +1,8 @@
 Changelog for ghcid (* = breaking change)
 
+    #375, fix crash when modules are renamed or deleted in GHC 9.6
+    #378, write output of the linter into output files
+    Support newer Win32 libraries
 0.8.8, released 2022-09-17
     #365, support fsnotify 0.4
     #348, improve the no files loaded message
