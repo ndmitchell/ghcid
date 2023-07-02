@@ -105,7 +105,7 @@ testParseLoadGhc82 = testCase "GHC 8.2 Load Parsing" $ parseLoad
 testMissingFile = testCase "Starting ghci with a non-existent filename" $ parseLoad
     ["<no location info>: error: can't find file: bob.hs"
     ] @?=
-    []
+    [Message Error "<unknown>" (0,0) (0,0) ["<no location info>: error: can't find file: bob.hs"]]
 
 testParseLoadCyclesSelf = testCase "Module cycle with itself" $ parseLoad
     ["Module imports form a cycle:"
