@@ -1,5 +1,6 @@
 Changelog for ghcid (* = breaking change)
 
+0.8.9, released 2023-07-02
     #375, fix crash when modules are renamed or deleted in GHC 9.6
     #378, write output of the linter into output files
     Support newer Win32 libraries
