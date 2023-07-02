@@ -62,7 +62,7 @@ executable ghcid
         ansi-terminal,
         terminal-size >= 0.3
     if os(windows)
-        build-depends: Win32
+        build-depends: Win32 >= 2.13.2.1
     else
         build-depends: unix
     other-modules:

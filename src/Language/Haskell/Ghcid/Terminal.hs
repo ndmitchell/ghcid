@@ -18,11 +18,7 @@ import Graphics.Win32.GDI.Types
 import System.Win32.Types
 
 
-wM_SETICON = 0x0080 :: WindowMessage
 wM_GETICON = 0x007F :: WindowMessage
-
-iCON_BIG = 1
-iCON_SMALL = 0
 
 #ifdef x86_64_HOST_ARCH
 #define CALLCONV ccall
