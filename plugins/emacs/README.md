@@ -1,17 +1,18 @@
 
 # Table of Contents
 
-1.  [Features](#orgfe72dbf)
-2.  [installation](#org7f171c2)
-    1.  [doom emacs](#org878185b)
-    2.  [use-package](#orgb73895b)
-3.  [Configuration](#org5de9a04)
-4.  [Jump to error](#org25a2f61)
+1.  [Features](#org1db7828)
+2.  [installation](#orge1e05f2)
+    1.  [doom emacs](#org9eb7afd)
+    2.  [use-package](#org8bad931)
+3.  [Configuration](#org31d88a6)
+4.  [Jump to error](#orgc8ac8a3)
+5.  [Credits](#orgb7d1d05)
 
 This is a ghcid minor mode support for emacs. It uses a terminal with compilation-mode.
 
 
-<a id="orgfe72dbf"></a>
+<a id="org1db7828"></a>
 
 # Features
 
@@ -24,12 +25,12 @@ This minor mode will provide following features when activated:
 -   customize the ghcid repl command, test command, setup command or lint command
 
 
-<a id="org7f171c2"></a>
+<a id="orge1e05f2"></a>
 
 # installation
 
 
-<a id="org878185b"></a>
+<a id="org9eb7afd"></a>
 
 ## doom emacs
 
@@ -44,7 +45,7 @@ and following to the `config.el`:
       :config (load! ghcid))
 
 
-<a id="orgb73895b"></a>
+<a id="org8bad931"></a>
 
 ## use-package
 
@@ -61,7 +62,7 @@ and then config to activate it when haskell-mode is active:
          (add-hook 'haskell-mode-hook #'ghcid-mode))
 
 
-<a id="org5de9a04"></a>
+<a id="org31d88a6"></a>
 
 # Configuration
 
@@ -145,10 +146,24 @@ Following table lists the customization variables:
 </table>
 
 
-<a id="org25a2f61"></a>
+<a id="orgc8ac8a3"></a>
 
 # Jump to error
 
 This mode uses `compilation-mode` within a terminal, so if there&rsquo;re some build errors, you can use the `flycheck`
 keys(usually `]+q` and `[+q`) to jump to the errors.
+
+
+<a id="orgb7d1d05"></a>
+
+# Credits
+
+This minor mode is based on the work of the original `ghcid` plugin for emacs and inspired by the excellent [dante](https://github.com/jyp/dante) project.
+So Credits go to Following people:
+
+-   Matthew Wraith <wraithm@gmail.com>
+-   Yorick Sijsling
+-   Vasiliy Yorkin <vasiliy.yorkin@gmail.com>
+-   Neil Mitchell <ndmitchell@gmail.com>
+-   Jean-Philippe Bernardy
 
