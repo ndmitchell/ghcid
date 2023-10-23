@@ -65,6 +65,7 @@ data Options = Options
     ,color :: ColorMode
     ,setup :: [String]
     ,allow_eval :: Bool
+    ,single_line_command_marker :: String
     ,target :: [String]
     }
     deriving (Data,Typeable,Show)
@@ -104,6 +105,7 @@ options = cmdArgsMode $ Options
     ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
     ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
     ,allow_eval = False &= name "allow-eval" &= help "Execute REPL commands in comments"
+    ,single_line_command_marker = "$>" &= name "eval-mark" &= typ "MARKER" &= help "Replace the command marker \"$>\" with an alternative for single line commands"
     ,target = [] &= typ "TARGET" &= help "Target Component to build (e.g. lib:foo for Cabal, foo:lib for Stack)"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
@@ -258,7 +260,12 @@ mainWithTerminal termSize termOutput = do
                     else id
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts
+                    runGhcid
+                      (customizeSingleLineCommandMarker (single_line_command_marker opts) $ if allow_eval opts then enableEval session else session)
+                      waiter
+                      termSize
+                      (clear . termOutput . restyle)
+                      opts
 
 
 
