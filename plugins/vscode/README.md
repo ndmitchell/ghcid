@@ -20,10 +20,10 @@ Requires [`ghcid`](https://github.com/ndmitchell/ghcid) to be installed and on y
 ## Local installation
 
 Run:
-
+    npm update
     npm install
     npm install -g vsce
-    rm haskell-ghcid-*.vsix
+    rm haskell-ghcid-*.vsix # optional
     vsce package
     code --install-extension haskell-ghcid-*.vsix
 
