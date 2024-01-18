@@ -76,7 +76,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
             let msg = [].concat(/^\s*$/.test(s) ? [] : [s], xs.slice(1));
             return [pair(file, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev))];
         };
-        if (xs[0].startsWith("All good"))
+        if (! xs || xs.length === 0 || xs[0].startsWith("All good"))
             return [];
         if (m = xs[0].match(r1))
             return f(2,3,2,3);
