@@ -43,7 +43,7 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         const newlines: string[] = []
         for (const line of lines) {
             if (/In the/.test(line)) break
-
+            if (/Ghcid has stopped./.test(line)) break
             if (line.match(/\s*\|$/)) break
             if (line.match(/(\d+)?\s*\|/)) break
 
