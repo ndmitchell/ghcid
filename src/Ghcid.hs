@@ -289,11 +289,11 @@ runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -
 runGhcid session waiter termSize termOutput opts@Options{..} = do
     let limitMessages = maybe id (take . max 1) max_messages
 
-    let outputFill :: String -> Maybe (Int, [Load]) -> [EvalResult] -> [String] -> IO ()
+    let outputFill :: String -> Maybe (Int, Int, Int, [Load]) -> [EvalResult] -> [String] -> IO ()
         outputFill currTime load evals msg = do
             load <- pure $ case load of
                 Nothing -> []
-                Just (loadedCount, msgs) -> prettyOutput False currTime loadedCount (filter isMessage msgs) evals
+                Just (loadedCount, countErr, countWarn, msgs) -> prettyOutput False currTime loadedCount countErr countWarn (filter isMessage msgs) evals
             TermSize{..} <- termSize
             let wrap = concatMap (wordWrapE termWidth (termWidth `div` 5) . Esc)
             (msg, load, pad) <-
@@ -373,21 +373,21 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
             -- order and restrict the messages
             -- nubOrdOn loadMessage because module cycles generate the same message at several different locations
-            ordMessages <- do
+            (ordMessages, countErr, countWarn) <- do
                 let (msgError, msgWarn) = partition ((==) Error . loadSeverity) $ nubOrdOn loadMessage $ filter isMessage messages
                 -- sort error messages by modtime, so newer edits cause the errors to float to the top - see #153
                 errTimes <- sequence [(x,) <$> getModTime x | x <- nubOrd $ map loadFile msgError]
                 let f x = lookup (loadFile x) errTimes
                     moduleSorted = sortOn (Down . f) msgError ++ msgWarn
-                pure $ (if reverse_errors then reverse else id) moduleSorted
+                pure $ (if reverse_errors then reverse moduleSorted else moduleSorted, length msgError, length msgWarn)
 
-            outputFill currTime (Just (loadedCount, ordMessages)) evals [test_message | isJust test]
+            outputFill currTime (Just (loadedCount, countErr, countWarn, ordMessages)) evals [test_message | isJust test]
             forM_ outputfile $ \file ->
                 writeFile file $
                     if takeExtension file == ".json" then
                         showJSON [("loaded",map jString loaded),("messages",map jMessage $ filter isMessage messages)]
                     else
-                        unlines $ map unescape $ prettyOutput forceAbsolutePaths currTime loadedCount (limitMessages ordMessages) evals
+                        unlines $ map unescape $ prettyOutput forceAbsolutePaths currTime loadedCount countErr countWarn (limitMessages ordMessages) evals
             when (null loaded && not ignoreLoaded) $ do
                 putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
@@ -440,12 +440,14 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 -- will be replaced by absolute paths provided in the loadFile field.
 -- False ~ "keep the exact output from ghci" and
 -- True  ~ "paths will be replaced by absolute paths to help downstream tooling"
-prettyOutput :: Bool -> String -> Int -> [Load] -> [EvalResult] -> [String]
-prettyOutput _replacePaths currTime loadedCount [] evals =
+prettyOutput :: Bool -> String -> Int -> Int -> Int -> [Load] -> [EvalResult] -> [String]
+prettyOutput _replacePaths currTime loadedCount _countErr _countWarn [] evals =
     (allGoodMessage ++ " (" ++ show loadedCount ++ " module" ++ ['s' | loadedCount /= 1] ++ ", at " ++ currTime ++ ")")
         : concatMap printEval evals
-prettyOutput replacePaths _ _ xs evals =
-  messageLines ++ concatMap printEval evals
+prettyOutput replacePaths _ _ countErr countWarn xs evals =
+  ["Total: " ++ show countErr ++ " errors, " ++ show countWarn ++ " warnings"]
+    ++ messageLines
+    ++ concatMap printEval evals
  where
   messageLines =
     [ case l of
