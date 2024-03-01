@@ -405,7 +405,10 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             whenJust lint $ \lintcmd ->
                 unless hasErrors $ do
                     (exitcode, stdout, stderr) <- readCreateProcessWithExitCode (shell . unwords $ lintcmd : map escape touched) ""
-                    unless (exitcode == ExitSuccess) $ outStrLn (stdout ++ stderr)
+                    unless (exitcode == ExitSuccess) $ do
+                        let output = stdout ++ stderr
+                        outStrLn output
+                        forM_ outputfile $ flip writeFile output
 
             reason <- nextWait $ map (,Restart) restart
                               ++ map (,Reload) reload

@@ -1,4 +1,4 @@
-:set -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
+:set -Wunused-binds -Wunused-imports -Worphans
 :set -isrc
 :load Ghcid src/Paths.hs Test
 :def docs_ const $ return $ unlines [":!cabal haddock"]

@@ -77,7 +77,13 @@ I've gone for simplicity over features. It's a point in the design space, but no
 Yes, that's a [bug in GHCi](https://ghc.haskell.org/trac/ghc/ticket/9648). If you see GHCi getting confused just kill `ghcid` and start it again.
 
 #### I want to run arbitrary commands when arbitrary files change.
-This project reloads `ghci` when files loaded by `ghci` change. If you want a more general mechanism something like [Steel Overseer](https://github.com/schell/steeloverseer) or [Watchman](https://facebook.github.io/watchman/) will probably work better.
+This project reloads `ghci` when files loaded by `ghci` change. If you want a more general mechanism, consider:
+
+* [Steel Overseer](https://github.com/schell/steeloverseer) ([Hackage](https://hackage.haskell.org/package/steeloverseer))
+* [Watchman](https://facebook.github.io/watchman/)
+* [`feedback`](https://github.com/NorfairKing/feedback) ([Hackage](https://hackage.haskell.org/package/feedback))
+* [Watchexec](https://github.com/watchexec/watchexec)
+* [`entr`](https://github.com/eradman/entr)
 
 #### I want syntax highlighting in the error messages.
 One option is to use Neovim or Emacs and run the terminal in a buffer whose file type is set to Haskell. Another option is to pipe `ghcid` through [source-highlight](https://www.gnu.org/software/src-highlite/) (`ghcid | source-highlight -s haskell -f esc`).

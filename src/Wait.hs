@@ -29,7 +29,7 @@ withWaiterPoll :: Seconds -> (Waiter -> IO a) -> IO a
 withWaiterPoll x f = f $ WaiterPoll x
 
 withWaiterNotify :: (Waiter -> IO a) -> IO a
-withWaiterNotify f = withManagerConf defaultConfig{confDebounce=NoDebounce} $ \manager -> do
+withWaiterNotify f = withManagerConf defaultConfig $ \manager -> do
     mvar <- newEmptyMVar
     var <- newVar Map.empty
     f $ WaiterNotify manager mvar var
