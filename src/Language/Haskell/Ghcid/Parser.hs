@@ -71,7 +71,7 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
         -- Module imports form a cycle:
         --   module `Module' (Module.hs) imports itself
         f (x:xs)
-            | unescapeE x == "Module imports form a cycle:"
+            | unescapeE x == "Module imports form a cycle:" || unescapeE x == "Module graph contains a cycle:"
             , (xs,rest) <- span leadingWhitespaceE xs
             , let ms = [takeWhile (/= ')') x | x <- xs, '(':x <- [dropWhile (/= '(') $ unescapeE x]]
             = [Message Error m (0,0) (0,0) (map fromEsc $ x:xs) | m <- nubOrd ms] ++ f rest

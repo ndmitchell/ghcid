@@ -155,6 +155,13 @@ basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
         write "Util.hs" "module Util where"
         require [allGoodMessage]
 
+        -- check recursive modules (graph) work
+        write "Util1.hs" "module Util1 where\nimport Util2"
+        write "Util2.hs" "module Util2 where\nimport Util3"
+        write "Util3.hs" "module Util3 where\nimport Util1"
+        write "Main.hs" "import Util1\nmain = print x"
+        require ["Module graph contains a cycle"]
+
         ghcVer <- readVersion <$> systemOutput_ "ghc --numeric-version"
 
         -- check renaming files works
