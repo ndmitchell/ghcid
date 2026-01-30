@@ -92,7 +92,7 @@ One option is to use Neovim or Emacs and run the terminal in a buffer whose file
 Ghcid automatically appends `-fno-code` to the command line, which makes the reload cycle about twice as fast. Unfortunately GHC 8.0 and 8.2 suffer from [bug 10600](https://ghc.haskell.org/trac/ghc/ticket/10600) which means `-fno-code` also disables pattern matching warnings. On these versions, either accept no pattern match warnings or use `-c` to specify a command line to start `ghci` that doesn't include `-fno-code`. From GHC 8.4 this problem no longer exists.
 
 #### I get "During interactive linking, GHCi couldn't find the following symbol"
-This problem is a manifestation of [GHC bug 8025](https://ghc.haskell.org/trac/ghc/ticket/8025), which is fixed in GHC 8.4 and above. Ghcid automatically appends `-fno-code` to the command line, but for older GHC's you can supress that with `--test "return ()"` (to add a fake test) or `-c "ghci ..."` to manually specify the command to run.
+This problem is a manifestation of [GHC bug 8025](https://ghc.haskell.org/trac/ghc/ticket/8025), which is fixed in GHC 8.4 and above. Ghcid automatically appends `-fno-code` to the command line, but for older GHC's you can suppress that with `--test "return ()"` (to add a fake test) or `-c "ghci ..."` to manually specify the command to run.
 
 #### I only see source-spans or colors on errors/warnings after the first load.
 Due to limitations in `ghci`, these flags are only set _after_ the first load. If you want them to apply from the start, pass them on the command line to `ghci` with something like `-c "ghci -ferror-spans -fdiagnostics-color=always"`.
