@@ -151,7 +151,7 @@ basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
 
         -- check recursive modules work
         write "Util.hs" "module Util where\nimport Main"
-        require ["imports form a cycle","Main.hs","Util.hs"]
+        require ["cycle","Main.hs","Util.hs"]
         write "Util.hs" "module Util where"
         require [allGoodMessage]
 
