@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE CPP #-}
 
 -- | Library for spawning and working with Ghci sessions.
 module Language.Haskell.Ghcid(
@@ -11,6 +12,10 @@ module Language.Haskell.Ghcid(
 import System.IO
 import System.IO.Error
 import System.Process
+#if !defined(mingw32_HOST_OS)
+import System.Posix.Process
+import System.Posix.Signals
+#endif
 import System.Time.Extra
 import Control.Concurrent.Extra
 import Control.Exception.Extra
@@ -45,9 +50,32 @@ data Ghci = Ghci
 instance Eq Ghci where
     a == b = ghciUnique a == ghciUnique b
 
-
-withCreateProc proc f = do
-    let undo (_, _, _, proc) = ignored $ terminateProcess proc
+-- | Same as 'System.Process.withCreateProcess', but sends SIGTERM
+--   to the entire process group instead of just the given process.
+--
+--   This is important when running @cabal repl@, which spawns a child
+--   GHCi process.
+--
+--   @
+--   ghcid           (process group A)
+--     └─ cabal repl (process group B)
+--         └─ ghci   (process group B)
+--   @
+--
+--   * Bad: send SIGTERM only to @cabal repl@ (leaves @ghci@ running)
+--   * Good: send SIGTERM to the whole process group (kills both)
+withCreateProcessGroup proc f = do
+    let undo (_, _, _, proc) = ignored $ do
+#if defined(mingw32_HOST_OS)
+            terminateProcess proc
+#else
+            pidMaybe <- getPid proc
+            case pidMaybe of
+                Nothing -> pure ()
+                Just pid -> do
+                    pgid <- getProcessGroupIDOf pid
+                    signalProcessGroup sigTERM pgid
+#endif
     bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
 
 -- | Start GHCi by running the described process, returning  the result of the initial loading.
@@ -62,7 +90,7 @@ withCreateProc proc f = do
 startGhciProcess :: CreateProcess -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhciProcess process echo0 = do
     let proc = process{std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, create_group=True}
-    withCreateProc proc $ \(Just inp) (Just out) (Just err) ghciProcess -> do
+    withCreateProcessGroup proc $ \(Just inp) (Just out) (Just err) ghciProcess -> do
 
         hSetBuffering out LineBuffering
         hSetBuffering err LineBuffering
