@@ -73,9 +73,9 @@ kill ghci = ignored $ do
         debugShutdown "Before quit"
         ignored $ quit ghci
         debugShutdown "After quit"
-    debugShutdown "Before terminateProcess"
-    ignored $ terminateProcess $ process ghci
-    debugShutdown "After terminateProcess"
+    debugShutdown "Before killProcessGroup"
+    ignored $ killProcessGroup $ process ghci
+    debugShutdown "After killProcessGroup"
     -- Ctrl-C after a tests keeps the cursor hidden,
     -- `setSGR []`didn't seem to be enough
     -- See: https://github.com/ndmitchell/ghcid/issues/254

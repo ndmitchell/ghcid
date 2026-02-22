@@ -6,7 +6,7 @@ module Language.Haskell.Ghcid(
     Ghci, GhciError(..), Stream(..),
     Load(..), Severity(..),
     startGhci, startGhciProcess, stopGhci, interrupt, process,
-    execStream, showModules, showPaths, reload, exec, quit
+    execStream, showModules, showPaths, reload, exec, quit, killProcessGroup
     ) where
 
 import System.IO
@@ -50,8 +50,11 @@ data Ghci = Ghci
 instance Eq Ghci where
     a == b = ghciUnique a == ghciUnique b
 
--- | Same as 'System.Process.withCreateProcess', but sends SIGTERM
---   to the entire process group instead of just the given process.
+withCreateProcessGroup proc f = do
+    let undo (_, _, _, proc) = ignored $ killProcessGroup proc
+    bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
+
+-- | Sends SIGKILL to the entire process group.
 --
 --   This is important when running @cabal repl@, which spawns a child
 --   GHCi process.
@@ -62,21 +65,23 @@ instance Eq Ghci where
 --         └─ ghci   (process group B)
 --   @
 --
---   * Bad: send SIGTERM only to @cabal repl@ (leaves @ghci@ running)
---   * Good: send SIGTERM to the whole process group (kills both)
-withCreateProcessGroup proc f = do
-    let undo (_, _, _, proc) = ignored $ do
+--   * Bad: send SIGKILL only to @cabal repl@ (leaves @ghci@ running)
+--   * Good: send SIGKILL to the whole process group (kills both)
+--
+--   SIGTERM is not enough, ghci doesn't respect it if it's mid-evaluation.
+killProcessGroup :: ProcessHandle -> IO ()
+killProcessGroup proc = do
 #if defined(mingw32_HOST_OS)
-            terminateProcess proc
+    terminateProcess proc
 #else
-            pidMaybe <- getPid proc
-            case pidMaybe of
-                Nothing -> pure ()
-                Just pid -> do
-                    pgid <- getProcessGroupIDOf pid
-                    signalProcessGroup sigTERM pgid
+    pidMaybe <- getPid proc
+    case pidMaybe of
+        Nothing -> pure ()
+        Just pid -> do
+            pgid <- getProcessGroupIDOf pid
+            signalProcessGroup sigKILL pgid
 #endif
-    bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
+
 
 -- | Start GHCi by running the described process, returning  the result of the initial loading.
 --   If you do not call 'stopGhci' then the underlying process may be leaked.
@@ -299,5 +304,5 @@ stopGhci ghci = do
     forkIO $ do
         -- if nicely doesn't work, kill ghci as the process level
         sleep 5
-        terminateProcess $ process ghci
+        killProcessGroup $ process ghci
     quit ghci
