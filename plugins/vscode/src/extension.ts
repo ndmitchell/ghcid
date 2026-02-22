@@ -42,10 +42,14 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
     function clean(lines: string[]): string[] {
         const newlines: string[] = []
         for (const line of lines) {
-            if (/In the/.test(line)) break
             if (/Ghcid has stopped./.test(line)) break
-            if (line.match(/\s*\|$/)) break
-            if (line.match(/(\d+)?\s*\|/)) break
+
+            // "In the expression: ..."
+            if (/In the/.test(line)) continue
+            if (/In a stmt/.test(line)) continue
+
+            // Line annotations like "57 | ..."
+            if (line.match(/^(\d+)?\s+\|/)) break
 
             newlines.push(line)
         }
@@ -62,31 +66,48 @@ export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode
         let r2 = /(..[^:]+):([0-9]+):([0-9]+)-([0-9]+):/
         let r3 = /(..[^:]+):\(([0-9]+),([0-9]+)\)-\(([0-9]+),([0-9]+)\):/
         var m : RegExpMatchArray;
-        let f = (l1,c1,l2,c2) => {
-            let range = new vscode.Range(parseInt(m[l1])-1,parseInt(m[c1])-1,parseInt(m[l2])-1,parseInt(m[c2]));
-            let file = vscode.Uri.file(path.isAbsolute(m[1]) ? m[1] : path.join(dir, m[1]));
-            var s = xs[0].substring(m[0].length).trim();
+        let mkDiagnostic = (range: vscode.Range): [vscode.Uri, vscode.Diagnostic] => {
+            const file = m[1].replace(/\\/g, '/');
+            let uri = vscode.Uri.file(path.isAbsolute(file) ? file : path.join(dir, file));
+            var s = xs[0].slice(m[0].length).trim();
             let i = s.indexOf(':');
             var sev = vscode.DiagnosticSeverity.Error;
             if (i !== -1) {
-                if (s.substr(0, i).toLowerCase() == 'warning')
+                if (s.slice(0, i).toLowerCase() == 'warning')
                     sev = vscode.DiagnosticSeverity.Warning;
-                s = s.substr(i+1).trim();
+                s = s.slice(i+1).trim();
             }
-            let msg = [].concat(/^\s*$/.test(s) ? [] : [s], xs.slice(1));
-            return [pair(file, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev))];
+            let msg = [].concat(/^\s*$/.test(s) ? [] : [s], clean(xs).slice(1));
+            return pair(uri, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev));
         };
         if (! xs || xs.length === 0 || xs[0].startsWith("All good"))
             return [];
-        if (m = xs[0].match(r1))
-            return f(2,3,2,3);
+        if (m = xs[0].match(r1)){
+            // Try to infer the range from the annotation (if present). Example:
+            //
+            //    |
+            // 57 |     forkIO $ print "hello"
+            //    |              ^^^^^
+            for (let i = 1; i < xs.length; i++) {
+                const gutter = xs[i].match(/^\d+ \| /)
+                if (gutter) {
+                    const match = xs[i+1].match(/\^+/)
+                    if (match) {
+                        const start = match.index - gutter[0].length
+                        const end = start + match[0].length
+                        return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,start,parseInt(m[2])-1,end))]
+                    }
+                }
+            }
+            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[3])))];
+        }
         if (m = xs[0].match(r2))
-            return f(2,3,2,4);
+            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[4])))];
         if (m = xs[0].match(r3))
-            return f(2,3,4,5);
-        return [[new vscode.Uri(), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
+            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[4])-1,parseInt(m[5])))];
+        return [[vscode.Uri.parse('untitled:ghcid-errors'), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
     }
-    return [].concat(... split(lines(s)).map(clean).map(parse));
+    return [].concat(... split(lines(s)).map(parse));
 }
 
 function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri, vscode.Diagnostic[]][] {
@@ -185,12 +206,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
         let ghcidCommand : string = vscode.workspace.getConfiguration('ghcid').get('command');
 
-        let opts : vscode.TerminalOptions =
-            os.type().startsWith("Windows") ?
-                {shellPath: "cmd.exe", shellArgs: ["/k", ghcidCommand]} :
-                {shellPath: ghcidCommand, shellArgs: []};
-        opts.name = "ghcid";
-        opts.shellArgs.push("--outputfile=" + file);
+        let opts : vscode.TerminalOptions = {
+            name: "ghcid",
+            shellPath: os.type().startsWith("Windows") ? "cmd.exe" : ghcidCommand,
+            shellArgs: [...(os.type().startsWith("Windows") ? ["/k", ghcidCommand] : []), "--outputfile=" + file]
+        }
         oldTerminal = vscode.window.createTerminal(opts);
         oldTerminal.show();
         return watchOutput(vscode.workspace.rootPath, file);
