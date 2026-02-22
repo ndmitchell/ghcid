@@ -66,13 +66,9 @@ withSession f = do
         debugShutdown "Finish finally"
 
 
--- | Kill. Wait just long enough to ensure you've done the job, but not to see the results.
+-- | Kill immediately.
 kill :: Ghci -> IO ()
 kill ghci = ignored $ do
-    timeout 5 $ do
-        debugShutdown "Before quit"
-        ignored $ quit ghci
-        debugShutdown "After quit"
     debugShutdown "Before killProcessGroup"
     ignored $ killProcessGroup $ process ghci
     debugShutdown "After killProcessGroup"
