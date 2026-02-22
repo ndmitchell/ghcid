@@ -13,7 +13,7 @@ description:
     Either \"GHCi as a daemon\" or \"GHC + a bit of an IDE\". A very simple Haskell development tool which shows you the errors in your project and updates them whenever you save. Run @ghcid --topmost --command=ghci@, where @--topmost@ makes the window on top of all others (Windows only) and @--command@ is the command to start GHCi on your project (defaults to @ghci@ if you have a @.ghci@ file, or else to @cabal repl@).
 homepage:           https://github.com/ndmitchell/ghcid#readme
 bug-reports:        https://github.com/ndmitchell/ghcid/issues
-tested-with:        GHC==9.6, GHC==9.4, GHC==9.2, GHC==9.0, GHC==8.10, GHC==8.8
+tested-with:        GHC==9.14, GHC==9.12, GHC==9.10, GHC==9.8, GHC==9.6, GHC==9.4, GHC==9.2, GHC==9.0, GHC==8.10, GHC==8.8
 extra-doc-files:
     CHANGES.txt
     README.md
