@@ -1,6 +1,4 @@
 :set -Wunused-binds -Wunused-imports -Worphans
-:set -isrc
-:load Ghcid src/Paths.hs Test
 :def docs_ const $ return $ unlines [":!cabal haddock"]
 :def docs const $ return $ unlines [":docs_",":!start dist\\doc\\html\\ghcid\\Language-Haskell-Ghcid.html"]
 :def test const $ return $ unlines ["Test.main"]
