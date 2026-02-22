@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 
 -- | Utility functions
 module Language.Haskell.Ghcid.Util(
@@ -8,7 +9,9 @@ module Language.Haskell.Ghcid.Util(
     outStr, outStrLn,
     ignored,
     allGoodMessage,
-    getModTime, getModTimeResolution, getShortTime
+    getModTime, getModTimeResolution, getShortTime,
+    withCreateProcessGroup,
+    killProcessGroup
     ) where
 
 import Control.Concurrent.Extra
@@ -29,6 +32,11 @@ import Control.Exception
 import Control.Monad.Extra
 import Control.Applicative
 import Prelude
+import System.Process
+#if !defined(mingw32_HOST_OS)
+import System.Posix.Process
+import System.Posix.Signals
+#endif
 
 
 -- | Flags that are required for ghcid to function and are supported on all GHC versions
@@ -130,3 +138,35 @@ getModTimeResolutionCache = unsafePerformIO $ withTempDir $ \dir -> do
     putStrLn $ "Longest file modification time lag was " ++ show (ceiling (mtime * 1000)) ++ "ms"
     -- add a little bit of safety, but if it's really quick, don't make it that much slower
     pure $ mtime + min 0.1 mtime
+
+withCreateProcessGroup proc f = do
+    let undo (_, _, _, proc) = ignored $ killProcessGroup proc
+    bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
+
+-- | Sends SIGKILL to the entire process group.
+--
+--   This is important when running @cabal repl@, which spawns a child
+--   GHCi process.
+--
+--   @
+--   ghcid           (process group A)
+--     └─ cabal repl (process group B)
+--         └─ ghci   (process group B)
+--   @
+--
+--   * Bad: send SIGKILL only to @cabal repl@ (leaves @ghci@ running)
+--   * Good: send SIGKILL to the whole process group (kills both)
+--
+--   SIGTERM is not enough, ghci doesn't respect it if it's mid-evaluation.
+killProcessGroup :: ProcessHandle -> IO ()
+killProcessGroup proc = do
+#if defined(mingw32_HOST_OS)
+    terminateProcess proc
+#else
+    pidMaybe <- getPid proc
+    case pidMaybe of
+        Nothing -> pure ()
+        Just pid -> do
+            pgid <- getProcessGroupIDOf pid
+            signalProcessGroup sigKILL pgid
+#endif

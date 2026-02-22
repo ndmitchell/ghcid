@@ -1,21 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE CPP #-}
 
 -- | Library for spawning and working with Ghci sessions.
 module Language.Haskell.Ghcid(
     Ghci, GhciError(..), Stream(..),
     Load(..), Severity(..),
     startGhci, startGhciProcess, stopGhci, interrupt, process,
-    execStream, showModules, showPaths, reload, exec, quit, killProcessGroup
+    execStream, showModules, showPaths, reload, exec, quit
     ) where
 
 import System.IO
 import System.IO.Error
 import System.Process
-#if !defined(mingw32_HOST_OS)
-import System.Posix.Process
-import System.Posix.Signals
-#endif
 import System.Time.Extra
 import Control.Concurrent.Extra
 import Control.Exception.Extra
@@ -49,38 +44,6 @@ data Ghci = Ghci
 
 instance Eq Ghci where
     a == b = ghciUnique a == ghciUnique b
-
-withCreateProcessGroup proc f = do
-    let undo (_, _, _, proc) = ignored $ killProcessGroup proc
-    bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
-
--- | Sends SIGKILL to the entire process group.
---
---   This is important when running @cabal repl@, which spawns a child
---   GHCi process.
---
---   @
---   ghcid           (process group A)
---     └─ cabal repl (process group B)
---         └─ ghci   (process group B)
---   @
---
---   * Bad: send SIGKILL only to @cabal repl@ (leaves @ghci@ running)
---   * Good: send SIGKILL to the whole process group (kills both)
---
---   SIGTERM is not enough, ghci doesn't respect it if it's mid-evaluation.
-killProcessGroup :: ProcessHandle -> IO ()
-killProcessGroup proc = do
-#if defined(mingw32_HOST_OS)
-    terminateProcess proc
-#else
-    pidMaybe <- getPid proc
-    case pidMaybe of
-        Nothing -> pure ()
-        Just pid -> do
-            pgid <- getProcessGroupIDOf pid
-            signalProcessGroup sigKILL pgid
-#endif
 
 
 -- | Start GHCi by running the described process, returning  the result of the initial loading.
