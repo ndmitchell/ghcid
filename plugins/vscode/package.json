@@ -23,7 +23,7 @@
         "See https://github.com/ndmitchell/ghcid/pull/317"
     ],
     "activationEvents": [
-        "*"
+        "onStartupFinished"
     ],
     "main": "./out/src/extension",
     "contributes": {
