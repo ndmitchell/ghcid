@@ -7,107 +7,91 @@ import * as crypto from 'crypto'
 
 function pair<a,b>(a : a, b : b) : [a,b] {return [a,b];}
 
-export function parseGhcidOutput(dir : string, s : string) : [vscode.Uri, vscode.Diagnostic][] {
-    // standard lines, dealing with \r\n as well
-    function lines(s : string) : string[] {
-        return s.replace('\r','').split('\n').filter(x => x != "");
-    }
+export function parseGhcidOutput(dir: string, s: string): [vscode.Uri, vscode.Diagnostic][] {
+    const allLines = s.replace(/\r/g, '').split('\n')
 
-    // After the file location, message bodies are indented (perhaps prefixed by a line number)
-    function isMessageBody(x : string) {
-        if (x.startsWith(" "))
-            return true;
-        let sep = x.indexOf('|');
-        if (sep == -1)
-            return false;
-        return !isNaN(Number(x.substr(0, sep)));
-    }
+    if (allLines.length === 0) return []
+    if (allLines[0].startsWith('All good')) return []
+    if (allLines[0].startsWith('Ghcid has stopped.')) return []
 
-    // split into separate error messages, which all start at col 0 (no spaces) and are following by message bodies
-    function split(xs : string[]) : string[][] {
-        var cont = [];
-        var res = [];
-        for (let x of xs) {
-            if (isMessageBody(x))
-                cont.push(x);
-            else {
-                if (cont.length > 0) res.push(cont);
-                cont = [x];
-            }
+    const isHeader = (line: string) => /: (error|warning):/.test(line);
+
+    // Group lines into messages, each starting with a location header
+    const messages: string[][] = [];
+    for (const line of allLines) {
+        if (isHeader(line)) {
+            messages.push([line]);
+        } else if (messages.length > 0) {
+            messages[messages.length - 1].push(line);
         }
-        if (cont.length > 0) res.push(cont);
-        return res;
     }
 
-    function clean(lines: string[]): string[] {
-        const newlines: string[] = []
-        for (const line of lines) {
-            if (/Ghcid has stopped./.test(line)) break
+    return messages.flatMap(lines => {
+        const header = lines[0];
+        let m: RegExpMatchArray;
+        let file: string;
+        let range: vscode.Range;
+        let severityStr: string|undefined;
 
-            // "In the expression: ..."
-            if (/In the/.test(line)) continue
-            if (/In a stmt/.test(line)) continue
+        // file:(line,col)-(line,col)
+        if (m = header.match(/^(.*):\((\d+),(\d+)\)-\((\d+),(\d+)\): (error|warning):/)) {
+            file = m[1];
+            range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[4] - 1, +m[5]);
+            severityStr = m[6];
+        // file:line:col-col
+        } else if (m = header.match(/^(.*):(\d+):(\d+)-(\d+): (error|warning):/)) {
+            file = m[1];
+            range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[2] - 1, +m[4]);
+            severityStr = m[5];
+        // file:line:col
+        } else if (m = header.match(/^(.*):(\d+):(\d+): (error|warning):/)) {
+            file = m[1];
+            range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[2] - 1, +m[3]);
+            severityStr = m[4];
 
-            // Line annotations like "57 | ..."
-            if (line.match(/^(\d+)?\s+\|/)) break
-
-            newlines.push(line)
-        }
-        return newlines
-    }
-
-    function dedent(lines: string[]): string[] {
-        const indentation = Math.min(...lines.filter(line => line !== '').map(line => line.match(/^\s*/)[0].length))
-        return lines.map(line => line.slice(indentation))
-    }
-
-    function parse(xs : string[]) : [vscode.Uri, vscode.Diagnostic][] {
-        let r1 = /(..[^:]+):([0-9]+):([0-9]+):/
-        let r2 = /(..[^:]+):([0-9]+):([0-9]+)-([0-9]+):/
-        let r3 = /(..[^:]+):\(([0-9]+),([0-9]+)\)-\(([0-9]+),([0-9]+)\):/
-        var m : RegExpMatchArray;
-        let mkDiagnostic = (range: vscode.Range): [vscode.Uri, vscode.Diagnostic] => {
-            const file = m[1].replace(/\\/g, '/');
-            let uri = vscode.Uri.file(path.isAbsolute(file) ? file : path.join(dir, file));
-            var s = xs[0].slice(m[0].length).trim();
-            let i = s.indexOf(':');
-            var sev = vscode.DiagnosticSeverity.Error;
-            if (i !== -1) {
-                if (s.slice(0, i).toLowerCase() == 'warning')
-                    sev = vscode.DiagnosticSeverity.Warning;
-                s = s.slice(i+1).trim();
-            }
-            let msg = [].concat(/^\s*$/.test(s) ? [] : [s], clean(xs).slice(1));
-            return pair(uri, new vscode.Diagnostic(range, dedent(msg).join('\n'), sev));
-        };
-        if (! xs || xs.length === 0 || xs[0].startsWith("All good"))
-            return [];
-        if (m = xs[0].match(r1)){
-            // Try to infer the range from the annotation (if present). Example:
-            //
-            //    |
-            // 57 |     forkIO $ print "hello"
-            //    |              ^^^^^
-            for (let i = 1; i < xs.length; i++) {
-                const gutter = xs[i].match(/^\d+ \| /)
-                if (gutter) {
-                    const match = xs[i+1].match(/\^+/)
-                    if (match) {
-                        const start = match.index - gutter[0].length
-                        const end = start + match[0].length
-                        return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,start,parseInt(m[2])-1,end))]
+            // Infer a better range from ^^^ caret annotations if present
+            for (let i = 1; i < lines.length; i++) {
+                const gutter = lines[i].match(/^\d+ \| /);
+                if (gutter && i + 1 < lines.length) {
+                    const carets = lines[i + 1].match(/\^+/);
+                    if (carets) {
+                        const start = carets.index - gutter[0].length;
+                        const end = start + carets[0].length;
+                        range = new vscode.Range(+m[2] - 1, start, +m[2] - 1, end);
+                        break;
                     }
                 }
             }
-            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[3])))];
+        } else {
+            return [];
         }
-        if (m = xs[0].match(r2))
-            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[2])-1,parseInt(m[4])))];
-        if (m = xs[0].match(r3))
-            return [mkDiagnostic(new vscode.Range(parseInt(m[2])-1,parseInt(m[3])-1,parseInt(m[4])-1,parseInt(m[5])))];
-        return [[vscode.Uri.parse('untitled:ghcid-errors'), new vscode.Diagnostic(new vscode.Range(0,0,0,0), dedent(xs).join('\n'))]];
-    }
-    return [].concat(... split(lines(s)).map(parse));
+
+        // Determine severity
+        let severity = vscode.DiagnosticSeverity.Error;
+        if (severityStr === 'warning') severity = vscode.DiagnosticSeverity.Warning;
+
+        // Build message body
+        const bodyLines: string[] = [];
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (/^\s+\|$/.test(line)) break; // code snipped
+            if (/In the/.test(line)) break; // expression context
+            if (/In a stmt/.test(line)) break; // statement context
+            bodyLines.push(line);
+        }
+
+        // Dedent
+        const nonEmpty = bodyLines.filter(l => l !== '');
+        if (nonEmpty.length > 0) {
+            const indent = Math.min(...nonEmpty.map(l => l.match(/^\s*/)[0].length));
+            for (let i = 0; i < bodyLines.length; i++)
+                bodyLines[i] = bodyLines[i].slice(indent);
+        }
+
+        file = m[1].replace(/\\/g, '/'); // normalize Windows paths
+        const uri = vscode.Uri.file(path.isAbsolute(file) ? file : path.join(dir, file));
+        return [pair(uri, new vscode.Diagnostic(range, bodyLines.join('\n'), severity))];
+    });
 }
 
 function groupDiagnostic(xs : [vscode.Uri, vscode.Diagnostic[]][]) : [vscode.Uri, vscode.Diagnostic[]][] {

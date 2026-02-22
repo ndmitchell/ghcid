@@ -47,7 +47,7 @@
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
         "compile": "tsc -p ./",
-        "test": "node out/test/runTest.js"
+        "test": "yarn run compile && node out/test/runTest.js"
     },
     "devDependencies": {
         "@types/glob": "^9.0.0",

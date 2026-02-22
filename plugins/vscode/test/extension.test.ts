@@ -46,6 +46,20 @@ C:\\src\\Development\\Shake\\Internal\\FileInfo.hs:(15,1)-(16,23): warning: [-Wu
                 want: [
                     ["/project/Main.hs", [56,12,56,18], vscode.DiagnosticSeverity.Error]
                 ]
+            }, {
+                src: `
+app/Main.hs:20:5-13: error: [GHC-88464]
+    Variable not in scope: putStrLns :: String -> IO a0
+    Suggested fix: Perhaps use ‘putStrLn’ (imported from System.IO)
+   |
+20 |     putStrLns "Waiting for SIGINT (Ctrl+C)..."
+   |     ^^^^^^^^^`,
+                want: [
+                    ["/app/Main.hs", [19,4,19,13], vscode.DiagnosticSeverity.Error]
+                ]
+            }, {
+                src: `Ghcid has stopped.`,
+                want: []
             }
         ];
 
