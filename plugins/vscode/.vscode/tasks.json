@@ -5,12 +5,7 @@
       "label": "npm",
       "type": "shell",
       "command": "npm",
-      "args": [
-        "run",
-        "compile",
-        "--loglevel",
-        "silent"
-      ],
+      "args": ["run", "compile", "--loglevel", "silent"],
       "problemMatcher": "$tsc",
       "group": {
         "kind": "build",

@@ -1,62 +1,64 @@
 {
-    "name": "haskell-ghcid",
-    "displayName": "haskell-ghcid",
-    "description": "Integrate ghcid into VS Code",
-    "version": "0.3.2",
-    "publisher": "ndmitchell",
-    "homepage": "https://github.com/ndmitchell/ghcid",
-    "author": "Neil Mitchell, Chris Wendt",
-    "engines": {
-        "vscode": "^1.76.0"
-    },
-    "license": "BSD-3-Clause",
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/ndmitchell/ghcid.git"
-    },
-    "categories": [
-        "Programming Languages",
-        "Linters"
+  "name": "haskell-ghcid",
+  "displayName": "haskell-ghcid",
+  "description": "Integrate ghcid into VS Code",
+  "version": "0.3.2",
+  "publisher": "ndmitchell",
+  "homepage": "https://github.com/ndmitchell/ghcid",
+  "author": "Neil Mitchell, Chris Wendt",
+  "engines": {
+    "vscode": "^1.76.0"
+  },
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ndmitchell/ghcid.git"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "//": [
+    "Activate unconditionally on startup to register file watchers.",
+    "See https://github.com/ndmitchell/ghcid/pull/317"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.startGhcid",
+        "title": "Start Ghcid"
+      }
     ],
-    "//": [
-        "Activate unconditionally on startup to register file watchers.",
-        "See https://github.com/ndmitchell/ghcid/pull/317"
-    ],
-    "activationEvents": [
-        "onStartupFinished"
-    ],
-    "main": "./out/src/extension",
-    "contributes": {
-        "commands": [
-            {
-                "command": "extension.startGhcid",
-                "title": "Start Ghcid"
-            }
-        ],
-        "configuration": {
-            "title": "Ghcid configuration",
-            "properties": {
-                "ghcid.command": {
-                    "type": "string",
-                    "default": "ghcid",
-                    "description": "Ghcid command"
-                }
-            }
+    "configuration": {
+      "title": "Ghcid configuration",
+      "properties": {
+        "ghcid.command": {
+          "type": "string",
+          "default": "ghcid",
+          "description": "Ghcid command"
         }
-    },
-    "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -p ./",
-        "test": "yarn run compile && node out/test/runTest.js"
-    },
-    "devDependencies": {
-        "@types/glob": "^9.0.0",
-        "@types/mocha": "^10.0.1",
-        "@types/node": "^25.3.0",
-        "@types/vscode": "^1.76.0",
-        "@vscode/test-electron": "^2.3.0",
-        "mocha": "^11.7.5",
-        "typescript": "^5.9.3",
-        "vsce": "^2.15.0"
+      }
     }
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -p ./",
+    "test": "yarn run compile && node out/test/runTest.js",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^25.3.0",
+    "@types/vscode": "^1.76.0",
+    "@vscode/test-electron": "^2.3.0",
+    "mocha": "^11.7.5",
+    "prettier": "^3.5.3",
+    "typescript": "^5.9.3",
+    "vsce": "^2.15.0"
+  }
 }
