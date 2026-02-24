@@ -323,7 +323,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
 
     nextWait <- waitFiles waiter
     (messages, loaded) <- sessionStart session command $
-        map (":set " ++) (ghciFlagsUseful ++ ghciFlagsUsefulVersioned) ++ setup
+        map (":set " ++) ghciFlagsUseful ++ setup
 
     when (null loaded && not ignoreLoaded) $ do
         putStrLn $ "\nNo files loaded, meaning ghcid will never refresh, so aborting.\nCommand: " ++ command

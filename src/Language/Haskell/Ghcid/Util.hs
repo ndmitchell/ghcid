@@ -3,7 +3,7 @@
 -- | Utility functions
 module Language.Haskell.Ghcid.Util(
     ghciFlagsRequired, ghciFlagsRequiredVersioned,
-    ghciFlagsUseful, ghciFlagsUsefulVersioned,
+    ghciFlagsUseful,
     dropPrefixRepeatedly,
     takeRemainder,
     outStr, outStrLn,
@@ -57,12 +57,7 @@ ghciFlagsUseful :: [String]
 ghciFlagsUseful =
     ["-ferror-spans" -- see #148
     ,"-j" -- see #153, GHC 7.8 and above, but that's all I support anyway
-    ]
-
--- | Flags that make ghcid work better, but are only supported on some GHC versions
-ghciFlagsUsefulVersioned :: [String]
-ghciFlagsUsefulVersioned =
-    ["-fdiagnostics-color=always" -- see #144, GHC 8.2 and above
+    ,"-fdiagnostics-color=always"
     ]
 
 
