@@ -4,10 +4,27 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as crypto from 'crypto'
+import * as util from 'util'
+import { Resource, startGhcidClient } from './util'
+
+const outputChannel = vscode.window.createOutputChannel('ghcid')
+
+const isTest = process.env.VSCODE_TEST === 'true'
+
+const log = (...args: any[]) => {
+  const line = util.format(...args)
+  outputChannel.appendLine(util.stripVTControlCharacters(line))
+  if (isTest) console.log(`[ext] ${line}`)
+}
 
 function pair<a, b>(a: a, b: b): [a, b] {
   return [a, b]
 }
+
+// Regex matching Haskell identifiers including qualified names (e.g. Data.Map.lookup)
+// and backtick-quoted infix usage (e.g. `elem`)
+const HASKELL_IDENT =
+  /`(?:[A-Z][a-zA-Z0-9_']*\.)*[a-zA-Z_][a-zA-Z0-9_']*`|(?:[A-Z][a-zA-Z0-9_']*\.)*[a-zA-Z_][a-zA-Z0-9_']*/
 
 export function parseGhcidOutput(dir: string, s: string): [vscode.Uri, vscode.Diagnostic][] {
   const allLines = s.replace(/\r/g, '').split('\n')
@@ -34,22 +51,26 @@ export function parseGhcidOutput(dir: string, s: string): [vscode.Uri, vscode.Di
     let file: string
     let range: vscode.Range
     let severityStr: string | undefined
+    let firstBodyLine = ''
 
     // file:(line,col)-(line,col)
-    if ((m = header.match(/^(.*):\((\d+),(\d+)\)-\((\d+),(\d+)\): (error|warning):/))) {
+    if ((m = header.match(/^(.*):\((\d+),(\d+)\)-\((\d+),(\d+)\): (error|warning):(.*)$/))) {
       file = m[1]
       range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[4] - 1, +m[5])
       severityStr = m[6]
+      firstBodyLine = m[7].trimStart()
       // file:line:col-col
-    } else if ((m = header.match(/^(.*):(\d+):(\d+)-(\d+): (error|warning):/))) {
+    } else if ((m = header.match(/^(.*):(\d+):(\d+)-(\d+): (error|warning):(.*)$/))) {
       file = m[1]
       range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[2] - 1, +m[4])
       severityStr = m[5]
+      firstBodyLine = m[6].trimStart()
       // file:line:col
-    } else if ((m = header.match(/^(.*):(\d+):(\d+): (error|warning):/))) {
+    } else if ((m = header.match(/^(.*):(\d+):(\d+): (error|warning):(.*)$/))) {
       file = m[1]
       range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[2] - 1, +m[3])
       severityStr = m[4]
+      firstBodyLine = m[5].trimStart()
 
       // Infer a better range from ^^^ caret annotations if present
       for (let i = 1; i < lines.length; i++) {
@@ -74,6 +95,7 @@ export function parseGhcidOutput(dir: string, s: string): [vscode.Uri, vscode.Di
 
     // Build message body
     const bodyLines: string[] = []
+    if (firstBodyLine !== '') bodyLines.push(firstBodyLine)
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i]
       if (/^\s+\|$/.test(line)) break // code snipped
@@ -147,12 +169,166 @@ async function autoWatch(context: vscode.ExtensionContext) {
   })
 }
 
+function getWordRange(document: vscode.TextDocument, position: vscode.Position): vscode.Range | undefined {
+  return document.getWordRangeAtPosition(position, HASKELL_IDENT)
+}
+
+function buildCommand(prefix: string, document: vscode.TextDocument, range: vscode.Range): string {
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
+  const file = workspaceFolder ? path.relative(workspaceFolder.uri.fsPath, document.uri.fsPath) : document.uri.fsPath
+  const startLine = range.start.line + 1
+  const startCol = range.start.character + 1
+  const endLine = range.end.line + 1
+  const endCol = range.end.character
+  return `${prefix} ${file} ${startLine} ${startCol} ${endLine} ${endCol}`
+}
+
+function toLocationUri(file: string): vscode.Uri {
+  return path.isAbsolute(file) || !vscode.workspace.workspaceFolders?.[0]
+    ? vscode.Uri.file(file)
+    : vscode.Uri.file(path.join(vscode.workspace.workspaceFolders?.[0].uri.fsPath, file))
+}
+
+function parseLocation(line: string): vscode.Location | undefined {
+  const trimmed = line.trim()
+  let m = trimmed.match(/^(.*):\((\d+),(\d+)\)-\((\d+),(\d+)\)$/)
+  if (m) {
+    const uri = toLocationUri(m[1])
+    const range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[4] - 1, +m[5])
+    return new vscode.Location(uri, range)
+  }
+
+  m = trimmed.match(/^(.*):(\d+):(\d+)-(\d+)$/)
+  if (m) {
+    const uri = toLocationUri(m[1])
+    const range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[2] - 1, +m[4])
+    return new vscode.Location(uri, range)
+  }
+
+  m = trimmed.match(/^(.*):(\d+):(\d+)$/)
+  if (m) {
+    const uri = toLocationUri(m[1])
+    const range = new vscode.Range(+m[2] - 1, +m[3] - 1, +m[2] - 1, +m[3])
+    return new vscode.Location(uri, range)
+  }
+
+  return undefined
+}
+
+let ghcidClient: Resource<{ request: (command: string) => Promise<string> }> | undefined
+let extensionContext: vscode.ExtensionContext | undefined
+let languageProvidersRegistered = false
+const socketDiagnostics = vscode.languages.createDiagnosticCollection('ghcid-socket')
+let socketTmpRootForTest: string | undefined
+
+const HASKELL_DOCUMENT_SELECTOR: vscode.DocumentSelector = [
+  { scheme: 'file', language: 'haskell' },
+  { scheme: 'file', pattern: '**/*.hs' },
+  { scheme: 'file', pattern: '**/*.lhs' },
+  { scheme: 'file', pattern: '**/*.hs-boot' },
+]
+
+async function connectToServer(context: vscode.ExtensionContext, forceReconnect = false) {
+  const controller = new AbortController()
+  ghcidClient = await startGhcidClient({
+    workspaceRoot: vscode.workspace.workspaceFolders?.[0].uri.fsPath,
+    onDiagnostics: diagnostics => {
+      socketDiagnostics.clear()
+      socketDiagnostics.set(
+        groupDiagnostic(
+          parseGhcidOutput(vscode.workspace.workspaceFolders?.[0].uri.fsPath, diagnostics).map(x => pair(x[0], [x[1]]))
+        )
+      )
+    },
+    log,
+  })(controller.signal)
+  ghcidClient.signal.addEventListener('abort', () => socketDiagnostics.clear(), { once: true })
+  context.subscriptions.push({
+    dispose: () => {
+      ghcidClient[Symbol.asyncDispose]()
+      ghcidClient = undefined
+    },
+  })
+
+  if (!languageProvidersRegistered) {
+    languageProvidersRegistered = true
+    context.subscriptions.push(
+      vscode.languages.registerHoverProvider(HASKELL_DOCUMENT_SELECTOR, {
+        provideHover: async (document, position) => {
+          const range = getWordRange(document, position)
+          if (!range || !ghcidClient) return undefined
+          const word = document.getText(range)
+          try {
+            const request = buildCommand(':type-at', document, range)
+            const output = await ghcidClient.request(request)
+            if (!output.trim()) return undefined
+            if (output.includes('no location info')) return undefined
+            if (output.includes(`Couldn't guess that module name`)) {
+              log(
+                `socket client: hover failed: ghcid couldn't guess module name, make sure you pass the right --target to ghcid. Request: ${JSON.stringify(request)}`
+              )
+              return undefined
+            }
+            const ident = word.replace(/^`|`$/g, '')
+            const markdown = new vscode.MarkdownString()
+            markdown.appendCodeblock(ident + output, 'haskell')
+            return new vscode.Hover(markdown, range)
+          } catch (err) {
+            log(`socket client: hover failed: ${err instanceof Error ? err.message : String(err)}`)
+            return undefined
+          }
+        },
+      })
+    )
+
+    context.subscriptions.push(
+      vscode.languages.registerDefinitionProvider(HASKELL_DOCUMENT_SELECTOR, {
+        provideDefinition: async (document, position) => {
+          const range = getWordRange(document, position)
+          if (!range || !ghcidClient) return undefined
+          try {
+            const output = await ghcidClient.request(buildCommand(':loc-at', document, range))
+            return parseLocation(output)
+          } catch (err) {
+            log(`socket client: definition failed: ${err instanceof Error ? err.message : String(err)}`)
+            return undefined
+          }
+        },
+      })
+    )
+
+    context.subscriptions.push(
+      vscode.languages.registerReferenceProvider(HASKELL_DOCUMENT_SELECTOR, {
+        provideReferences: async (document, position) => {
+          const range = getWordRange(document, position)
+          if (!range || !ghcidClient) return undefined
+          try {
+            const output = await ghcidClient.request(buildCommand(':uses', document, range))
+            const locations = output
+              .split(/\r?\n/)
+              .map(parseLocation)
+              .filter((location): location is vscode.Location => location !== undefined)
+            return locations
+          } catch (err) {
+            log(`socket client: references failed: ${err instanceof Error ? err.message : String(err)}`)
+            return undefined
+          }
+        },
+      })
+    )
+  }
+}
+
+export type ExtApi = {}
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export async function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext): Promise<ExtApi> {
+  extensionContext = context
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with  registerCommand
   // The commandId parameter must match the command field in package.json
+  connectToServer(context)
 
   // Pointer to the last running watcher, so we can undo it
   var oldWatcher: fs.FSWatcher = null
@@ -172,7 +348,7 @@ export async function activate(context: vscode.ExtensionContext) {
         cleanup()
         oldWatcher = act()
       } catch (e) {
-        console.error('Ghcid extension failed in ' + name + ': ' + e)
+        log('Ghcid extension failed in ' + name + ': ' + e)
         throw e
       }
     })
@@ -197,11 +373,12 @@ export async function activate(context: vscode.ExtensionContext) {
     fs.writeFileSync(file, '')
 
     let ghcidCommand: string = vscode.workspace.getConfiguration('ghcid').get('command')
+    let extraArgs: string[] = ['--outputfile=' + file]
 
     let opts: vscode.TerminalOptions = {
       name: 'ghcid',
       shellPath: os.type().startsWith('Windows') ? 'cmd.exe' : ghcidCommand,
-      shellArgs: [...(os.type().startsWith('Windows') ? ['/k', ghcidCommand] : []), '--outputfile=' + file],
+      shellArgs: [...(os.type().startsWith('Windows') ? ['/k', ghcidCommand] : []), ...extraArgs],
     }
     oldTerminal = vscode.window.createTerminal(opts)
     oldTerminal.show()
@@ -209,7 +386,16 @@ export async function activate(context: vscode.ExtensionContext) {
   })
 
   await autoWatch(context)
+
+  return {}
 }
 
-// this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  socketDiagnostics.clear()
+  ghcidClient?.[Symbol.asyncDispose]()
+  ghcidClient = undefined
+}
+
+export function setSocketTmpRootForTest(root: string | undefined) {
+  socketTmpRootForTest = root
+}

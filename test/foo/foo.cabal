@@ -1,0 +1,11 @@
+cabal-version: 2.4
+name: foo
+version: 0.1.0.0
+build-type: Simple
+
+library
+  exposed-modules: Lib
+  hs-source-dirs: .
+  build-depends: base
+  default-language: Haskell2010
+  ghc-options: -Wunused-binds

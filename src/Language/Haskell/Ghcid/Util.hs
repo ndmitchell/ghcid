@@ -7,6 +7,9 @@ module Language.Haskell.Ghcid.Util(
     dropPrefixRepeatedly,
     takeRemainder,
     outStr, outStrLn,
+    logErr,
+    logInfo,
+    logDebug,
     ignored,
     allGoodMessage,
     getModTime, getModTimeResolution, getShortTime,
@@ -14,6 +17,7 @@ module Language.Haskell.Ghcid.Util(
     killProcessGroup
     ) where
 
+import System.Console.CmdArgs.Verbosity
 import Control.Concurrent.Extra
 import System.Time.Extra
 import System.IO.Unsafe
@@ -79,6 +83,26 @@ outStr msg = do
 
 outStrLn :: String -> IO ()
 outStrLn xs = outStr $ xs ++ "\n"
+
+logColor :: Color -> String -> String -> IO ()
+logColor color level msg = forM_ (lines msg) $ \line -> outStrLn $
+    setSGRCode [SetColor Foreground Dull White]
+    ++ "[ghcid] "
+    ++ setSGRCode [SetColor Foreground Dull color]
+    ++ level
+    ++ setSGRCode [SetColor Foreground Dull White]
+    ++ " "
+    ++ line
+    ++ setSGRCode []
+
+logErr :: String -> IO ()
+logErr = logColor Red "ERROR"
+
+logInfo :: String -> IO ()
+logInfo msg = whenNormal $ logColor Blue " INFO" msg
+
+logDebug :: String -> IO ()
+logDebug msg = whenLoud $ logColor Magenta "DEBUG" msg
 
 -- | Ignore all exceptions coming from an action
 ignored :: IO () -> IO ()

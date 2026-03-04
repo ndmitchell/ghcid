@@ -1,5 +1,8 @@
 {
   "search.exclude": {
-    "**/yarn.lock": true
+    "**/.yarn": true,
+    "**/.pnp.*": true,
+    "dist": true,
+    "yarn.lock": true
   }
 }

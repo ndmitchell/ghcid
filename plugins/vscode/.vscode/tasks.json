@@ -4,8 +4,8 @@
     {
       "label": "npm",
       "type": "shell",
-      "command": "npm",
-      "args": ["run", "compile", "--loglevel", "silent"],
+      "command": "bash",
+      "args": ["-c", "yarn run tsdown && cp out/src/extension.cjs out/src/extension.js"],
       "problemMatcher": "$tsc",
       "group": {
         "kind": "build",

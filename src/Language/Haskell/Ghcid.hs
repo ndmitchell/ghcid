@@ -22,8 +22,6 @@ import Data.IORef
 import Control.Applicative
 import Data.Unique
 
-import System.Console.CmdArgs.Verbosity
-
 import Language.Haskell.Ghcid.Parser
 import Language.Haskell.Ghcid.Types as T
 import Language.Haskell.Ghcid.Util
@@ -63,9 +61,7 @@ startGhciProcess process echo0 = do
         hSetBuffering out LineBuffering
         hSetBuffering err LineBuffering
         hSetBuffering inp LineBuffering
-        let writeInp x = do
-                whenLoud $ outStrLn $ "%STDIN: " ++ x
-                hPutStrLn inp x
+        let writeInp = hPutStrLn inp
 
         -- Some programs (e.g. stack) might use stdin before starting ghci (see #57)
         -- Send them an empty line
@@ -81,13 +77,13 @@ startGhciProcess process echo0 = do
         syncCount <- newVar 0
         let syncReplay = do
                 i <- readVar syncCount
-                -- useful to avoid overloaded strings by showing the ['a','b','c'] form, see #109
-                let showStr xs = "[" ++ intercalate "," (map show xs) ++ "]"
                 let msg = "#~GHCID-FINISH-" ++ show i ++ "~#"
                 -- Prepend a leading \n to try and avoid junk already on stdout,
                 -- e.g. https://github.com/ndmitchell/ghcid/issues/291
-                writeInp $ "\nINTERNAL_GHCID.putStrLn " ++ showStr msg ++ "\n" ++
-                           "INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ showStr msg
+                writeInp "\n"
+                -- Defining fromString lets us use string literals even when RebindableSyntax is on
+                writeInp $ "let fromString s = s in INTERNAL_GHCID.putStrLn " ++ show msg ++ "\n"
+                writeInp $ "let fromString s = s in INTERNAL_GHCID.hPutStrLn INTERNAL_GHCID.stderr " ++ show msg ++ "\n"
                 pure $ isInfixOf msg
         let syncFresh = do
                 modifyVar_ syncCount $ pure . succ
@@ -102,7 +98,6 @@ startGhciProcess process echo0 = do
                     case el of
                         Left _ -> pure $ Left oldMsg
                         Right l -> do
-                            whenLoud $ outStrLn $ "%" ++ upper (show name) ++ ": " ++ l
                             let msg = removePrefix l
                             res <- finish msg
                             case res of
@@ -144,7 +139,7 @@ startGhciProcess process echo0 = do
 
         let ghciInterrupt = withLock isInterrupting $
                 whenM (fmap isNothing $ withLockTry isRunning $ pure ()) $ do
-                    whenLoud $ outStrLn "%INTERRUPT"
+                    logDebug "INTERRUPT"
                     interruptProcessGroupOf ghciProcess
                     -- let the person running ghciExec finish, since their sync messages
                     -- may have been the ones that got interrupted
@@ -169,7 +164,6 @@ startGhciProcess process echo0 = do
             else do
                 -- there may be some initial prompts on stdout before I set the prompt properly
                 s <- pure $ maybe s (removePrefix . snd) $ stripInfix ghcid_prefix s
-                whenLoud $ outStrLn $ "%STDOUT2: " ++ s
                 modifyIORef (if strm == Stdout then stdout else stderr) (s:)
                 when (any (`isPrefixOf` s) [ "GHCi, version "
                                            , "GHCJSi, version "

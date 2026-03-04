@@ -15,7 +15,6 @@ import Control.Exception.Extra
 import System.Directory.Extra
 import Data.Time.Clock
 import Data.String
-import System.Console.CmdArgs
 import System.Time.Extra
 import System.FSNotify
 import Language.Haskell.Ghcid.Util
@@ -65,7 +64,7 @@ waitFiles waiter = do
 
     go :: UTCTime -> [(FilePath, a)] -> IO (Either String [(FilePath, a)])
     go base files = do
-        whenLoud $ outStrLn $ "%WAITING: " ++ unwords (map fst files)
+        logDebug $ "WAITING: " ++ unwords (map fst files)
         -- As listContentsInside returns directories, we are waiting on them explicitly and so
         -- will pick up new files, as creating a new file changes the containing directory's modtime.
         files <- concatForM files $ \(file, a) ->
@@ -79,11 +78,11 @@ waitFiles waiter = do
                     sequence_ $ Map.elems del
                     new <- forM (Set.toList $ dirs `Set.difference` Map.keysSet keep) $ \dir -> do
                         can <- watchDir manager (fromString dir) (const True) $ \event -> do
-                            whenLoud $ outStrLn $ "%NOTIFY: " ++ show event
+                            logDebug $ "NOTIFY: " ++ show event
                             void $ tryPutMVar kick ()
                         pure (dir, can)
                     let mp2 = keep `Map.union` Map.fromList new
-                    whenLoud $ outStrLn $ "%WAITING: " ++ unwords (Map.keys mp2)
+                    logDebug $ "WAITING: " ++ unwords (Map.keys mp2)
                     pure mp2
                 void $ tryTakeMVar kick
         new <- mapM (getModTime . fst) files
@@ -98,7 +97,7 @@ waitFiles waiter = do
                 WaiterPoll t -> sleep $ max 0 $ t - 0.1 -- subtract the initial 0.1 sleep from above
                 WaiterNotify _ kick _ -> do
                     takeMVar kick
-                    whenLoud $ outStrLn "%WAITING: Notify signaled"
+                    logDebug "WAITING: Notify signaled"
             new <- mapM (getModTime . fst) files
             case [x | (x,t1,t2) <- zip3 files old new, t1 /= t2] of
                 [] -> recheck files new
@@ -108,7 +107,7 @@ waitFiles waiter = do
                         -- if someone is deleting a needed file, give them some space to put the file back
                         -- typically caused by VIM
                         -- but try not to
-                        whenLoud $ outStrLn $ "%WAITING: Waiting max of 1s due to file removal, " ++ unwords (nubOrd (map fst disappeared))
+                        logDebug $ "WAITING: Waiting max of 1s due to file removal, " ++ unwords (nubOrd (map fst disappeared))
                         -- at most 20 iterations, but stop as soon as the file returns
                         void $ flip firstJustM (replicate 20 ()) $ \_ -> do
                             sleep 0.05

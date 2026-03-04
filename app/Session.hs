@@ -5,7 +5,7 @@
 module Session(
     Session, enableEval, withSession,
     sessionStart, sessionReload,
-    sessionExecAsync,
+    sessionExecAsync, sessionExec,
     ) where
 
 import Language.Haskell.Ghcid
@@ -40,9 +40,6 @@ data Session = Session
 enableEval :: Session -> Session
 enableEval s = s { allowEval = True }
 
-
-debugShutdown x = when False $ print ("DEBUG SHUTDOWN", x)
-
 -- | The function 'withSession' expects to be run on the main thread,
 --   but the inner function will not. This ensures Ctrl-C is handled
 --   properly and any spawned Ghci processes will be aborted.
@@ -53,25 +50,25 @@ withSession f = do
     warnings <- newIORef []
     curdir <- newIORef "."
     running <- newVar False
-    debugShutdown "Starting session"
+    logDebug "Starting session"
     withThread <- myThreadId
     let allowEval = False
     f Session{..} `finally` do
-        debugShutdown "Start finally"
+        logDebug "Start finally"
         modifyVar_ running $ const $ pure False
         whenJustM (readIORef ghci) $ \v -> do
             writeIORef ghci Nothing
-            debugShutdown "Calling kill"
+            logDebug "Calling kill"
             kill v
-        debugShutdown "Finish finally"
+        logDebug "Finish finally"
 
 
 -- | Kill immediately.
 kill :: Ghci -> IO ()
 kill ghci = ignored $ do
-    debugShutdown "Before killProcessGroup"
+    logDebug "Before killProcessGroup"
     ignored $ killProcessGroup $ process ghci
-    debugShutdown "After killProcessGroup"
+    logDebug "After killProcessGroup"
     -- Ctrl-C after a tests keeps the cursor hidden,
     -- `setSGR []`didn't seem to be enough
     -- See: https://github.com/ndmitchell/ghcid/issues/254
@@ -100,7 +97,7 @@ sessionStart Session{..} cmd setup = do
         void $ forkIO $ kill v
 
     -- start the new
-    outStrLn $ "Loading " ++ cmd ++ " ..."
+    logInfo $ "Starting ghci command: " ++ cmd
     (v, messages) <- mask $ \unmask -> do
         (v, messages) <- unmask $ startGhci cmd Nothing $ const outStrLn
         writeIORef ghci $ Just v
@@ -241,6 +238,15 @@ sessionExecAsync Session{..} cmd done = do
         -- don't fire Done if someone interrupted us
         stderr <- readIORef stderr
         when old $ done stderr
+
+
+-- | Execute a GHCi command synchronously, returning the output lines.
+sessionExec :: Session -> String -> IO [String]
+sessionExec Session{..} cmd = do
+    mghci <- readIORef ghci
+    case mghci of
+        Nothing -> pure ["GHCi session not available"]
+        Just g  -> exec g cmd
 
 
 -- | Ignore entirely pointless messages and remove unnecessary lines.

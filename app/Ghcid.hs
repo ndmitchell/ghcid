@@ -1,10 +1,11 @@
-{-# LANGUAGE RecordWildCards, DeriveDataTypeable, TupleSections #-}
+{-# LANGUAGE RecordWildCards, DeriveDataTypeable, TupleSections, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-cse #-}
 
 -- | The application entry point
 module Ghcid(main, mainWithTerminal, TermSize(..), WordWrap(..)) where
 
 import Control.Exception
+import Control.Concurrent
 import System.IO.Error
 import Control.Applicative
 import Control.Monad.Extra
@@ -14,6 +15,7 @@ import Data.Ord
 import Data.Tuple.Extra
 import Data.Version
 import Session
+import Server
 import qualified System.Console.Terminal.Size as Term
 import System.Console.CmdArgs
 import System.Console.CmdArgs.Explicit
@@ -26,6 +28,7 @@ import System.FilePath
 import System.Process
 import System.Info
 import System.IO.Extra
+import System.IO.Temp
 
 import Paths_ghcid
 import Language.Haskell.Ghcid.Escape
@@ -132,8 +135,8 @@ Warnings:
 
 As a result, we prefer to give users full control with a .ghci file, if available
 -}
-autoOptions :: Options -> IO Options
-autoOptions o@Options{..}
+autoOptions :: Options -> String -> IO Options
+autoOptions o@Options{..} ghciScript
     | command /= "" = pure $ f [command] []
     | otherwise = do
         curdir <- getCurrentDirectory
@@ -153,7 +156,7 @@ autoOptions o@Options{..}
                        && null run
                        && not allow_eval
                        && (isJust stackFile || all isLib target) ]
-        let opts = noCode ++ ghciFlagsRequired ++ ghciFlagsUseful
+        let opts = noCode ++ ghciFlagsRequired ++ ghciFlagsUseful ++ ["-ghci-script=" ++ ghciScript]
         pure $ case () of
             _ | Just stack <- stackFile ->
                 let flags = if null arguments then
@@ -195,8 +198,7 @@ data TermSize = TermSize
 -- | On the 'UnexpectedExit' exception exit with a nice error message.
 handleErrors :: IO () -> IO ()
 handleErrors = handle $ \(UnexpectedExit cmd _ mmsg) -> do
-    putStr $ "Command \"" ++ cmd ++ "\" exited unexpectedly"
-    putStrLn $ case mmsg of
+    logErr $ "Command \"" ++ cmd ++ "\" exited unexpectedly" ++ case mmsg of
         Just msg -> " with error message: " ++ msg
         Nothing -> ""
     exitFailure
@@ -211,22 +213,37 @@ printStopped opts =
 mainWithTerminal :: IO TermSize -> ([String] -> IO ()) -> IO ()
 mainWithTerminal termSize termOutput = do
     opts <- withGhcidArgs $ cmdArgsRun options
-    whenLoud $ do
-        outStrLn $ "%OS: " ++ os
-        outStrLn $ "%ARCH: " ++ arch
-        outStrLn $ "%VERSION: " ++ showVersion version
-        args <- getArgs
-        outStrLn $ "%ARGUMENTS: " ++ show args
-    flip finally (printStopped opts) $ handleErrors $
+    logDebug $ "OS: " ++ os
+    logDebug $ "ARCH: " ++ arch
+    logDebug $ "VERSION: " ++ showVersion version
+    args <- getArgs
+    logDebug $ "ARGUMENTS: " ++ show args
+
+    -- Create and start the server before the main loop so it persists across session restarts
+    serverEnv <- newServerEnv
+    serverThread <- forkIO $
+        startServer serverEnv `catch` \(e :: SomeException) ->
+            case fromException e :: Maybe AsyncException of
+                Just ThreadKilled -> pure () -- cancelled by the main thread
+                _ -> logErr $ "Server thread crashed: " ++ show e
+
+    flip finally (killThread serverThread >> printStopped opts) $ handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
-            setVerbosity Normal -- undo any --verbose flags
+            -- Update the server's session reference on each (re)start
+            updateSession serverEnv session
+
+            -- Collect type info for the :type-at, :loc-at, :uses, etc.
+            let withDotGhci act = withSystemTempDirectory "ghcid" $ \dir -> do
+                    let dotGhci = dir </> ".ghci"
+                    writeFile dotGhci ":set +c"
+                    act dotGhci
 
             -- On certain Cygwin terminals stdout defaults to BlockBuffering
             hSetBuffering stdout LineBuffering
             hSetBuffering stderr NoBuffering
             origDir <- getCurrentDirectory
-            withCurrentDirectory (directory opts) $ do
-                opts <- autoOptions opts
+            withCurrentDirectory (directory opts) $ withDotGhci $ \dotGhci -> do
+                opts <- autoOptions opts dotGhci
                 opts <- pure $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
                 when (topmost opts) terminalTopmost
 
@@ -258,7 +275,7 @@ mainWithTerminal termSize termOutput = do
                     else id
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts
+                    runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts serverEnv
 
 
 
@@ -282,8 +299,8 @@ data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
 
 -- If we return successfully, we restart the whole process
 -- Use Continue not () so that inadvertent exits don't restart
-runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> IO Continue
-runGhcid session waiter termSize termOutput opts@Options{..} = do
+runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> ServerEnv -> IO Continue
+runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
     let limitMessages = maybe id (take . max 1) max_messages
 
     let outputFill :: String -> Maybe (Int, [Load]) -> [EvalResult] -> [String] -> IO ()
@@ -318,7 +335,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             termOutput $ applyPadding $ map fromEsc ((if termWrap == WrapSoft then mergeSoft else map fst) $ load ++ msg)
 
     when (ignoreLoaded && null reload) $ do
-        putStrLn "--reload must be set when using --ignore-loaded"
+        logErr "--reload must be set when using --ignore-loaded"
         exitFailure
 
     nextWait <- waitFiles waiter
@@ -326,8 +343,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
         map (":set " ++) ghciFlagsUseful ++ setup
 
     when (null loaded && not ignoreLoaded) $ do
-        putStrLn $ "\nNo files loaded, meaning ghcid will never refresh, so aborting.\nCommand: " ++ command
+        logErr "No files loaded, meaning ghcid will never refresh, so aborting."
+        logErr $ "Command: " ++ command
         exitFailure
+
+    -- Update server with initial messages
+    updateMessages serverEnv messages
 
     restart <- pure $ nubOrd $ restart ++ [x | LoadConfig x <- messages]
     -- Note that we capture restarting items at this point, not before invoking the command
@@ -345,9 +366,8 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
       fire nextWait (messages, loaded, touched) = do
             currTime <- getShortTime
             let loadedCount = length loaded
-            whenLoud $ do
-                outStrLn $ "%MESSAGES: " ++ show messages
-                outStrLn $ "%LOADED: " ++ show loaded
+            logDebug $ "MESSAGES: " ++ show messages
+            logDebug $ "LOADED: " ++ show loaded
 
             let evals = [e | Eval e <- messages]
             let (countErrors, countWarnings) = both sum $ unzip
@@ -386,12 +406,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
                     else
                         unlines $ map unescape $ prettyOutput currTime loadedCount (limitMessages ordMessages) evals
             when (null loaded && not ignoreLoaded) $ do
-                putStrLn "No files loaded, nothing to wait for. Fix the last error and restart."
+                logErr "No files loaded, nothing to wait for. Fix the last error and restart."
                 exitFailure
             whenJust test $ \t -> do
-                whenLoud $ outStrLn $ "%TESTING: " ++ t
+                logDebug $ "TESTING: " ++ t
                 sessionExecAsync session t $ \stderr -> do
-                    whenLoud $ outStrLn "%TESTING: Completed"
+                    logDebug "TESTING: Completed"
                     hFlush stdout -- may not have been a terminating newline from test output
                     if "*** Exception: " `isPrefixOf` stderr then do
                         updateTitle "(test failed)"
@@ -425,8 +445,13 @@ runGhcid session waiter termSize termOutput opts@Options{..} = do
             case reason1 of
               (Reload, reason2) -> do
                 unless no_status $ outputFill currTime Nothing evals $ "Reloading..." : map ("  " ++) reason2
+                setReloading serverEnv
                 nextWait <- waitFiles waiter
-                fire nextWait =<< sessionReload session
+                reloadResult <- sessionReload session
+                clearReloading serverEnv
+                let (msgs, _, _) = reloadResult
+                updateMessages serverEnv msgs
+                fire nextWait reloadResult
               (Restart, reason2) -> do
                 -- exit cleanly, since the whole thing is wrapped in a forever
                 unless no_status $ outputFill currTime Nothing evals $ "Restarting..." : map ("  " ++) reason2

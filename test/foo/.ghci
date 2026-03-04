@@ -1,3 +1,0 @@
-:set -fno-warn-unused-imports
-:load Root Paths.hs Test
-:def test \_ -> return "Test.main"
