@@ -45,7 +45,8 @@
     }
   },
   "dependencies": {
-    "ndjson": "^2.0.0"
+    "ndjson": "^2.0.0",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

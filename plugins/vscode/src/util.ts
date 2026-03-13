@@ -44,10 +44,10 @@ export const startGhcidClient = ({
   log,
 }: {
   workspaceRoot: string
-  onDiagnostics?: (payload: string) => void
+  onDiagnostics?: (workspaceRoot: string, payload: string) => void
   log?: (...args: any[]) => void
 }): CreateResource<{
-  request: (command: string) => Promise<string>
+  request: (file: string, command: string) => Promise<{ workspaceRoot: string; output: string }>
 }> => {
   const shortHash = createHash('sha256').update(workspaceRoot, 'utf8').digest('base64url').slice(0, 8)
   const socketRoot = os.type().startsWith('Windows') ? os.tmpdir() : path.join('/tmp', 'ghcid')
@@ -70,7 +70,7 @@ export const startGhcidClient = ({
       switch (msg.type) {
         case 'diag':
           log?.('Received diag:', gray(JSON.stringify(msg.payload)))
-          onDiagnostics?.(msg.payload)
+          onDiagnostics?.(workspaceRoot, msg.payload)
           break
         case 'stdout':
           if (!pending) log?.(`Received stdout with no pending request: ${gray(JSON.stringify(msg.payload))}`)
@@ -109,7 +109,7 @@ export const startGhcidClient = ({
       throw err
     } finally {
       rejectPending(new Error(`socket closed: ${serverSocketPath}`))
-      onDiagnostics?.(``)
+      onDiagnostics?.(workspaceRoot, ``)
       log?.(`${gray(serverSocketPath)} connection...closed`)
     }
   }
@@ -140,7 +140,7 @@ export const startGhcidClient = ({
     return undefined as never
   }
 
-  const request = async (payload: string): Promise<string> => {
+  const request = async (_file: string, payload: string): Promise<{ workspaceRoot: string; output: string }> => {
     if (pending) throw new Error(`Cannot send request while another is pending`)
     if (!socket) throw new Error(`Cannot send request while not connected to socket ${serverSocketPath}`)
 
@@ -158,13 +158,78 @@ export const startGhcidClient = ({
       if (err) rejectPending(err)
     })
 
-    return await pending.promise
+    return { workspaceRoot, output: await pending.promise }
   }
 
   return constructCreateResource(async signal => {
     return [{ request }, Promise.allSettled([watcher(signal), reconnectingSocket(signal)])]
   })
 }
+
+export const startGhcidMultiClient = ({
+  onDiagnostics,
+  log,
+}: {
+  onDiagnostics?: (workspaceRoot: string, payload: string) => void
+  log?: (...args: any[]) => void
+}): CreateResource<{
+  addDir: (workspaceRoot: string) => Promise<void>
+  removeDir: (workspaceRoot: string) => Promise<void>
+  request: (file: string, command: string) => Promise<{ workspaceRoot: string; output: string }>
+}> =>
+  constructCreateResource(async signal => {
+    const clients = new Map<
+      string,
+      Resource<{ request: (file: string, command: string) => Promise<{ workspaceRoot: string; output: string }> }>
+    >()
+
+    const bestWorkspaceRoot = (file: string): string | undefined => {
+      const normalizedFile = path.resolve(file)
+      const matches = Array.from(clients.keys()).filter(root => {
+        const relative = path.relative(root, normalizedFile)
+        return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+      })
+      return matches.sort((a, b) => b.length - a.length)[0]
+    }
+
+    const addDir = async (workspaceRoot: string): Promise<void> => {
+      const normalizedRoot = path.resolve(workspaceRoot)
+      if (clients.has(normalizedRoot)) return
+      const client = await startGhcidClient({
+        workspaceRoot: normalizedRoot,
+        onDiagnostics,
+        log,
+      })(signal)
+      clients.set(normalizedRoot, client)
+    }
+
+    const removeDir = async (workspaceRoot: string): Promise<void> => {
+      const normalizedRoot = path.resolve(workspaceRoot)
+      const client = clients.get(normalizedRoot)
+      if (!client) return
+      clients.delete(normalizedRoot)
+      await client[Symbol.asyncDispose]()
+    }
+
+    const request = async (file: string, command: string): Promise<{ workspaceRoot: string; output: string }> => {
+      const workspaceRoot = bestWorkspaceRoot(file)
+      if (!workspaceRoot) {
+        throw new Error(`Cannot route request for file outside tracked workspace folders: ${file}`)
+      }
+      const client = clients.get(workspaceRoot)
+      if (!client) {
+        throw new Error(`Cannot route request for file because workspace client is unavailable: ${file}`)
+      }
+      return await client.request(file, command)
+    }
+
+    const done = signalToPromise(signal).finally(async () => {
+      await Promise.all(Array.from(clients.values()).map(client => client[Symbol.asyncDispose]()))
+      clients.clear()
+    })
+
+    return [{ addDir, removeDir, request }, done]
+  })
 
 // Runs an abortable until it resolves, exponential backoff between attempts.
 const retry =

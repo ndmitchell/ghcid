@@ -11,7 +11,7 @@ const test = async ({ log, signal }: { log: ((...args: any[]) => void) | undefin
   const ready = Promise.withResolvers<void>()
   await using client = await startGhcidClient({
     workspaceRoot,
-    onDiagnostics: diag => {
+    onDiagnostics: (_workspaceRoot, diag) => {
       if (diag !== '') ready.resolve()
     },
     log,
@@ -24,7 +24,7 @@ const test = async ({ log, signal }: { log: ((...args: any[]) => void) | undefin
   await Promise.race([ready.promise, signalToPromise(client.signal)])
 
   log('Sending :type-at command')
-  const output = await client.request(':type-at Lib.hs 5 34 5 38')
+  const { output } = await client.request(path.join(workspaceRoot, 'Lib.hs'), ':type-at Lib.hs 5 34 5 38')
 
   expect(output).toMatch(/:: Char/)
 }
