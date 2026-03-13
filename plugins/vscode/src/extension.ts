@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import * as util from 'util'
-import { distinctUntilChanged, fromEventPattern, map, pairwise, startWith } from 'rxjs'
+import { concatMap, distinctUntilChanged, fromEventPattern, map, pairwise, startWith, Subscription, tap } from 'rxjs'
 import { Resource, startGhcidMultiClient } from './util'
 
 const outputChannel = vscode.window.createOutputChannel('ghcid')
@@ -18,16 +18,12 @@ const log = (...args: any[]) => {
   if (isTest) console.log(`[ext] ${line}`)
 }
 
-function pair<a, b>(a: a, b: b): [a, b] {
-  return [a, b]
-}
-
 // Regex matching Haskell identifiers including qualified names (e.g. Data.Map.lookup)
 // and backtick-quoted infix usage (e.g. `elem`)
 const HASKELL_IDENT =
   /`(?:[A-Z][a-zA-Z0-9_']*\.)*[a-zA-Z_][a-zA-Z0-9_']*`|(?:[A-Z][a-zA-Z0-9_']*\.)*[a-zA-Z_][a-zA-Z0-9_']*/
 
-export function parseGhcidOutput(dir: string, s: string): [vscode.Uri, vscode.Diagnostic][] {
+export const parseGhcidOutput = (dir: string, s: string): [vscode.Uri, vscode.Diagnostic][] => {
   const allLines = s.replace(/\r/g, '').split('\n')
 
   if (allLines.length === 0) return []
@@ -114,11 +110,11 @@ export function parseGhcidOutput(dir: string, s: string): [vscode.Uri, vscode.Di
 
     file = m[1].replace(/\\/g, '/') // normalize Windows paths
     const uri = vscode.Uri.file(path.isAbsolute(file) ? file : path.join(dir, file))
-    return [pair(uri, new vscode.Diagnostic(range, bodyLines.join('\n'), severity))]
+    return [[uri, new vscode.Diagnostic(range, bodyLines.join('\n'), severity)]]
   })
 }
 
-function groupDiagnostic(xs: [vscode.Uri, vscode.Diagnostic[]][]): [vscode.Uri, vscode.Diagnostic[]][] {
+const groupDiagnostic = (xs: [vscode.Uri, vscode.Diagnostic[]][]): [vscode.Uri, vscode.Diagnostic[]][] => {
   let seen = new Map<string, [number, vscode.Uri, vscode.Diagnostic[]]>()
   for (var i = 0; i < xs.length; i++) {
     let key = xs[i][0].path
@@ -129,21 +125,21 @@ function groupDiagnostic(xs: [vscode.Uri, vscode.Diagnostic[]][]): [vscode.Uri, 
   }
   return Array.from(seen.values())
     .sort((a, b) => a[0] - b[0])
-    .map(x => pair(x[1], x[2]))
+    .map(x => [x[1], x[2]])
 }
 
-function watchOutput(root: string, file: string): fs.FSWatcher {
+const watchOutput = (root: string, file: string): fs.FSWatcher => {
   let d = vscode.languages.createDiagnosticCollection('ghcid')
   let go = () => {
     d.clear()
-    d.set(groupDiagnostic(parseGhcidOutput(root, fs.readFileSync(file, 'utf8')).map(x => pair(x[0], [x[1]]))))
+    d.set(groupDiagnostic(parseGhcidOutput(root, fs.readFileSync(file, 'utf8')).map(x => [x[0], [x[1]]])))
   }
   let watcher = fs.watch(file, go)
   go()
   return watcher
 }
 
-async function autoWatch(context: vscode.ExtensionContext) {
+const autoWatch = async (context: vscode.ExtensionContext) => {
   // TODO support multiple roots
   const watcher = vscode.workspace.createFileSystemWatcher('**/ghcid.txt')
   context.subscriptions.push(watcher)
@@ -156,7 +152,7 @@ async function autoWatch(context: vscode.ExtensionContext) {
     diags.clear()
     diags.set(
       groupDiagnostic(
-        parseGhcidOutput(path.dirname(uri.fsPath), fs.readFileSync(uri.fsPath, 'utf8')).map(x => pair(x[0], [x[1]]))
+        parseGhcidOutput(path.dirname(uri.fsPath), fs.readFileSync(uri.fsPath, 'utf8')).map(x => [x[0], [x[1]]])
       )
     )
   }
@@ -170,11 +166,11 @@ async function autoWatch(context: vscode.ExtensionContext) {
   })
 }
 
-function getWordRange(document: vscode.TextDocument, position: vscode.Position): vscode.Range | undefined {
+const getWordRange = (document: vscode.TextDocument, position: vscode.Position): vscode.Range | undefined => {
   return document.getWordRangeAtPosition(position, HASKELL_IDENT)
 }
 
-function buildCommand(prefix: string, document: vscode.TextDocument, range: vscode.Range): string {
+const buildCommand = (prefix: string, document: vscode.TextDocument, range: vscode.Range): string => {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
   const file = workspaceFolder ? path.relative(workspaceFolder.uri.fsPath, document.uri.fsPath) : document.uri.fsPath
   const startLine = range.start.line + 1
@@ -184,17 +180,17 @@ function buildCommand(prefix: string, document: vscode.TextDocument, range: vsco
   return `${prefix} ${file} ${startLine} ${startCol} ${endLine} ${endCol}`
 }
 
-function getWorkspaceRoots(): string[] {
+const getWorkspaceRoots = (): string[] => {
   return (vscode.workspace.workspaceFolders ?? []).map(folder => folder.uri.fsPath)
 }
 
-function toLocationUri(workspaceRoot: string, file: string): vscode.Uri {
+const toLocationUri = (workspaceRoot: string, file: string): vscode.Uri => {
   return path.isAbsolute(file) || !workspaceRoot
     ? vscode.Uri.file(file)
     : vscode.Uri.file(path.join(workspaceRoot, file))
 }
 
-function parseLocation(workspaceRoot: string, line: string): vscode.Location | undefined {
+const parseLocation = (workspaceRoot: string, line: string): vscode.Location | undefined => {
   const trimmed = line.trim()
   let m = trimmed.match(/^(.*):\((\d+),(\d+)\)-\((\d+),(\d+)\)$/)
   if (m) {
@@ -220,18 +216,6 @@ function parseLocation(workspaceRoot: string, line: string): vscode.Location | u
   return undefined
 }
 
-let ghcidClient:
-  | Resource<{
-      addDir: (workspaceRoot: string) => Promise<void>
-      removeDir: (workspaceRoot: string) => Promise<void>
-      request: (file: string, command: string) => Promise<{ workspaceRoot: string; output: string }>
-    }>
-  | undefined
-let extensionContext: vscode.ExtensionContext | undefined
-let languageProvidersRegistered = false
-const socketDiagnostics = new Map<string, vscode.DiagnosticCollection>()
-let socketTmpRootForTest: string | undefined
-
 const HASKELL_DOCUMENT_SELECTOR: vscode.DocumentSelector = [
   { scheme: 'file', language: 'haskell' },
   { scheme: 'file', pattern: '**/*.hs' },
@@ -239,77 +223,75 @@ const HASKELL_DOCUMENT_SELECTOR: vscode.DocumentSelector = [
   { scheme: 'file', pattern: '**/*.hs-boot' },
 ]
 
-function workspaceRootsChanges() {
-  return fromEventPattern<void>(
-    handler => vscode.workspace.onDidChangeWorkspaceFolders(() => handler()),
-    (_, disposable: vscode.Disposable) => disposable.dispose()
-  ).pipe(
-    startWith(undefined),
-    map(() => getWorkspaceRoots()),
-    distinctUntilChanged((a, b) => a.length === b.length && a.every((root, i) => root === b[i])),
-    startWith([] as string[]),
-    pairwise()
-  )
+const newContextStack = (context: vscode.ExtensionContext) => {
+  const stack = new AsyncDisposableStack()
+  context.subscriptions.push({ dispose: () => stack.disposeAsync() })
+  return stack
 }
 
-async function connectToServer(context: vscode.ExtensionContext) {
-  const controller = new AbortController()
-  ghcidClient = await startGhcidMultiClient({
-    onDiagnostics: (workspaceRoot, diagnostics) => {
-      const diagnosticsForRoot = groupDiagnostic(
-        parseGhcidOutput(workspaceRoot, diagnostics).map(x => pair(x[0], [x[1]]))
-      )
-      const collection =
-        socketDiagnostics.get(workspaceRoot) ??
-        vscode.languages.createDiagnosticCollection(`ghcid-socket:${workspaceRoot}`)
-      socketDiagnostics.set(workspaceRoot, collection)
-      collection.clear()
-      collection.set(diagnosticsForRoot)
-    },
-    log,
-  })(controller.signal)
-  ghcidClient.signal.addEventListener(
-    'abort',
-    () => {
-      for (const collection of socketDiagnostics.values()) collection.clear()
-    },
-    { once: true }
-  )
-  for (const workspaceRoot of getWorkspaceRoots()) {
-    await ghcidClient.addDir(workspaceRoot)
-  }
-  const workspaceSubscription = workspaceRootsChanges().subscribe({
-    next: async ([previousRoots, nextRoots]) => {
-      const previous = new Set(previousRoots)
-      const next = new Set(nextRoots)
-      for (const workspaceRoot of previousRoots) {
-        if (!next.has(workspaceRoot)) {
-          await ghcidClient?.removeDir(workspaceRoot)
-          socketDiagnostics.get(workspaceRoot)?.dispose()
-          socketDiagnostics.delete(workspaceRoot)
-        }
-      }
-      for (const workspaceRoot of nextRoots) {
-        if (!previous.has(workspaceRoot)) await ghcidClient?.addDir(workspaceRoot)
-      }
-    },
-    error: err => {
-      log(`socket client workspace sync failed: ${err instanceof Error ? err.message : String(err)}`)
-    },
-  })
-  context.subscriptions.push({
-    dispose: () => {
-      workspaceSubscription.unsubscribe()
-      void ghcidClient?.[Symbol.asyncDispose]()
-      ghcidClient = undefined
-      for (const collection of socketDiagnostics.values()) collection.dispose()
-      socketDiagnostics.clear()
-    },
+const subscriptionToDisposable = (subscription: Subscription): Disposable => ({
+  [Symbol.dispose]: () => subscription.unsubscribe(),
+})
+
+const vsCodeDisposableToDisposable = (disposable: vscode.Disposable): Disposable => ({
+  [Symbol.dispose]: () => disposable.dispose(),
+})
+
+let stack: AsyncDisposableStack | undefined = undefined
+
+const connectToServer = async (context: vscode.ExtensionContext): Promise<void> => {
+  stack = newContextStack(context)
+
+  const socketDiagnostics = stack.adopt(new Map<string, vscode.DiagnosticCollection>(), diags => {
+    for (const collection of socketDiagnostics.values()) collection.dispose()
+    socketDiagnostics.clear()
   })
 
-  if (!languageProvidersRegistered) {
-    languageProvidersRegistered = true
-    context.subscriptions.push(
+  const controller = stack.adopt(new AbortController(), c => c.abort())
+  const ghcidClient = stack.use(
+    await startGhcidMultiClient({
+      onDiagnostics: (workspaceRoot, diagnostics) => {
+        const diagnosticsForRoot = groupDiagnostic(
+          parseGhcidOutput(workspaceRoot, diagnostics).map(x => [x[0], [x[1]]])
+        )
+        const collection =
+          socketDiagnostics.get(workspaceRoot) ??
+          vscode.languages.createDiagnosticCollection(`ghcid-socket:${workspaceRoot}`)
+        socketDiagnostics.set(workspaceRoot, collection)
+        collection.clear()
+        collection.set(diagnosticsForRoot)
+      },
+      log,
+    })(controller.signal)
+  )
+
+  stack.use(
+    subscriptionToDisposable(
+      fromEventPattern<vscode.WorkspaceFoldersChangeEvent>(
+        vscode.workspace.onDidChangeWorkspaceFolders,
+        (_, disposable: vscode.Disposable) => disposable.dispose()
+      )
+        .pipe(
+          startWith({ added: vscode.workspace.workspaceFolders, removed: [] }),
+          concatMap(async v => {
+            for (const root of v.removed) await ghcidClient.removeDir(root.uri.fsPath)
+            for (const root of v.added) await ghcidClient.addDir(root.uri.fsPath)
+            for (const root of v.removed) {
+              socketDiagnostics.get(root)?.dispose()
+              socketDiagnostics.delete(root)
+            }
+          })
+        )
+        .subscribe({
+          error: err => {
+            log(`socket client workspace sync failed: ${err}`)
+          },
+        })
+    )
+  )
+
+  stack.use(
+    vsCodeDisposableToDisposable(
       vscode.languages.registerHoverProvider(HASKELL_DOCUMENT_SELECTOR, {
         provideHover: async (document, position) => {
           const range = getWordRange(document, position)
@@ -337,8 +319,10 @@ async function connectToServer(context: vscode.ExtensionContext) {
         },
       })
     )
+  )
 
-    context.subscriptions.push(
+  stack.use(
+    vsCodeDisposableToDisposable(
       vscode.languages.registerDefinitionProvider(HASKELL_DOCUMENT_SELECTOR, {
         provideDefinition: async (document, position) => {
           const range = getWordRange(document, position)
@@ -353,8 +337,10 @@ async function connectToServer(context: vscode.ExtensionContext) {
         },
       })
     )
+  )
 
-    context.subscriptions.push(
+  stack.use(
+    vsCodeDisposableToDisposable(
       vscode.languages.registerReferenceProvider(HASKELL_DOCUMENT_SELECTOR, {
         provideReferences: async (document, position) => {
           const range = getWordRange(document, position)
@@ -373,19 +359,13 @@ async function connectToServer(context: vscode.ExtensionContext) {
         },
       })
     )
-  }
+  )
 }
 
 export type ExtApi = {}
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
-export async function activate(context: vscode.ExtensionContext): Promise<ExtApi> {
-  extensionContext = context
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with  registerCommand
-  // The commandId parameter must match the command field in package.json
-  connectToServer(context)
+export const activate = async (context: vscode.ExtensionContext): Promise<ExtApi> => {
+  await connectToServer(context)
 
   // Pointer to the last running watcher, so we can undo it
   var oldWatcher: fs.FSWatcher = null
@@ -448,13 +428,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<ExtApi
   return {}
 }
 
-export function deactivate() {
-  for (const collection of socketDiagnostics.values()) collection.dispose()
-  socketDiagnostics.clear()
-  ghcidClient?.[Symbol.asyncDispose]()
-  ghcidClient = undefined
-}
-
-export function setSocketTmpRootForTest(root: string | undefined) {
-  socketTmpRootForTest = root
+export const deactivate = () => {
+  stack?.disposeAsync()
 }
