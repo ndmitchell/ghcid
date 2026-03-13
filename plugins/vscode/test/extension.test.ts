@@ -2,7 +2,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import expect from 'expect'
 
-import { type ExtApi, parseGhcidOutput } from '../src/extension'
+import { parseGhcidOutput } from '../src/extension'
 
 const parseGhcidOutputTest = () => {
   const tests = [

@@ -5,7 +5,18 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import * as util from 'util'
-import { concatMap, distinctUntilChanged, fromEventPattern, map, pairwise, startWith, Subscription, tap } from 'rxjs'
+import {
+  concatMap,
+  distinctUntilChanged,
+  fromEventPattern,
+  map,
+  merge,
+  Observable,
+  pairwise,
+  startWith,
+  Subscription,
+  tap,
+} from 'rxjs'
 import { Resource, startGhcidMultiClient } from './util'
 
 const outputChannel = vscode.window.createOutputChannel('ghcid')
@@ -128,26 +139,14 @@ const groupDiagnostic = (xs: [vscode.Uri, vscode.Diagnostic[]][]): [vscode.Uri, 
     .map(x => [x[1], x[2]])
 }
 
-const watchOutput = (root: string, file: string): fs.FSWatcher => {
-  let d = vscode.languages.createDiagnosticCollection('ghcid')
-  let go = () => {
-    d.clear()
-    d.set(groupDiagnostic(parseGhcidOutput(root, fs.readFileSync(file, 'utf8')).map(x => [x[0], [x[1]]])))
-  }
-  let watcher = fs.watch(file, go)
-  go()
-  return watcher
-}
-
-const autoWatch = async (context: vscode.ExtensionContext) => {
-  // TODO support multiple roots
-  const watcher = vscode.workspace.createFileSystemWatcher('**/ghcid.txt')
-  context.subscriptions.push(watcher)
-  const uri2diags = new Map<string, vscode.DiagnosticCollection>()
-  context.subscriptions.push({ dispose: () => Array.from(uri2diags.values()).forEach(diag => diag.dispose()) })
+const autoWatch = async (stack: AsyncDisposableStack) => {
+  const watcher = stack.use(vsCodeDisposableToDisposable(vscode.workspace.createFileSystemWatcher('**/ghcid.txt')))
+  const uri2diags = stack.adopt(new Map<string, vscode.DiagnosticCollection>(), m =>
+    Array.from(m.values()).forEach(diag => diag.dispose())
+  )
 
   const onUpdate = (uri: vscode.Uri) => {
-    const diags = uri2diags.get(uri.fsPath) || vscode.languages.createDiagnosticCollection()
+    const diags = uri2diags.get(uri.fsPath) || vscode.languages.createDiagnosticCollection('ghcid')
     uri2diags.set(uri.fsPath, diags)
     diags.clear()
     diags.set(
@@ -157,13 +156,18 @@ const autoWatch = async (context: vscode.ExtensionContext) => {
     )
   }
 
-  ;(await vscode.workspace.findFiles('**/ghcid.txt')).forEach(onUpdate)
-  watcher.onDidCreate(onUpdate)
-  watcher.onDidChange(onUpdate)
-  watcher.onDidDelete(uri => {
-    uri2diags.get(uri.fsPath)?.dispose()
-    uri2diags.delete(uri.fsPath)
-  })
+  const files = await vscode.workspace.findFiles('**/ghcid.txt')
+  files.forEach(onUpdate)
+  stack.use(vsCodeDisposableToDisposable(watcher.onDidCreate(onUpdate)))
+  stack.use(vsCodeDisposableToDisposable(watcher.onDidChange(onUpdate)))
+  stack.use(
+    vsCodeDisposableToDisposable(
+      watcher.onDidDelete(uri => {
+        uri2diags.get(uri.fsPath)?.dispose()
+        uri2diags.delete(uri.fsPath)
+      })
+    )
+  )
 }
 
 const getWordRange = (document: vscode.TextDocument, position: vscode.Position): vscode.Range | undefined => {
@@ -178,10 +182,6 @@ const buildCommand = (prefix: string, document: vscode.TextDocument, range: vsco
   const endLine = range.end.line + 1
   const endCol = range.end.character
   return `${prefix} ${file} ${startLine} ${startCol} ${endLine} ${endCol}`
-}
-
-const getWorkspaceRoots = (): string[] => {
-  return (vscode.workspace.workspaceFolders ?? []).map(folder => folder.uri.fsPath)
 }
 
 const toLocationUri = (workspaceRoot: string, file: string): vscode.Uri => {
@@ -233,15 +233,22 @@ const subscriptionToDisposable = (subscription: Subscription): Disposable => ({
   [Symbol.dispose]: () => subscription.unsubscribe(),
 })
 
-const vsCodeDisposableToDisposable = (disposable: vscode.Disposable): Disposable => ({
-  [Symbol.dispose]: () => disposable.dispose(),
-})
+const vsCodeDisposableToDisposable = <T extends vscode.Disposable>(disposable: T): T & Disposable =>
+  Object.assign(disposable, {
+    [Symbol.dispose]() {
+      disposable.dispose()
+    },
+  })
 
-let stack: AsyncDisposableStack | undefined = undefined
+const fromEventPatternDisposable = <T>(e: vscode.Event<T>): Observable<T> =>
+  fromEventPattern<T>(
+    handler => e(handler),
+    (_, disposable: vscode.Disposable) => disposable.dispose()
+  )
 
-const connectToServer = async (context: vscode.ExtensionContext): Promise<void> => {
-  stack = newContextStack(context)
+let rootStack: AsyncDisposableStack | undefined = undefined
 
+const connectToServer = async (stack: AsyncDisposableStack): Promise<void> => {
   const socketDiagnostics = stack.adopt(new Map<string, vscode.DiagnosticCollection>(), diags => {
     for (const collection of socketDiagnostics.values()) collection.dispose()
     socketDiagnostics.clear()
@@ -267,10 +274,7 @@ const connectToServer = async (context: vscode.ExtensionContext): Promise<void> 
 
   stack.use(
     subscriptionToDisposable(
-      fromEventPattern<vscode.WorkspaceFoldersChangeEvent>(
-        vscode.workspace.onDidChangeWorkspaceFolders,
-        (_, disposable: vscode.Disposable) => disposable.dispose()
-      )
+      fromEventPatternDisposable(vscode.workspace.onDidChangeWorkspaceFolders)
         .pipe(
           startWith({ added: vscode.workspace.workspaceFolders, removed: [] }),
           concatMap(async v => {
@@ -362,72 +366,94 @@ const connectToServer = async (context: vscode.ExtensionContext): Promise<void> 
   )
 }
 
-export type ExtApi = {}
+const addStartGhcidCommand = async (stack: AsyncDisposableStack): Promise<void> => {
+  const terminalToDisposable = new Map<vscode.Terminal, Disposable>()
 
-export const activate = async (context: vscode.ExtensionContext): Promise<ExtApi> => {
-  await connectToServer(context)
+  stack.use(
+    vsCodeDisposableToDisposable(
+      vscode.window.onDidCloseTerminal(t => {
+        terminalToDisposable.get(t)?.[Symbol.dispose]()
+      })
+    )
+  )
 
-  // Pointer to the last running watcher, so we can undo it
-  var oldWatcher: fs.FSWatcher = null
-  var oldTerminal: vscode.Terminal = null
+  stack.use(
+    vsCodeDisposableToDisposable(
+      vscode.commands.registerCommand('extension.startGhcid', async () => {
+        const roots = vscode.workspace.workspaceFolders
+        const root = await (async () => {
+          if (roots.length === 0) {
+            return undefined
+          } else if (roots.length === 1) {
+            return roots[0]
+          } else {
+            return await vscode.window.showWorkspaceFolderPick()
+          }
+        })()
 
-  let cleanup = () => {
-    if (oldWatcher != null) oldWatcher.close()
-    oldWatcher = null
-    if (oldTerminal != null) oldTerminal.dispose()
-    oldTerminal = null
-  }
-  context.subscriptions.push({ dispose: cleanup })
+        if (!root) {
+          vscode.window.showWarningMessage('You must open a workspace first.')
+          return
+        }
 
-  let add = (name: string, act: () => fs.FSWatcher) => {
-    let dispose = vscode.commands.registerCommand(name, () => {
-      try {
-        cleanup()
-        oldWatcher = act()
-      } catch (e) {
-        log('Ghcid extension failed in ' + name + ': ' + e)
-        throw e
-      }
-    })
-    context.subscriptions.push(dispose)
-  }
+        const hash = crypto.createHash('sha256').update(root.uri.fsPath).digest('hex').slice(0, 20)
+        const file = stack.adopt(path.join(os.tmpdir(), `ghcid-${hash}.txt`), f => {
+          try {
+            fs.unlinkSync(f)
+          } catch {}
+        })
+        fs.writeFileSync(file, '')
 
-  add('extension.startGhcid', () => {
-    // TODO support multiple roots
-    const workspaceRoot = getWorkspaceRoots()[0]
-    if (!workspaceRoot) {
-      vscode.window.showWarningMessage('You must open a workspace first.')
-      return null
-    }
-    var hash = crypto.createHash('sha256').update(workspaceRoot).digest('hex').substring(0, 20)
-    let file = path.join(os.tmpdir(), 'ghcid-' + hash + '.txt')
-    context.subscriptions.push({
-      dispose: () => {
-        try {
-          fs.unlinkSync(file)
-        } catch (e) {}
-      },
-    })
-    fs.writeFileSync(file, '')
+        const ghcidCommand: string = vscode.workspace.getConfiguration('ghcid').get('command')
+        const extraArgs: string[] = [`--outputfile=${file}`]
 
-    let ghcidCommand: string = vscode.workspace.getConfiguration('ghcid').get('command')
-    let extraArgs: string[] = ['--outputfile=' + file]
+        const opts: vscode.TerminalOptions = {
+          name: 'ghcid',
+          shellPath: os.type().startsWith('Windows') ? 'cmd.exe' : ghcidCommand,
+          shellArgs: [...(os.type().startsWith('Windows') ? ['/k', ghcidCommand] : []), ...extraArgs],
+          cwd: root.uri.fsPath,
+        }
 
-    let opts: vscode.TerminalOptions = {
-      name: 'ghcid',
-      shellPath: os.type().startsWith('Windows') ? 'cmd.exe' : ghcidCommand,
-      shellArgs: [...(os.type().startsWith('Windows') ? ['/k', ghcidCommand] : []), ...extraArgs],
-    }
-    oldTerminal = vscode.window.createTerminal(opts)
-    oldTerminal.show()
-    return watchOutput(workspaceRoot, file)
-  })
+        const terminal = stack.use(vsCodeDisposableToDisposable(vscode.window.createTerminal(opts)))
+        terminal.show()
 
-  await autoWatch(context)
+        terminalToDisposable.set(
+          terminal,
+          (() => {
+            const d = vscode.languages.createDiagnosticCollection('ghcid')
+            const go = () => {
+              d.clear()
+              d.set(
+                groupDiagnostic(
+                  parseGhcidOutput(root.uri.fsPath, fs.readFileSync(file, 'utf8')).map(x => [x[0], [x[1]]])
+                )
+              )
+            }
+            const watcher = fs.watch(file, go)
+            go()
+            return {
+              [Symbol.dispose]: () => {
+                try {
+                  fs.unlinkSync(file)
+                } catch {}
+                watcher.close()
+                d.clear()
+              },
+            }
+          })()
+        )
+      })
+    )
+  )
+}
 
-  return {}
+export const activate = async (context: vscode.ExtensionContext): Promise<void> => {
+  rootStack = newContextStack(context)
+  await connectToServer(rootStack)
+  await addStartGhcidCommand(rootStack)
+  await autoWatch(rootStack)
 }
 
 export const deactivate = () => {
-  stack?.disposeAsync()
+  rootStack?.disposeAsync()
 }
