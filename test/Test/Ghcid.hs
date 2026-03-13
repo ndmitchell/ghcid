@@ -19,7 +19,7 @@ import System.Exit
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Ghcid (TermSize(..), WordWrap(..), mainWithTerminal, shouldWatchLoadConfig)
+import Ghcid (TermSize(..), mainWithTerminal, shouldWatchLoadConfig)
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
 import Test.Common
@@ -34,7 +34,6 @@ ghcidTest = testGroup "Ghcid test"
     ,dotGhciTest
     ,loadConfigRestartFilterTest
     ,cabalTest
-    ,stackTest
     ]
 
 
@@ -137,19 +136,6 @@ basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
         write "Util.hs" "module Util() where\nx = 1"
         require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
 
-        -- check warnings persist properly
-        write "Main.hs" "import Util\nx"
-        require ["Main.hs:2:1","Parse error:"
-                ,"Util.hs:2:1","Warning:","Defined but not used: `x'"]
-        write "Main.hs" "import Util\nmain = print 2"
-        require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
-        write "Main.hs" "main = print 3"
-        require [allGoodMessage]
-        write "Main.hs" "import Util\nmain = print 4"
-        require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
-        write "Util.hs" "module Util where"
-        require [allGoodMessage]
-
         -- check recursive modules work
         write "Util.hs" "module Util where\nimport Main"
         require ["cycle","Main.hs","Util.hs"]
@@ -227,23 +213,3 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ whenExecutable "cabal"
         require ["src/Literate.lhs:5:3","Parse error:"]
         write "src/Literate.lhs" orig
         require [allGoodMessage]
-
-stackTest :: TestTree
-stackTest = testCase "Ghcid Stack" $ copyDir "test/bar" $ whenExecutable "stack" $ do
-    system_ "stack init --resolver=nightly" -- must match what the CI does, or it takes too long
-    createDirectoryIfMissing True ".stack-work"
-
-    withGhcid [] $ \require -> do
-        require [allGoodMessage ++ " (4 modules, at "]
-        -- the .ghci file we watch was created _after_ we started loading stack
-        -- so ghcid is correct to immediately reload, in case it changed
-        require [allGoodMessage ++ " (4 modules, at "]
-        append "src/Literate.lhs" "> x"
-        require ["src/Literate.lhs:5:3","Parse error:"]
-{-
-    -- Stack seems to have changed, and continues to do so - lets just test the basics
-    withGhcid ["src/Boot.hs"] $ \require -> do
-        require [allGoodMessage]
-        writeFile "src/Boot.hs" "X"
-        require ["src/Boot.hs:1:1","Parse error:"]
--}

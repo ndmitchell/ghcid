@@ -17,7 +17,7 @@ main = do
     defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" $ take 3 -- TEMPORARY
+tests = testGroup "Tests"
     [utilsTests
     ,parserTests
     ,apiTests
