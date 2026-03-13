@@ -175,8 +175,7 @@ const getWordRange = (document: vscode.TextDocument, position: vscode.Position):
 }
 
 const buildCommand = (prefix: string, document: vscode.TextDocument, range: vscode.Range): string => {
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
-  const file = workspaceFolder ? path.relative(workspaceFolder.uri.fsPath, document.uri.fsPath) : document.uri.fsPath
+  const file = document.uri.fsPath
   const startLine = range.start.line + 1
   const startCol = range.start.character + 1
   const endLine = range.end.line + 1

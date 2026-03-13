@@ -11,6 +11,8 @@ module Server
     clearReloading,
     updateMessages,
     updateSession,
+    rewriteRequestForGhci,
+    rewriteResponseFromGhci,
   )
 where
 
@@ -20,7 +22,9 @@ import Control.Exception
 import Control.Monad
 import qualified Data.ByteString.Base64.URL as B64URL
 import qualified Data.ByteString.Char8 as BS
+import Data.List (isInfixOf, isPrefixOf, stripPrefix)
 import Data.IORef
+import Data.Maybe (fromMaybe)
 import qualified Data.Aeson.Micro as JSON
 import Data.Aeson.Micro ((.=), (.:))
 import qualified Data.Text as T
@@ -28,7 +32,7 @@ import Language.Haskell.Ghcid.Escape (unescape)
 import Language.Haskell.Ghcid.Types
 import Network.Socket
 import qualified Network.Socket.ByteString as NBS
-import Session (Session, sessionExec)
+import Session (PathMode (..), Session, sessionCurrentDir, sessionExec, sessionPathMode)
 import System.Directory
 import System.FilePath
 import System.Info (os)
@@ -229,12 +233,44 @@ execGhci ServerEnv {..} cmd = do
     else do
       result <- withLock seLock $ try $ do
         session <- readIORef seSession
-        sessionExec session cmd
+        projectDir <- sessionCurrentDir session
+        mode <- sessionPathMode session
+        let rewrittenCmd = rewriteRequestForGhci mode projectDir cmd
+        ls <- sessionExec session rewrittenCmd
+        pure $ rewriteResponseFromGhci mode projectDir ls
       case result of
         Left (e :: SomeException) -> do
           logErr $ "sessionExec threw: " ++ show e
           pure $ Left (show e)
         Right ls -> pure $ Right (unlines ls)
+
+rewriteRequestForGhci :: PathMode -> FilePath -> String -> String
+rewriteRequestForGhci mode projectDir cmd =
+  if mode == PathRelative
+    then foldr rewrite cmd [":type-at", ":loc-at", ":uses"]
+    else cmd
+  where
+    rewrite prefix acc =
+      fromMaybe acc $ do
+        rest <- stripPrefix (prefix ++ " " ++ addTrailingPathSeparator projectDir) acc
+        pure $ prefix ++ " " ++ rest
+
+rewriteResponseFromGhci :: PathMode -> FilePath -> [String] -> [String]
+rewriteResponseFromGhci mode projectDir
+  | mode == PathRelative = map (rewriteLocationLine projectDir)
+  | otherwise = id
+
+rewriteLocationLine :: FilePath -> String -> String
+rewriteLocationLine projectDir line =
+  if looksRelativeLocation line
+    then projectDir </> line
+    else line
+  where
+    looksRelativeLocation x =
+      not (null x)
+        && not (isAbsolute x)
+        && not ("<" `isPrefixOf` x)
+        && any (`isInfixOf` x) [".hs:", ".lhs:", ".hs-boot:"]
 
 renderDiagnostics :: [Load] -> String
 renderDiagnostics msgs =

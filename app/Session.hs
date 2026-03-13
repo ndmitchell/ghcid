@@ -3,9 +3,9 @@
 -- | A persistent version of the Ghci session, encoding lots of semantics on top.
 --   Not suitable for calling multithreaded.
 module Session(
-    Session, enableEval, withSession,
+    Session, PathMode(..), enableEval, withSession,
     sessionStart, sessionReload,
-    sessionExecAsync, sessionExec,
+    sessionExecAsync, sessionExec, sessionCurrentDir, sessionPathMode,
     ) where
 
 import Language.Haskell.Ghcid
@@ -32,10 +32,14 @@ data Session = Session
     ,command :: IORef (Maybe (String, [String])) -- ^ The last command passed to sessionStart, setup operations
     ,warnings :: IORef [Load] -- ^ The warnings from the last load
     ,curdir :: IORef FilePath -- ^ The current working directory
+    ,pathMode :: IORef PathMode -- ^ Whether GHCi reports modules using relative or absolute paths
     ,running :: Var Bool -- ^ Am I actively running an async command
     ,withThread :: ThreadId -- ^ Thread that called withSession
     ,allowEval :: Bool  -- ^ Is the allow-eval flag set?
     }
+
+data PathMode = PathRelative | PathAbsolute | PathUnknown
+    deriving (Eq, Show)
 
 enableEval :: Session -> Session
 enableEval s = s { allowEval = True }
@@ -49,6 +53,7 @@ withSession f = do
     command <- newIORef Nothing
     warnings <- newIORef []
     curdir <- newIORef "."
+    pathMode <- newIORef PathUnknown
     running <- newVar False
     logDebug "Starting session"
     withThread <- myThreadId
@@ -84,6 +89,12 @@ loadedModules dir = nubOrd . map (loadFile . qualify dir) . filter predicate
 qualify :: FilePath -> Load -> Load
 qualify dir message = message{loadFile = dir </> loadFile message}
 
+determinePathMode :: [FilePath] -> PathMode
+determinePathMode (x:_)
+    | isAbsolute x = PathAbsolute
+    | otherwise = PathRelative
+determinePathMode [] = PathUnknown
+
 -- | Spawn a new Ghci process at a given command line. Returns the load messages, plus
 --   the list of files that were observed (both those loaded and those that failed to load).
 sessionStart :: Session -> String -> [String] -> IO ([Load], [FilePath])
@@ -108,7 +119,9 @@ sessionStart Session{..} cmd setup = do
 
     -- deal with current directory
     (dir, _) <- showPaths v
+    moduleFiles <- map snd <$> showModules v
     writeIORef curdir dir
+    writeIORef pathMode $ determinePathMode moduleFiles
     messages <- pure $ map (qualify dir) messages
 
     let loaded = loadedModules dir messages
@@ -206,7 +219,9 @@ sessionReload session@Session{..} = do
         Just ghci <- readIORef ghci
         dir <- readIORef curdir
         messages <- mapMaybe tidyMessage <$> reload ghci
-        loaded <- map ((dir </>) . snd) <$> showModules ghci
+        shownModules <- showModules ghci
+        writeIORef pathMode $ determinePathMode $ map snd shownModules
+        let loaded = map ((dir </>) . snd) shownModules
         let reloaded = loadedModules dir messages
         warn <- readIORef warnings
         evals <- performEvals ghci allowEval reloaded
@@ -247,6 +262,12 @@ sessionExec Session{..} cmd = do
     case mghci of
         Nothing -> pure ["GHCi session not available"]
         Just g  -> exec g cmd
+
+sessionCurrentDir :: Session -> IO FilePath
+sessionCurrentDir Session{..} = readIORef curdir
+
+sessionPathMode :: Session -> IO PathMode
+sessionPathMode Session{..} = readIORef pathMode
 
 
 -- | Ignore entirely pointless messages and remove unnecessary lines.
