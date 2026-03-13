@@ -117,7 +117,7 @@ rename from to = do
 -- ACTUAL TEST SUITE
 
 basicTest :: TestTree
-basicTest = testCase "Ghcid basic" $ freshDir $ do
+basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
     write "Main.hs" "main = print 1"
     withGhcid ["-cghci -fwarn-unused-binds Main.hs"] $ \require -> do
         require [allGoodMessage]
