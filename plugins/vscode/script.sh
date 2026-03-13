@@ -14,7 +14,7 @@ case "$cmd" in
     yarn tsdown && cp out/src/extension.cjs out/src/extension.js
     yarn tsx --enable-source-maps test/ghcid-client.test.ts -v
     node out/src/timeout.cjs 15 node --enable-source-maps out/test/runTest.cjs
-    yarn vsce package --no-yarn
+    yarn vsce package
     ;;
   build-ci)
     yarn install --immutable
@@ -25,7 +25,7 @@ case "$cmd" in
     yarn tsx --enable-source-maps test/ghcid-client.test.ts -v
     # Same as build, but skip the test where we spawn vs code since there's no display in CI
     # node out/src/timeout.cjs 15 node --enable-source-maps out/test/runTest.cjs
-    yarn vsce package --no-yarn
+    yarn vsce package
     ;;
   test-client-server)
     yarn install --immutable

@@ -16,6 +16,7 @@ export default defineConfig({
   dts: false,
   deps: {
     neverBundle: ['vscode'],
-    onlyBundle: false,
+    // Bundle runtime deps so the published VSIX doesn't need node_modules.
+    alwaysBundle: ['*'],
   },
 })

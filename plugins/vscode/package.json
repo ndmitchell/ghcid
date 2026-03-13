@@ -45,8 +45,12 @@
     }
   },
   "dependencies": {
+    "nano-spawn": "^2.0.0",
     "ndjson": "^2.0.0",
-    "rxjs": "^7.8.2"
+    "pretty-error-tree": "chrismwendt/pretty-error-tree#89de6d9acb30ddde52fcf797254d1075ab3ef819",
+    "rxjs": "^7.8.2",
+    "split2": "^4.2.0",
+    "why-is-node-running": "chrismwendt/why-is-node-running#e156bdec9ecda2079bb95d65a3734ad0153700c1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -59,18 +63,12 @@
     "eslint": "^10.0.3",
     "expect": "^30.3.0",
     "globals": "^17.4.0",
-    "nano-spawn": "^2.0.0",
     "prettier": "^3.8.1",
-    "pretty-error": "^4.0.0",
-    "pretty-error-tree": "chrismwendt/pretty-error-tree#89de6d9acb30ddde52fcf797254d1075ab3ef819",
-    "split2": "^4.2.0",
-    "stacktracey": "^2.1.8",
     "tsdown": "^0.21.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vsce": "^2.15.0",
-    "why-is-node-running": "chrismwendt/why-is-node-running#e156bdec9ecda2079bb95d65a3734ad0153700c1"
+    "vsce": "^2.15.0"
   },
   "packageManager": "yarn@4.13.0"
 }
