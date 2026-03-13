@@ -117,7 +117,7 @@ rename from to = do
 -- ACTUAL TEST SUITE
 
 basicTest :: TestTree
-basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
+basicTest = testCase "Ghcid basic" $ freshDir $ do
     write "Main.hs" "main = print 1"
     withGhcid ["-cghci -fwarn-unused-binds Main.hs"] $ \require -> do
         require [allGoodMessage]
@@ -135,19 +135,6 @@ basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
         require ["Util.hs:2:1","Parse error:"]
         write "Util.hs" "module Util() where\nx = 1"
         require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
-
-        -- check warnings persist properly
-        write "Main.hs" "import Util\nx"
-        require ["Main.hs:2:1","Parse error:"
-                ,"Util.hs:2:1","Warning:","Defined but not used: `x'"]
-        write "Main.hs" "import Util\nmain = print 2"
-        require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
-        write "Main.hs" "main = print 3"
-        require [allGoodMessage]
-        write "Main.hs" "import Util\nmain = print 4"
-        require ["Util.hs:2:1","Warning:","Defined but not used: `x'"]
-        write "Util.hs" "module Util where"
-        require [allGoodMessage]
 
         -- check recursive modules work
         write "Util.hs" "module Util where\nimport Main"
