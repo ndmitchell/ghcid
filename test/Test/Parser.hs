@@ -14,6 +14,7 @@ parserTests = testGroup "Parser tests"
     ,testParseShowPaths
     ,testParseLoad
     ,testParseLoadGhc82
+    ,testParseLoadNoPositionError
     ,testParseLoadSpans
     ,testParseLoadCycles
     ,testParseLoadCyclesSelf
@@ -100,6 +101,22 @@ testParseLoadGhc82 = testCase "GHC 8.2 Load Parsing" $ parseLoad
         ,"30 |           dx = ' ^* delta"
         ,"   |                  ^^"]
     ,LoadConfig "C:\\Neil\\ghcid\\.ghci"
+    ]
+
+testParseLoadNoPositionError :: TestTree
+testParseLoadNoPositionError = testCase "Load Parsing without source positions" $ parseLoad
+    ["./Util.hs: error: [GHC-92213]"
+    ,"    Module graph contains a cycle:"
+    ,"                    module ‘Util’ (./Util.hs)"
+    ,"            imports module ‘Main’ (Main.hs)"
+    ,"      which imports module ‘Util’ (./Util.hs)"
+    ] @?=
+    [Message Error "./Util.hs" (0,0) (0,0)
+        ["./Util.hs: error: [GHC-92213]"
+        ,"    Module graph contains a cycle:"
+        ,"                    module ‘Util’ (./Util.hs)"
+        ,"            imports module ‘Main’ (Main.hs)"
+        ,"      which imports module ‘Util’ (./Util.hs)"]
     ]
 
 testMissingFile = testCase "Starting ghci with a non-existent filename" $ parseLoad

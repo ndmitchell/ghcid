@@ -57,6 +57,16 @@ parseLoad (map Esc -> xs) = nubOrd $ f xs
             , sev <- if "warning:" `isPrefixOf` lower (unescapeE rest) then Warning else Error
             = Message sev file pos1 pos2 (map fromEsc $ x:msg) : f las
 
+        -- Util.hs: error: [GHC-92213]
+        --     Module graph contains a cycle:
+        f (x:xs)
+            | not $ " " `isPrefixOfE` x
+            , Just (file,rest) <- breakFileColon x
+            , file /= "<no location info>"
+            , "error:" `isPrefixOfE` trimStartE rest
+            , (msg,las) <- span leadingWhitespaceE xs
+            = Message Error file (0,0) (0,0) (map fromEsc $ x:msg) : f las
+
         -- <no location info>: can't find file: FILENAME
         f (x:xs)
             | Just file <- stripPrefixE "<no location info>: can't find file: " x
