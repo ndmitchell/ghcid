@@ -1,0 +1,6 @@
+/plugins/vscode/.yarn/** linguist-vendored
+/plugins/vscode/.yarn/releases/* binary
+/plugins/vscode/.yarn/plugins/**/* binary
+/plugins/vscode/.pnp.* binary linguist-generated
+/plugins/vscode/out/** -diff linguist-generated
+/plugins/vscode/yarn.lock -diff linguist-generated

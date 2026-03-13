@@ -7,7 +7,7 @@
   "homepage": "https://github.com/ndmitchell/ghcid",
   "author": "Neil Mitchell, Chris Wendt",
   "engines": {
-    "vscode": "^1.76.0"
+    "vscode": "^1.90.0"
   },
   "license": "BSD-3-Clause",
   "repository": {
@@ -44,21 +44,33 @@
       }
     }
   },
-  "scripts": {
-    "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -p ./",
-    "test": "yarn run compile && node out/test/runTest.js",
-    "format": "prettier --write ."
+  "dependencies": {
+    "ndjson": "^2.0.0",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/glob": "^9.0.0",
-    "@types/mocha": "^10.0.1",
+    "@types/ndjson": "^2.0.4",
     "@types/node": "^25.3.0",
+    "@types/split2": "^4",
     "@types/vscode": "^1.76.0",
     "@vscode/test-electron": "^2.3.0",
-    "mocha": "^11.7.5",
-    "prettier": "^3.5.3",
+    "eslint": "^10.0.3",
+    "expect": "^30.3.0",
+    "globals": "^17.4.0",
+    "nano-spawn": "^2.0.0",
+    "prettier": "^3.8.1",
+    "pretty-error": "^4.0.0",
+    "pretty-error-tree": "chrismwendt/pretty-error-tree#89de6d9acb30ddde52fcf797254d1075ab3ef819",
+    "split2": "^4.2.0",
+    "stacktracey": "^2.1.8",
+    "tsdown": "^0.21.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vsce": "^2.15.0"
-  }
+    "typescript-eslint": "^8.56.1",
+    "vsce": "^2.15.0",
+    "why-is-node-running": "chrismwendt/why-is-node-running#e156bdec9ecda2079bb95d65a3734ad0153700c1"
+  },
+  "packageManager": "yarn@4.13.0"
 }
