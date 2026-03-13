@@ -19,7 +19,7 @@ import System.Exit
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Ghcid (TermSize(..), WordWrap(..), mainWithTerminal, shouldWatchLoadConfig)
+import Ghcid (TermSize(..), mainWithTerminal, shouldWatchLoadConfig)
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
 import Test.Common
