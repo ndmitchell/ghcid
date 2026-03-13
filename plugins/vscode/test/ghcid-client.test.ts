@@ -5,7 +5,7 @@ import { prettyErrorTree } from 'pretty-error-tree'
 
 const test = async ({ log, signal }: { log: ((...args: any[]) => void) | undefined; signal: AbortSignal }) => {
   const repoRoot = path.resolve(process.cwd(), '../..')
-  const workspaceRoot = path.join(repoRoot, 'test/foo')
+  const workspaceRoot = path.join(repoRoot, 'plugins/vscode/test-projects/foo')
 
   log('Starting ghcid socket client...')
   const ready = Promise.withResolvers<void>()
