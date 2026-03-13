@@ -3,12 +3,15 @@
     "**/.yarn": true,
     "**/.pnp.*": true,
     "out": true,
-    "yarn.lock": true
+    "yarn.lock": true,
+    "**/dist-newstyle": true,
   },
   "files.watcherExclude": {
+    "**/dist-newstyle": true,
     "out": true
   },
   "files.exclude": {
+    "**/dist-newstyle": true,
     "out": true
   },
   "js/ts.tsdk.path": ".yarn/sdks/typescript/lib",

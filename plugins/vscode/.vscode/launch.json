@@ -9,8 +9,8 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--extensionDevelopmentPath=${workspaceRoot}",
-        "${workspaceRoot}/../../test/foo",
-        "${workspaceRoot}/../../test/foo/Lib.hs"
+        "${workspaceRoot}/test-projects/foo",
+        "${workspaceRoot}/test-projects/foo/Lib.hs"
       ],
       "sourceMaps": true,
       "outFiles": ["${workspaceRoot}/out/src/**/*.js"],

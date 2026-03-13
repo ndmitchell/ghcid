@@ -4,7 +4,7 @@ import { runTests } from '@vscode/test-electron'
 async function main() {
   try {
     const extensionDevelopmentPath = path.resolve(__dirname, '../..')
-    const workspacePath = path.resolve(extensionDevelopmentPath, '../../test/foo')
+    const workspacePath = path.resolve(extensionDevelopmentPath, 'test-projects/foo')
     const extensionTestsPath = path.resolve(__dirname, './extension-test-runner.cjs')
 
     await runTests({
