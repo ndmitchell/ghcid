@@ -19,7 +19,7 @@ import System.Exit
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Ghcid
+import Ghcid (TermSize(..), WordWrap(..), mainWithTerminal, shouldWatchLoadConfig)
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
 import Test.Common
@@ -32,6 +32,7 @@ ghcidTest = testGroup "Ghcid test"
     [basicTest
     ,cdTest
     ,dotGhciTest
+    ,loadConfigRestartFilterTest
     ,cabalTest
     ,stackTest
     ]
@@ -202,6 +203,13 @@ dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
         require ["The import of Paths_foo is redundant"]
         sleep 1 -- time to write out the test
         readFile "test.txt" >>= (@?= "XX") -- but shouldn't run on warning
+
+
+loadConfigRestartFilterTest :: TestTree
+loadConfigRestartFilterTest = testCase "Ignore generated cabal script setcwd.ghci" $ do
+    shouldWatchLoadConfig "/Users/test/.cabal/script-builds/hash/setcwd.ghci" @?= False
+    shouldWatchLoadConfig "/Users/test/project/.ghci" @?= True
+    shouldWatchLoadConfig "foo/.ghci" @?= True
 
 
 cabalTest :: TestTree
