@@ -103,7 +103,7 @@ withServer act = bracket_
 
           let serverLoop = forever $ do
                 logDebug "withServer: waiting in accept"
-                (conn, _) <- accept sock `finally` (logDebug "withServer: accept finally callback")
+                (conn, _) <- accept sock
                 logDebug "withServer: Accepted socket connection"
                 void $ async $ handle
                   (\(e :: SomeException) ->
@@ -115,15 +115,26 @@ withServer act = bracket_
                     logDebug "withServer: Closed socket connection"
                     ))
 
-          withAsync serverLoop $ \serverAsync -> do
+          logDebug "withServer: mask"
+          mask $ \restore -> do
+            logDebug "withServer: async serverLoop"
+            serverAsync <- async serverLoop
             logDebug "withServer: created serverLoop async"
-            link serverAsync
-            logDebug "withServer: linked serverLoop async"
-            logDebug "withServer: before act"
-            res <- act env `finally` (logDebug "withServer: act finally callback") -- THIS GOT LOGGED
-            logDebug "withServer: after act"
-            logDebug "withServer: returning from withAsync body"
-            pure res
+            let shutdownServerLoop = do
+                  logDebug "withServer: shutting down serverLoop"
+                  ignored $ close sock
+                  logDebug "withServer: cancel serverAsync"
+                  cancel serverAsync
+                  logDebug "withServer: waitCatch"
+                  void $ waitCatch serverAsync
+                  logDebug "withServer: serverLoop stopped"
+            flip finally shutdownServerLoop $ do
+              logDebug "withServer: link serverAsync"
+              link serverAsync
+              logDebug "withServer: before act"
+              res <- restore (act env)
+              logDebug "withServer: after act"
+              pure res
 
 {-# NOINLINE socketDir #-}
 socketDir :: FilePath
@@ -152,13 +163,13 @@ withListenServerSocket env =
       pure s
 
     release sock = do
-      logDebug $ "Cleaning up socket at " ++ serverSocketPath -- THIS DID NOT GET LOGGED
+      logDebug $ "Cleaning up socket at " ++ serverSocketPath
       clients <- readVar $ seClients env
       logDebug $ "withListenServerSocket: closing " ++ show (length clients) ++ " client sockets"
-      mapM_ close clients
+      mapM_ (ignored . close) clients
       logDebug "withListenServerSocket: closed client sockets"
       logDebug "withListenServerSocket: closing listener socket"
-      close sock
+      ignored $ close sock
       logDebug "withListenServerSocket: closed listener socket"
       logDebug "withListenServerSocket: removing socket path"
       removeIfExists serverSocketPath
