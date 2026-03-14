@@ -5,7 +5,6 @@
 module Ghcid(main, mainWithTerminal, TermSize(..), WordWrap(..), shouldWatchLoadConfig) where
 
 import Control.Exception
-import Control.Concurrent
 import System.IO.Error
 import Control.Applicative
 import Control.Monad.Extra
@@ -229,14 +228,7 @@ mainWithTerminal termSize termOutput = do
     logDebug $ "ARGUMENTS: " ++ show args
 
     -- Create and start the server before the main loop so it persists across session restarts
-    serverEnv <- newServerEnv
-    serverThread <- forkIO $
-        startServer serverEnv `catch` \(e :: SomeException) ->
-            case fromException e :: Maybe AsyncException of
-                Just ThreadKilled -> pure () -- cancelled by the main thread
-                _ -> logErr $ "Server thread crashed: " ++ show e
-
-    flip finally (killThread serverThread >> printStopped opts) $ handleErrors $
+    flip finally (printStopped opts) $ withServer (\serverEnv -> handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
             -- Update the server's session reference on each (re)start
             updateSession serverEnv session
@@ -285,6 +277,7 @@ mainWithTerminal termSize termOutput = do
 
                 maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
                     runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts serverEnv
+        )
 
 
 
