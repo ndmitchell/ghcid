@@ -87,6 +87,7 @@ withServer act = do
   env <- newServerEnv
   createDirectoryIfMissing True socketDir
   other <- canConnect serverSocketPath
+  weClose <- newIORef False
   if other
     then do
       logInfo $ "withServer: Another ghcid server is already running at " ++ serverSocketPath
@@ -102,7 +103,11 @@ withServer act = do
                 (\(e :: SomeException) ->
                   if isExpectedDisconnect e
                     then logDebug $ "withServer: Client disconnected: " ++ show e
-                    else logErr $ "withServer: Socket session crashed: " ++ show e)
+                    else do
+                      weClosed <- readIORef weClose
+                      if weClosed
+                        then logDebug $ "withServer: Ignoring error after shutdown: " ++ show e
+                        else logErr $ "withServer: Socket session crashed: " ++ show e)
                 (serveClient env conn `finally` (do
                   close conn
                   logDebug "withServer: Closed socket connection"
@@ -111,11 +116,11 @@ withServer act = do
         mask $ \restore -> do
           serverAsync <- async serverLoop
           let shutdownServerLoop = do
+                writeIORef weClose True
                 ignored $ close sock
                 cancel serverAsync
                 void $ waitCatch serverAsync
           flip finally shutdownServerLoop $ do
-            link serverAsync
             restore (act env)
 
 {-# NOINLINE socketDir #-}
