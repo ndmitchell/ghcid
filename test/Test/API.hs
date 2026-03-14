@@ -9,6 +9,8 @@ import System.Time.Extra
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Util
 import Test.Common
+import Server
+import Session
 
 
 apiTests :: TestTree
@@ -35,18 +37,18 @@ apiTests = testGroup "API test"
         exec ghci "a + 1" >>= (@?= ["457"])
         stopGhci ghci
 
-    -- ,testCase "Rewrite IDE paths" $ do
-    --     let projectDir = "/project"
-    --     rewriteRequestForGhci PathRelative projectDir ":type-at /project/app/Main.hs 5 34 5 38"
-    --         @?= ":type-at app/Main.hs 5 34 5 38"
-    --     rewriteRequestForGhci PathRelative projectDir ":type-at /other/Main.hs 5 34 5 38"
-    --         @?= ":type-at /other/Main.hs 5 34 5 38"
-    --     rewriteRequestForGhci PathRelative projectDir ":uses /project/dir with spaces/Main.hs 1 1 1 4"
-    --         @?= ":uses dir with spaces/Main.hs 1 1 1 4"
-    --     rewriteRequestForGhci PathAbsolute projectDir ":type-at /project/app/Main.hs 5 34 5 38"
-    --         @?= ":type-at /project/app/Main.hs 5 34 5 38"
-    --     rewriteResponseFromGhci PathRelative projectDir ["app/Main.hs:(5,34)-(5,38)", "app/Main.hs:5:34-38", "plain text"]
-    --         @?= ["/project/app/Main.hs:(5,34)-(5,38)", "/project/app/Main.hs:5:34-38", "plain text"]
-    --     rewriteResponseFromGhci PathAbsolute projectDir ["app/Main.hs:(5,34)-(5,38)"]
-    --         @?= ["app/Main.hs:(5,34)-(5,38)"]
+    ,testCase "Rewrite IDE paths" $ do
+        let projectDir = "/project"
+        rewriteRequestForGhci PathRelative projectDir ":type-at /project/app/Main.hs 5 34 5 38"
+            @?= ":type-at app/Main.hs 5 34 5 38"
+        rewriteRequestForGhci PathRelative projectDir ":type-at /other/Main.hs 5 34 5 38"
+            @?= ":type-at /other/Main.hs 5 34 5 38"
+        rewriteRequestForGhci PathRelative projectDir ":uses /project/dir with spaces/Main.hs 1 1 1 4"
+            @?= ":uses dir with spaces/Main.hs 1 1 1 4"
+        rewriteRequestForGhci PathAbsolute projectDir ":type-at /project/app/Main.hs 5 34 5 38"
+            @?= ":type-at /project/app/Main.hs 5 34 5 38"
+        rewriteResponseFromGhci PathRelative projectDir ["app/Main.hs:(5,34)-(5,38)", "app/Main.hs:5:34-38", "plain text"]
+            @?= ["/project/app/Main.hs:(5,34)-(5,38)", "/project/app/Main.hs:5:34-38", "plain text"]
+        rewriteResponseFromGhci PathAbsolute projectDir ["app/Main.hs:(5,34)-(5,38)"]
+            @?= ["app/Main.hs:(5,34)-(5,38)"]
     ]
