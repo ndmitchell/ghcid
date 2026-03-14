@@ -114,3 +114,12 @@ Ghcid only notices when the `.hs` files change. To make it respond to other file
 #### Why do I get "addWatch: resource exhausted (No space left on device)" or "openFile: resource exhausted (Too many open files)" on my Mac?
 
 The Mac has a fairly low limit on the number of file handles available. You can increase it with: `sudo sysctl -w fs.inotify.max_user_watches=262144; sudo sysctl -p`
+
+### Windows dev on GCP
+
+If you want a disposable native Windows machine for debugging Windows-specific behavior, there is a helper script in the repository for creating or reusing a GCP VM and connecting to it over SSH:
+
+```
+cp .env.example .env
+dotenv run -- python3 ssh-windows-gcp.py
+```
