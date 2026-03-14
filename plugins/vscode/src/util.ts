@@ -78,6 +78,12 @@ export const startGhcidClient = ({
           pending?.resolve(msg.payload)
           pending = undefined
           break
+        case 'err':
+          if (!pending) log?.(`Received err with no pending request: ${gray(JSON.stringify(msg.payload))}`)
+          else log?.(`Received err: ${gray(JSON.stringify(msg.payload))}`)
+          pending?.reject(new Error(msg.payload))
+          pending = undefined
+          break
         default:
           log?.(`Received message with unknown type: ${gray(line)}`)
           break
