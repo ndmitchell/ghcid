@@ -103,7 +103,7 @@ withServer act = bracket_
 
           let serverLoop = forever $ do
                 logDebug "withServer: waiting in accept"
-                (conn, _) <- accept sock
+                (conn, _) <- accept sock `finally` (logDebug "withServer: accept finally callback")
                 logDebug "withServer: Accepted socket connection"
                 void $ async $ handle
                   (\(e :: SomeException) ->
@@ -120,7 +120,7 @@ withServer act = bracket_
             link serverAsync
             logDebug "withServer: linked serverLoop async"
             logDebug "withServer: before act"
-            res <- act env `finally` (logDebug "withServer: act finally callback")
+            res <- act env `finally` (logDebug "withServer: act finally callback") -- THIS GOT LOGGED
             logDebug "withServer: after act"
             logDebug "withServer: returning from withAsync body"
             pure res
@@ -152,7 +152,7 @@ withListenServerSocket env =
       pure s
 
     release sock = do
-      logDebug $ "Cleaning up socket at " ++ serverSocketPath
+      logDebug $ "Cleaning up socket at " ++ serverSocketPath -- THIS DID NOT GET LOGGED
       clients <- readVar $ seClients env
       logDebug $ "withListenServerSocket: closing " ++ show (length clients) ++ " client sockets"
       mapM_ close clients
