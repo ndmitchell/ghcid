@@ -5,8 +5,7 @@
 
 module Server
   ( ServerEnv (..),
-    newServerEnv,
-    startServer,
+    withServer,
     setReloading,
     clearReloading,
     updateMessages,
@@ -82,30 +81,45 @@ updateMessages env@ServerEnv {..} msgs = do
   unless inserted $ void $ swapMVar seMessages msgs
   broadcastDiagnostics env (renderDiagnostics msgs)
 
-startServer :: ServerEnv -> IO ()
-startServer env = if True
-  then putStrLn "startServer: FAKE impl to check CI, returning immediately"
-  else do
+withServer :: (ServerEnv -> IO a) -> IO a
+withServer act = do
+  env <- newServerEnv
   createDirectoryIfMissing True socketDir
   other <- canConnect serverSocketPath
   if other
-    then logErr $ "Another ghcid server is already running at " ++ serverSocketPath
+    then do
+      logErr $ "Another ghcid server is already running at " ++ serverSocketPath
+      act env
     else do
       removeIfExists serverSocketPath
       bracket bindListenServerSocket cleanup $ \sock -> do
         logDebug $ "Socket server listening on " ++ serverSocketPath
-        forever $ do
-          (conn, _) <- accept sock
-          logDebug "Accepted socket connection"
-          forkFinally
-            (serveClient env conn)
-            (\result -> do
-                case result of
-                  Left (e :: SomeException)
-                    | isExpectedDisconnect e -> logDebug $ "Client disconnected: " ++ show e
-                    | otherwise -> logErr $ "Socket session crashed: " ++ show e
-                  Right () -> pure ()
-                close conn)
+
+        let serverLoop = forever $ do
+              (conn, _) <- accept sock
+              logDebug "Accepted socket connection"
+              forkFinally
+                (serveClient env conn)
+                (\result -> do
+                    case result of
+                      Left (e :: SomeException)
+                        | isExpectedDisconnect e ->
+                            logDebug $ "Client disconnected: " ++ show e
+                        | otherwise ->
+                            logErr $ "Socket session crashed: " ++ show e
+                      Right () -> pure ()
+                    ignored $ close conn)
+
+        let start =
+              forkIO $
+                serverLoop `catch` \(e :: SomeException) ->
+                  case fromException e :: Maybe AsyncException of
+                    Just ThreadKilled -> pure ()
+                    _ -> logErr $ "Server thread crashed: " ++ show e
+
+            stop = killThread
+
+        bracket start stop $ \_ -> act env
 
 {-# NOINLINE socketDir #-}
 socketDir :: FilePath
