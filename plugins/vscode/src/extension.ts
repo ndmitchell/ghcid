@@ -215,6 +215,13 @@ const parseLocation = (workspaceRoot: string, line: string): vscode.Location | u
   return undefined
 }
 
+const parseLocations = (workspaceRoot: string, output: string): vscode.Location[] => {
+  return output
+    .split(/\r?\n/)
+    .map(line => parseLocation(workspaceRoot, line))
+    .filter((location): location is vscode.Location => location !== undefined)
+}
+
 const HASKELL_DOCUMENT_SELECTOR: vscode.DocumentSelector = [
   { scheme: 'file', language: 'haskell' },
   { scheme: 'file', pattern: '**/*.hs' },
@@ -350,13 +357,44 @@ const connectToServer = async (stack: AsyncDisposableStack): Promise<void> => {
           if (!range || !ghcidClient) return undefined
           try {
             const result = await ghcidClient.request(document.uri.fsPath, buildCommand(':uses', document, range))
-            const locations = result.output
-              .split(/\r?\n/)
-              .map(line => parseLocation(result.workspaceRoot, line))
-              .filter((location): location is vscode.Location => location !== undefined)
-            return locations
+            return parseLocations(result.workspaceRoot, result.output)
           } catch (err) {
             log(`socket client: references failed: ${err instanceof Error ? err.message : String(err)}`)
+            return undefined
+          }
+        },
+      })
+    )
+  )
+
+  stack.use(
+    vsCodeDisposableToDisposable(
+      vscode.languages.registerDocumentHighlightProvider(HASKELL_DOCUMENT_SELECTOR, {
+        provideDocumentHighlights: async (document, position) => {
+          log(
+            `DocumentHighlightProvider triggered for ${document.uri.fsPath} at ${position.line}:${position.character}`
+          )
+          const range = getWordRange(document, position)
+          if (!range || !ghcidClient) return undefined
+          try {
+            log(
+              `Requesting :uses for ${document.uri.fsPath} at range ${range.start.line}:${range.start.character}-${range.end.line}:${range.end.character}`
+            )
+            const result = await ghcidClient.request(document.uri.fsPath, buildCommand(':uses', document, range))
+            log(`Received :uses output:\n${result.output}`)
+            const r = parseLocations(result.workspaceRoot, result.output)
+              .filter(location => location.uri.fsPath === document.uri.fsPath)
+              .map(location => new vscode.DocumentHighlight(location.range, vscode.DocumentHighlightKind.Text))
+            if (r.length === 0) {
+              log(`No :uses results for ${document.uri.fsPath}; falling back to word-based highlights`)
+              return undefined
+            }
+            log(
+              `Document highlights for ${document.uri.fsPath} at ${position.line}:${position.character}: ${r.length} highlights found`
+            )
+            return r
+          } catch (err) {
+            log(`socket client: document highlights failed: ${err instanceof Error ? err.message : String(err)}`)
             return undefined
           }
         },
