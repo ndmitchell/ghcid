@@ -88,7 +88,9 @@ withServer act = bracket_
   (logDebug "withServer: stop")
   $ do
     env <- newServerEnv
+    logDebug "withServer: created server env"
     createDirectoryIfMissing True socketDir
+    logDebug $ "withServer: ensured socket dir " ++ socketDir
     other <- canConnect serverSocketPath
     if other
       then do
@@ -100,6 +102,7 @@ withServer act = bracket_
           logDebug $ "withServer: Socket server listening on " ++ serverSocketPath
 
           let serverLoop = forever $ do
+                logDebug "withServer: waiting in accept"
                 (conn, _) <- accept sock
                 logDebug "withServer: Accepted socket connection"
                 void $ async $ handle
@@ -113,9 +116,11 @@ withServer act = bracket_
                     ))
 
           withAsync serverLoop $ \serverAsync -> do
+            logDebug "withServer: created serverLoop async"
             link serverAsync
+            logDebug "withServer: linked serverLoop async"
             logDebug "withServer: before act"
-            res <- act env
+            res <- act env `finally` (logDebug "withServer: act finally callback")
             logDebug "withServer: after act"
             logDebug "withServer: returning from withAsync body"
             pure res
@@ -143,6 +148,7 @@ withListenServerSocket env =
       s <- socket AF_UNIX Stream defaultProtocol
       bind s (SockAddrUnix serverSocketPath)
       listen s 8
+      logDebug "withListenServerSocket: acquire complete"
       pure s
 
     release sock = do
@@ -150,8 +156,10 @@ withListenServerSocket env =
       clients <- readVar $ seClients env
       logDebug $ "withListenServerSocket: closing " ++ show (length clients) ++ " client sockets"
       mapM_ close clients
+      logDebug "withListenServerSocket: closed client sockets"
       logDebug "withListenServerSocket: closing listener socket"
       close sock
+      logDebug "withListenServerSocket: closed listener socket"
       logDebug "withListenServerSocket: removing socket path"
       removeIfExists serverSocketPath
       logDebug "withListenServerSocket: release complete"
