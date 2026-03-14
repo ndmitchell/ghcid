@@ -83,7 +83,9 @@ updateMessages env@ServerEnv {..} msgs = do
   broadcastDiagnostics env (renderDiagnostics msgs)
 
 startServer :: ServerEnv -> IO ()
-startServer env = do
+startServer env = if True
+  then putStrLn "startServer: FAKE impl to check CI, returning immediately"
+  else do
   createDirectoryIfMissing True socketDir
   other <- canConnect serverSocketPath
   if other
