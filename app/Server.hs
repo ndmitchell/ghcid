@@ -117,6 +117,7 @@ withServer act = bracket_
             logDebug "withServer: before act"
             res <- act env
             logDebug "withServer: after act"
+            logDebug "withServer: returning from withAsync body"
             pure res
 
 {-# NOINLINE socketDir #-}
@@ -147,9 +148,13 @@ withListenServerSocket env =
     release sock = do
       logDebug $ "Cleaning up socket at " ++ serverSocketPath
       clients <- readVar $ seClients env
+      logDebug $ "withListenServerSocket: closing " ++ show (length clients) ++ " client sockets"
       mapM_ close clients
+      logDebug "withListenServerSocket: closing listener socket"
       close sock
+      logDebug "withListenServerSocket: removing socket path"
       removeIfExists serverSocketPath
+      logDebug "withListenServerSocket: release complete"
 
 removeIfExists :: FilePath -> IO ()
 removeIfExists p = removeFile p `catch` (\(_ :: IOException) -> pure ())

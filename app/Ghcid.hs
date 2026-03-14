@@ -228,7 +228,12 @@ mainWithTerminal termSize termOutput = do
     logDebug $ "ARGUMENTS: " ++ show args
 
     -- Create and start the server before the main loop so it persists across session restarts
-    flip finally (printStopped opts) $ withServer (\serverEnv -> handleErrors $
+    flip finally
+        (do
+            logDebug "mainWithTerminal: entering printStopped finally"
+            printStopped opts
+            logDebug "mainWithTerminal: leaving printStopped finally")
+        $ withServer (\serverEnv -> handleErrors $
         forever $ do
             logDebug "mainWithTerminal: before withWindowIcon"
             withWindowIcon $ do
