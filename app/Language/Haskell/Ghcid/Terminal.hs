@@ -70,14 +70,7 @@ setWindowIcon _ = pure ()
 -- | Run an operation in which you call setWindowIcon
 withWindowIcon :: IO a -> IO a
 #if defined(mingw32_HOST_OS)
-withWindowIcon act = do
-    wnd <- getConsoleWindow
-    icoBig <- sendMessage wnd wM_GETICON iCON_BIG 0
-    icoSmall <- sendMessage wnd wM_GETICON iCON_SMALL 0
-    act `finally` do
-        sendMessage wnd wM_SETICON iCON_BIG icoBig
-        sendMessage wnd wM_SETICON iCON_SMALL icoSmall
-        pure ()
+withWindowIcon act = act
 #else
 withWindowIcon act = act
 #endif
