@@ -311,7 +311,7 @@ main = mainWithTerminal termSize termOutput
             hFlush stdout -- must flush, since we don't finish with a newline
 
 
-data Continue = Continue
+data Continue = Continue deriving (Show)
 
 data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
 
