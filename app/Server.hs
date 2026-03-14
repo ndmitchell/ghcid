@@ -86,32 +86,35 @@ withServer :: (ServerEnv -> IO a) -> IO a
 withServer act = bracket_
   (logDebug "withServer: start")
   (logDebug "withServer: stop")
-  do
+  $ do
     env <- newServerEnv
     createDirectoryIfMissing True socketDir
     other <- canConnect serverSocketPath
     if other
       then do
-        logErr $ "withServer: Another ghcid server is already running at " ++ serverSocketPath
+        logInfo $ "withServer: Another ghcid server is already running at " ++ serverSocketPath
         act env
       else do
         removeIfExists serverSocketPath
-        bracket bindListenServerSocket (cleanup env) $ \sock -> do
+        withListenServerSocket env $ \sock -> do
           logDebug $ "withServer: Socket server listening on " ++ serverSocketPath
 
           let serverLoop = forever $ do
                 (conn, _) <- accept sock
-                logDebug "withServer: socket connection: start"
-                void $ async $
-                  handle
-                    (\(e :: SomeException) ->
-                      if isExpectedDisconnect e
-                        then logDebug $ "withServer: socket connection: stop: Client disconnected: " ++ show e
-                        else logErr $ "withServer: socket connection: stop: Socket session crashed: " ++ show e)
-                    (serveClient env conn `finally` ignored (close conn))
+                logDebug "withServer: Accepted socket connection"
+                void $ async $ handle
+                  (\(e :: SomeException) ->
+                    if isExpectedDisconnect e
+                      then logDebug $ "withServer: Client disconnected: " ++ show e
+                      else logErr $ "withServer: Socket session crashed: " ++ show e)
+                  (serveClient env conn `finally` (do
+                    close conn
+                    logDebug "withServer: Closed socket connection"
+                    ))
 
-          withAsync serverLoop $ \serverAsync ->
-            act env `finally` uninterruptibleCancel serverAsync
+          withAsync serverLoop $ \serverAsync -> do
+            link serverAsync
+            act env
 
 {-# NOINLINE socketDir #-}
 socketDir :: FilePath
@@ -127,21 +130,23 @@ socketDir = unsafePerformIO $ do
 serverSocketPath :: FilePath
 serverSocketPath = socketDir </> "server.sock"
 
-bindListenServerSocket :: IO Socket
-bindListenServerSocket = do
-  logDebug $ "Binding server socket at " ++ serverSocketPath
-  s <- socket AF_UNIX Stream defaultProtocol
-  bind s (SockAddrUnix serverSocketPath)
-  listen s 8
-  pure s
+withListenServerSocket :: ServerEnv -> (Socket -> IO a) -> IO a
+withListenServerSocket env =
+  bracket acquire release
+  where
+    acquire = do
+      logDebug $ "Binding server socket at " ++ serverSocketPath
+      s <- socket AF_UNIX Stream defaultProtocol
+      bind s (SockAddrUnix serverSocketPath)
+      listen s 8
+      pure s
 
-cleanup :: ServerEnv -> Socket -> IO ()
-cleanup ServerEnv {..} sock = do
-  logDebug $ "Cleaning up socket at " ++ serverSocketPath
-  clients <- readVar seClients
-  mapM_ (ignored . close) clients
-  close sock
-  removeIfExists serverSocketPath
+    release sock = do
+      logDebug $ "Cleaning up socket at " ++ serverSocketPath
+      clients <- readVar $ seClients env
+      mapM_ close clients
+      close sock
+      removeIfExists serverSocketPath
 
 removeIfExists :: FilePath -> IO ()
 removeIfExists p = removeFile p `catch` (\(_ :: IOException) -> pure ())
