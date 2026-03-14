@@ -15,3 +15,5 @@ dist-newstyle
 
 ghcid.txt
 .DS_Store
+.env
+__pycache__
