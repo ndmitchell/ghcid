@@ -178,11 +178,17 @@ bracketOnErrorCreateProcess proc f = do
 --
 --   SIGTERM is not enough, ghci doesn't respect it if it's mid-evaluation.
 killProcessGroup :: ProcessHandle -> IO ()
-killProcessGroup proc = do
+killProcessGroup ph = do
 #if defined(mingw32_HOST_OS)
-    terminateProcess proc
+    pidMaybe <- getPid ph
+    case pidMaybe of
+        Nothing -> terminateProcess ph
+        -- /T kills the full child process tree, which matters for commands
+        -- like `cabal repl` that spawn a separate ghci process.
+        Just pid -> void $ createProcess $ proc "taskkill"
+            ["/PID", show pid, "/T", "/F"]
 #else
-    pidMaybe <- getPid proc
+    pidMaybe <- getPid ph
     case pidMaybe of
         Nothing -> pure ()
         Just pid -> do
