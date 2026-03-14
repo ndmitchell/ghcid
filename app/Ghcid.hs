@@ -229,54 +229,63 @@ mainWithTerminal termSize termOutput = do
 
     -- Create and start the server before the main loop so it persists across session restarts
     flip finally (printStopped opts) $ withServer (\serverEnv -> handleErrors $
-        forever $ withWindowIcon $ withSession $ \session -> do
-            -- Update the server's session reference on each (re)start
-            updateSession serverEnv session
+        forever $ do
+            logDebug "mainWithTerminal: before withWindowIcon"
+            withWindowIcon $ do
+                logDebug "mainWithTerminal: before withSession"
+                withSession $ \session -> do
+                    logDebug "mainWithTerminal: inside withSession"
+                    -- Update the server's session reference on each (re)start
+                    updateSession serverEnv session
 
-            -- Collect type info for the :type-at, :loc-at, :uses, etc.
-            let withDotGhci act = withSystemTempDirectory "ghcid" $ \dir -> do
-                    let dotGhci = dir </> ".ghci"
-                    writeFile dotGhci ":set +c"
-                    act dotGhci
+                    -- Collect type info for the :type-at, :loc-at, :uses, etc.
+                    let withDotGhci act = withSystemTempDirectory "ghcid" $ \dir -> do
+                            let dotGhci = dir </> ".ghci"
+                            writeFile dotGhci ":set +c"
+                            act dotGhci
 
-            -- On certain Cygwin terminals stdout defaults to BlockBuffering
-            hSetBuffering stdout LineBuffering
-            hSetBuffering stderr NoBuffering
-            origDir <- getCurrentDirectory
-            withCurrentDirectory (directory opts) $ withDotGhci $ \dotGhci -> do
-                opts <- autoOptions opts dotGhci
-                opts <- pure $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
-                when (topmost opts) terminalTopmost
+                    -- On certain Cygwin terminals stdout defaults to BlockBuffering
+                    hSetBuffering stdout LineBuffering
+                    hSetBuffering stderr NoBuffering
+                    origDir <- getCurrentDirectory
+                    withCurrentDirectory (directory opts) $ withDotGhci $ \dotGhci -> do
+                        opts <- autoOptions opts dotGhci
+                        opts <- pure $ opts{restart = nubOrd $ (origDir </> ".ghcid") : restart opts, reload = nubOrd $ reload opts}
+                        when (topmost opts) terminalTopmost
 
-                let noHeight = if no_height_limit opts then const Nothing else id
-                termSize <- pure $ case (width opts, height opts) of
-                    (Just w, Just h) -> pure $ TermSize w (noHeight $ Just h) WrapHard
-                    (w, h) -> do
-                        term <- termSize
-                        -- if we write to the final column of the window then it wraps automatically
-                        -- so putStrLn width 'x' uses up two lines
-                        pure $ TermSize
-                            (fromMaybe (pred $ termWidth term) w)
-                            (noHeight $ h <|> termHeight term)
-                            (if isJust w then WrapHard else termWrap term)
+                        let noHeight = if no_height_limit opts then const Nothing else id
+                        termSize <- pure $ case (width opts, height opts) of
+                            (Just w, Just h) -> pure $ TermSize w (noHeight $ Just h) WrapHard
+                            (w, h) -> do
+                                term <- termSize
+                                -- if we write to the final column of the window then it wraps automatically
+                                -- so putStrLn width 'x' uses up two lines
+                                pure $ TermSize
+                                    (fromMaybe (pred $ termWidth term) w)
+                                    (noHeight $ h <|> termHeight term)
+                                    (if isJust w then WrapHard else termWrap term)
 
-                restyle <- do
-                    useStyle <- case color opts of
-                        Always -> pure True
-                        Never -> pure False
-                        Auto -> hSupportsANSI stdout
-                    when useStyle $ do
-                        h <- lookupEnv "HSPEC_OPTIONS"
-                        when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
-                    pure $ if useStyle then id else map unescape
+                        restyle <- do
+                            useStyle <- case color opts of
+                                Always -> pure True
+                                Never -> pure False
+                                Auto -> hSupportsANSI stdout
+                            when useStyle $ do
+                                h <- lookupEnv "HSPEC_OPTIONS"
+                                when (isNothing h) $ setEnv "HSPEC_OPTIONS" "--color" -- see #87
+                            pure $ if useStyle then id else map unescape
 
-                clear <- pure $
-                    if clear opts
-                    then (clearScreen *>)
-                    else id
+                        clear <- pure $
+                            if clear opts
+                            then (clearScreen *>)
+                            else id
 
-                maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
-                    runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts serverEnv
+                        logDebug "mainWithTerminal: before runGhcid"
+                        maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
+                            runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts serverEnv
+                        logDebug "mainWithTerminal: after runGhcid"
+                logDebug "mainWithTerminal: after withSession"
+            logDebug "mainWithTerminal: after withWindowIcon"
         )
 
 

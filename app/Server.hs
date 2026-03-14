@@ -114,7 +114,10 @@ withServer act = bracket_
 
           withAsync serverLoop $ \serverAsync -> do
             link serverAsync
-            act env
+            logDebug "withServer: before act"
+            res <- act env
+            logDebug "withServer: after act"
+            pure res
 
 {-# NOINLINE socketDir #-}
 socketDir :: FilePath
