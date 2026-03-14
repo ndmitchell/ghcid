@@ -13,7 +13,7 @@ module Language.Haskell.Ghcid.Util(
     ignored,
     allGoodMessage,
     getModTime, getModTimeResolution, getShortTime,
-    withCreateProcessGroup,
+    bracketOnErrorCreateProcess,
     killProcessGroup
     ) where
 
@@ -158,7 +158,7 @@ getModTimeResolutionCache = unsafePerformIO $ withTempDir $ \dir -> do
     -- add a little bit of safety, but if it's really quick, don't make it that much slower
     pure $ mtime + min 0.1 mtime
 
-withCreateProcessGroup proc f = do
+bracketOnErrorCreateProcess proc f = do
     let undo (_, _, _, proc) = ignored $ killProcessGroup proc
     bracketOnError (createProcess proc) undo $ \(a,b,c,d) -> f a b c d
 

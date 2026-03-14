@@ -56,7 +56,7 @@ instance Eq Ghci where
 startGhciProcess :: CreateProcess -> (Stream -> String -> IO ()) -> IO (Ghci, [Load])
 startGhciProcess process echo0 = do
     let proc = process{std_in=CreatePipe, std_out=CreatePipe, std_err=CreatePipe, create_group=True}
-    withCreateProcessGroup proc $ \(Just inp) (Just out) (Just err) ghciProcess -> do
+    bracketOnErrorCreateProcess proc $ \(Just inp) (Just out) (Just err) ghciProcess -> do
 
         hSetBuffering out LineBuffering
         hSetBuffering err LineBuffering
