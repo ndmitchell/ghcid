@@ -285,10 +285,12 @@ mainWithTerminal termSize termOutput = do
                             then (clearScreen *>)
                             else id
 
-                        logDebug "mainWithTerminal: before runGhcid"
-                        maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter ->
+                        logDebug "mainWithTerminal: before withWaiterNotify"
+                        maybe withWaiterNotify withWaiterPoll (poll opts) $ \waiter -> do
+                            logDebug "mainWithTerminal: before runGhcid"
                             runGhcid (if allow_eval opts then enableEval session else session) waiter termSize (clear . termOutput . restyle) opts serverEnv
-                        logDebug "mainWithTerminal: after runGhcid"
+                            logDebug "mainWithTerminal: after runGhcid"
+                        logDebug "mainWithTerminal: after withWaiterNotify"
                 logDebug "mainWithTerminal: after withSession"
             logDebug "mainWithTerminal: after withWindowIcon"
         )
