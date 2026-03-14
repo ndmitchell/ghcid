@@ -118,6 +118,7 @@ rename from to = do
 
 basicTest :: TestTree
 basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
+    putStrLn "[test] starting basicTest"
     write "Main.hs" "main = print 1"
     withGhcid ["-cghci -fwarn-unused-binds Main.hs"] $ \require -> do
         require [allGoodMessage]
@@ -154,10 +155,12 @@ basicTest = disable19650 $ testCase "Ghcid basic" $ freshDir $ do
             require [allGoodMessage]
 
         -- after this point GHC bugs mean nothing really works too much
+    putStrLn "[test] finished basicTest"
 
 
 cdTest :: TestTree
 cdTest = disable19650 $ testCase "Cd basic" $ freshDir $ do
+    putStrLn "[test] starting cdTest"
     write "foo/Main.hs" "main = print 1"
     write "foo/Util.hs" "import Bob"
     write "foo/.ghci" ":load Main"
@@ -170,10 +173,12 @@ cdTest = disable19650 $ testCase "Cd basic" $ freshDir $ do
         require ["Main.hs:1:1"," Parse error:"]
         write "foo/.ghci" ":load Util"
         require ["Util.hs:1:","`Bob'"]
+    putStrLn "[test] finished cdTest"
 
 
 dotGhciTest :: TestTree
 dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
+    putStrLn "[test] starting dotGhciTest"
     write "test.txt" ""
     ignore $ void $ system "chmod go-w .ghci"
     withGhcid ["--test=:test"] $ \require -> do
@@ -189,17 +194,21 @@ dotGhciTest = testCase "Ghcid .ghci" $ copyDir "test/foo" $ do
         require ["The import of Paths_foo is redundant"]
         sleep 1 -- time to write out the test
         readFile "test.txt" >>= (@?= "XX") -- but shouldn't run on warning
+    putStrLn "[test] finished dotGhciTest"
 
 
 loadConfigRestartFilterTest :: TestTree
 loadConfigRestartFilterTest = testCase "Ignore generated cabal script setcwd.ghci" $ do
+    putStrLn "[test] starting loadConfigRestartFilterTest"
     shouldWatchLoadConfig "/Users/test/.cabal/script-builds/hash/setcwd.ghci" @?= False
     shouldWatchLoadConfig "/Users/test/project/.ghci" @?= True
     shouldWatchLoadConfig "foo/.ghci" @?= True
+    putStrLn "[test] finished loadConfigRestartFilterTest"
 
 
 cabalTest :: TestTree
 cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ whenExecutable "cabal" $ do
+    putStrLn "[test] starting cabalTest"
     env <- getEnvironment
     let db = ["--package-db=" ++ x | x <- maybe [] splitSearchPath $ lookup "GHC_PACKAGE_PATH" env]
     (_, _, _, pid) <- createProcess $
@@ -213,3 +222,4 @@ cabalTest = testCase "Ghcid Cabal" $ copyDir "test/bar" $ whenExecutable "cabal"
         require ["src/Literate.lhs:5:3","Parse error:"]
         write "src/Literate.lhs" orig
         require [allGoodMessage]
+    putStrLn "[test] finished cabalTest"
