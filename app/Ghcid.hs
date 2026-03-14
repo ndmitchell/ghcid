@@ -319,6 +319,7 @@ data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
 -- Use Continue not () so that inadvertent exits don't restart
 runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> ServerEnv -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
+    logDebug "runGhcid: start"
     let limitMessages = maybe id (take . max 1) max_messages
 
     let outputFill :: String -> Maybe (Int, [Load]) -> [EvalResult] -> [String] -> IO ()
@@ -356,9 +357,13 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
         logErr "--reload must be set when using --ignore-loaded"
         exitFailure
 
+    logDebug "runGhcid: before initial waitFiles"
     nextWait <- waitFiles waiter
+    logDebug "runGhcid: after initial waitFiles"
+    logDebug $ "runGhcid: before sessionStart command=" ++ show command
     (messages, loaded) <- sessionStart session command $
         map (":set " ++) ghciFlagsUseful ++ setup
+    logDebug $ "runGhcid: after sessionStart loadedCount=" ++ show (length loaded) ++ ", messageCount=" ++ show (length messages)
 
     when (null loaded && not ignoreLoaded) $ do
         logErr "No files loaded, meaning ghcid will never refresh, so aborting."
@@ -382,6 +387,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
         -> ([Load], [FilePath], [FilePath])
         -> IO Continue
       fire nextWait (messages, loaded, touched) = do
+            logDebug $ "runGhcid.fire: start loadedCount=" ++ show (length loaded) ++ ", touchedCount=" ++ show (length touched) ++ ", messageCount=" ++ show (length messages)
             currTime <- getShortTime
             let loadedCount = length loaded
             logDebug $ "MESSAGES: " ++ show messages
@@ -445,9 +451,11 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
                         outStrLn output
                         forM_ outputfile $ flip writeFile output
 
+            logDebug "runGhcid.fire: before nextWait"
             reason <- nextWait $ map (,Restart) restart
                               ++ map (,Reload) reload
                               ++ map (,Reload) loaded
+            logDebug $ "runGhcid.fire: after nextWait reason=" ++ either show show reason
 
             let reason1 = case reason of
                   Left err ->
@@ -462,20 +470,26 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
             currTime <- getShortTime
             case reason1 of
               (Reload, reason2) -> do
+                logDebug $ "runGhcid.fire: reload triggered by " ++ show reason2
                 unless no_status $ outputFill currTime Nothing evals $ "Reloading..." : map ("  " ++) reason2
                 setReloading serverEnv
                 nextWait <- waitFiles waiter
+                logDebug "runGhcid.fire: before sessionReload"
                 reloadResult <- sessionReload session
+                logDebug "runGhcid.fire: after sessionReload"
                 clearReloading serverEnv
                 let (msgs, _, _) = reloadResult
                 updateMessages serverEnv msgs
                 fire nextWait reloadResult
               (Restart, reason2) -> do
                 -- exit cleanly, since the whole thing is wrapped in a forever
+                logDebug $ "runGhcid.fire: restart triggered by " ++ show reason2
                 unless no_status $ outputFill currTime Nothing evals $ "Restarting..." : map ("  " ++) reason2
                 pure Continue
 
-    fire nextWait (messages, loaded, loaded)
+    res <- fire nextWait (messages, loaded, loaded)
+    logDebug $ "runGhcid: finish result=" ++ show res
+    pure res
 
 
 -- | Given an available height, and a set of messages to display, show them as best you can.
