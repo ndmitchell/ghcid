@@ -16,6 +16,7 @@ module Server
 where
 
 import Control.Concurrent
+import Control.Concurrent.Async
 import Control.Concurrent.Extra
 import Control.Exception
 import Control.Monad
@@ -82,44 +83,35 @@ updateMessages env@ServerEnv {..} msgs = do
   broadcastDiagnostics env (renderDiagnostics msgs)
 
 withServer :: (ServerEnv -> IO a) -> IO a
-withServer act = do
-  env <- newServerEnv
-  createDirectoryIfMissing True socketDir
-  other <- canConnect serverSocketPath
-  if other
-    then do
-      logErr $ "Another ghcid server is already running at " ++ serverSocketPath
-      act env
-    else do
-      removeIfExists serverSocketPath
-      bracket bindListenServerSocket cleanup $ \sock -> do
-        logDebug $ "Socket server listening on " ++ serverSocketPath
+withServer act = bracket_
+  (logDebug "withServer: start")
+  (logDebug "withServer: stop")
+  do
+    env <- newServerEnv
+    createDirectoryIfMissing True socketDir
+    other <- canConnect serverSocketPath
+    if other
+      then do
+        logErr $ "withServer: Another ghcid server is already running at " ++ serverSocketPath
+        act env
+      else do
+        removeIfExists serverSocketPath
+        bracket bindListenServerSocket (cleanup env) $ \sock -> do
+          logDebug $ "withServer: Socket server listening on " ++ serverSocketPath
 
-        let serverLoop = forever $ do
-              (conn, _) <- accept sock
-              logDebug "Accepted socket connection"
-              forkFinally
-                (serveClient env conn)
-                (\result -> do
-                    case result of
-                      Left (e :: SomeException)
-                        | isExpectedDisconnect e ->
-                            logDebug $ "Client disconnected: " ++ show e
-                        | otherwise ->
-                            logErr $ "Socket session crashed: " ++ show e
-                      Right () -> pure ()
-                    ignored $ close conn)
+          let serverLoop = forever $ do
+                (conn, _) <- accept sock
+                logDebug "withServer: socket connection: start"
+                void $ async $
+                  handle
+                    (\(e :: SomeException) ->
+                      if isExpectedDisconnect e
+                        then logDebug $ "withServer: socket connection: stop: Client disconnected: " ++ show e
+                        else logErr $ "withServer: socket connection: stop: Socket session crashed: " ++ show e)
+                    (serveClient env conn `finally` ignored (close conn))
 
-        let start =
-              forkIO $
-                serverLoop `catch` \(e :: SomeException) ->
-                  case fromException e :: Maybe AsyncException of
-                    Just ThreadKilled -> pure ()
-                    _ -> logErr $ "Server thread crashed: " ++ show e
-
-            stop = killThread
-
-        bracket start stop $ \_ -> act env
+          withAsync serverLoop $ \serverAsync ->
+            act env `finally` uninterruptibleCancel serverAsync
 
 {-# NOINLINE socketDir #-}
 socketDir :: FilePath
@@ -143,9 +135,11 @@ bindListenServerSocket = do
   listen s 8
   pure s
 
-cleanup :: Socket -> IO ()
-cleanup sock = do
+cleanup :: ServerEnv -> Socket -> IO ()
+cleanup ServerEnv {..} sock = do
   logDebug $ "Cleaning up socket at " ++ serverSocketPath
+  clients <- readVar seClients
+  mapM_ (ignored . close) clients
   close sock
   removeIfExists serverSocketPath
 
@@ -182,10 +176,13 @@ isResourceVanishedErrorCompat _ = False
 
 serveClient :: ServerEnv -> Socket -> IO ()
 serveClient env@ServerEnv {..} sock = do
-  modifyVar_ seClients $ pure . (sock :)
-  initial <- renderDiagnostics <$> readMVar seMessages
-  sendLine sock "diag" initial
-  loop BS.empty `finally` modifyVar_ seClients (pure . filter (/= sock))
+  bracket_
+    (modifyVar_ seClients $ pure . (sock :))
+    (modifyVar_ seClients $ pure . filter (/= sock))
+    $ do
+        initial <- renderDiagnostics <$> readMVar seMessages
+        sendLine sock "diag" initial
+        loop BS.empty
   where
     loop pending = do
       (line, rest) <- recvLine sock pending
