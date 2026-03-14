@@ -1,9 +1,12 @@
 
 -- | Test utility functions
-module Test.Util(utilsTests) where
+module Test.Util where
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Control.Monad
+import Data.Maybe
+import System.Environment
 
 import Language.Haskell.Ghcid.Util
 import Language.Haskell.Ghcid.Escape
@@ -29,3 +32,11 @@ wordWrapTests = testGroup "wordWrap"
     ]
     where h x = (Esc x, WrapHard)
           s x = (Esc x, WrapSoft)
+
+isVerbose :: IO Bool
+isVerbose = isJust <$> lookupEnv "GHCID_TEST_VERBOSE"
+
+whenVerbose :: IO () -> IO ()
+whenVerbose act = do
+    verbose <- isVerbose
+    when verbose act

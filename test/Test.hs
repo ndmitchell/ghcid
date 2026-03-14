@@ -3,7 +3,6 @@ module Test(main) where
 
 import Test.Tasty
 import System.IO
-import System.Console.CmdArgs
 
 import Test.Util
 import Test.Parser
@@ -13,7 +12,6 @@ import Test.Ghcid
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
-    setVerbosity Loud
     defaultMain tests
 
 tests :: TestTree

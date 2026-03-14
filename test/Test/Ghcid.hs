@@ -7,6 +7,7 @@ import Control.Exception.Extra
 import Control.Monad.Extra
 import Data.Char
 import Data.List.Extra
+import Data.Maybe
 import System.Directory.Extra
 import System.IO.Extra
 import System.Time.Extra
@@ -23,6 +24,7 @@ import Ghcid (TermSize(..), mainWithTerminal, shouldWatchLoadConfig)
 import Language.Haskell.Ghcid.Escape
 import Language.Haskell.Ghcid.Util
 import Test.Common
+import Test.Util
 import Data.Functor
 import Prelude
 
@@ -63,6 +65,7 @@ whenExecutable exe act = do
 withGhcid :: [String] -> (([String] -> IO ()) -> IO a) -> IO a
 withGhcid args script = do
     chan <- newChan
+    verbose <- isJust <$> lookupEnv "GHCID_TEST_VERBOSE"
     let require want = do
             t <- timeout 30 $ readChan chan
             case t of
@@ -72,12 +75,13 @@ withGhcid args script = do
 
     let output msg = do
             let msg2 = filter (/= "") msg
-            putStr $ unlines $ map ("%PRINT: "++) msg2
+            when verbose $
+                putStr $ unlines $ map ("%PRINT: "++) msg2
             writeChan chan msg2
     done <- newBarrier
     res <- bracket
         (flip forkFinally (const $ signalBarrier done ()) $
-            withArgs (["--no-title","--no-status"]++args) $
+            withArgs (["--quiet","--no-title","--no-status"]++args) $
                 mainWithTerminal (pure $ TermSize 100 (Just 50) WrapHard) output)
         killThread $ \_ -> script require
     waitBarrier done
@@ -94,21 +98,20 @@ assertApproxInfix want got = do
     all ((`isInfixOf` got2) . simple) want @?
         "Expected " ++ show want ++ ", got " ++ show got
 
-
 write :: FilePath -> String -> IO ()
 write file x = do
-    print ("writeFile",file,x)
+    whenVerbose $ print ("writeFile",file,x)
     createDirectoryIfMissing True $ takeDirectory file
     writeFile file x
 
 append :: FilePath -> String -> IO ()
 append file x = do
-    print ("appendFile",file,x)
+    whenVerbose $ print ("appendFile",file,x)
     appendFile file x
 
 rename :: FilePath -> FilePath -> IO ()
 rename from to = do
-    print ("renameFile",from,to)
+    whenVerbose $ print ("renameFile",from,to)
     renameFile from to
 
 

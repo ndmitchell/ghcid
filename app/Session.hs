@@ -25,6 +25,7 @@ import Data.List.Extra
 import Control.Applicative
 import Prelude
 import System.IO.Extra
+import System.Console.CmdArgs.Verbosity
 
 
 data Session = Session
@@ -110,7 +111,7 @@ sessionStart Session{..} cmd setup = do
     -- start the new
     logInfo $ "Starting ghci command: " ++ cmd
     (v, messages) <- mask $ \unmask -> do
-        (v, messages) <- unmask $ startGhci cmd Nothing $ const outStrLn
+        (v, messages) <- unmask $ startGhci cmd Nothing $ \_ msg -> whenNormal $ outStrLn msg
         writeIORef ghci $ Just v
         pure (v, messages)
 
@@ -248,7 +249,7 @@ sessionExecAsync Session{..} cmd done = do
         execStream ghci cmd $ \strm msg ->
             when (msg /= "*** Exception: ExitSuccess") $ do
                 when (strm == Stderr) $ writeIORef stderr msg
-                outStrLn msg
+                whenNormal $ outStrLn msg
         old <- modifyVar running $ \b -> pure (False, b)
         -- don't fire Done if someone interrupted us
         stderr <- readIORef stderr

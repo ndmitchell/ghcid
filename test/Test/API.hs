@@ -9,12 +9,14 @@ import System.Time.Extra
 import Language.Haskell.Ghcid
 import Language.Haskell.Ghcid.Util
 import Test.Common
+import Test.Util
 
 
 apiTests :: TestTree
 apiTests = testGroup "API test"
     [testCase "No files" $ withTempDir $ \dir -> do
-        (ghci,load) <- startGhci "ghci -ignore-dot-ghci" (Just dir) $ const putStrLn
+        echo <- testEcho
+        (ghci,load) <- startGhci "ghci -ignore-dot-ghci" (Just dir) echo
         load @?= []
         showModules ghci >>= (@?= [])
         exec ghci "import Data.List"
@@ -23,7 +25,8 @@ apiTests = testGroup "API test"
 
     ,disable19650 $ testCase "Load file" $ withTempDir $ \dir -> do
         writeFile (dir </> "File.hs") "module A where\na = 123"
-        (ghci, load) <- startGhci "ghci -ignore-dot-ghci File.hs" (Just dir) $ const putStrLn
+        echo <- testEcho
+        (ghci, load) <- startGhci "ghci -ignore-dot-ghci File.hs" (Just dir) echo
         load @?= [Loading "A" "File.hs"]
         exec ghci "a + 1" >>= (@?= ["124"])
         reload ghci >>= (@?= [])
@@ -50,3 +53,9 @@ apiTests = testGroup "API test"
     --     rewriteResponseFromGhci PathAbsolute projectDir ["app/Main.hs:(5,34)-(5,38)"]
     --         @?= ["app/Main.hs:(5,34)-(5,38)"]
     ]
+
+
+testEcho :: IO (Stream -> String -> IO ())
+testEcho = do
+    verbose <- isVerbose
+    pure $ if verbose then const putStrLn else \_ _ -> pure ()

@@ -168,7 +168,7 @@ autoOptions o@Options{..} ghciScript
                                 "stack exec --test --bench -- ghci" : opts
                 in f flags $ stack:cabal
               | cabal /= [] ->
-                  let rtsopts = if no_cabal_repl_rtsopts then [] else ["\"+RTS -N -RTS\""]
+                  let rtsopts = ["\"+RTS -N -RTS\"" | not no_cabal_repl_rtsopts]
                       useCabal = ["cabal","repl"] ++ target ++ map ("--repl-options=" ++) (rtsopts ++ opts)
                       useGhci = "cabal exec -- ghci":opts
                   in  f (if null arguments then useCabal else useGhci) cabal
