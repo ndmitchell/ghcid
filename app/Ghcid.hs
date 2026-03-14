@@ -66,6 +66,7 @@ data Options = Options
     ,max_messages :: Maybe Int
     ,color :: ColorMode
     ,setup :: [String]
+    ,no_cabal_repl_rtsopts :: Bool
     ,allow_eval :: Bool
     ,target :: [String]
     }
@@ -105,6 +106,7 @@ options = cmdArgsMode $ Options
     ,max_messages = Nothing &= name "n" &= help "Maximum number of messages to print"
     ,color = Auto &= name "colour" &= name "color" &= opt Always &= typ "always/never/auto" &= help "Color output (defaults to when the terminal supports it)"
     ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
+    ,no_cabal_repl_rtsopts = False &= explicit &= name "no-cabal-repl-rtsopts" &= help "Disable default +RTS -N -RTS when using the auto-selected cabal repl command"
     ,allow_eval = False &= name "allow-eval" &= help "Execute REPL commands in comments"
     ,target = [] &= typ "TARGET" &= help "Target Component to build (e.g. lib:foo for Cabal, foo:lib for Stack)"
     } &= verbosity &=
@@ -166,7 +168,8 @@ autoOptions o@Options{..} ghciScript
                                 "stack exec --test --bench -- ghci" : opts
                 in f flags $ stack:cabal
               | cabal /= [] ->
-                  let useCabal = ["cabal","repl"] ++ target ++ map ("--repl-options=" ++) opts
+                  let rtsopts = if no_cabal_repl_rtsopts then [] else ["\"+RTS -N -RTS\""]
+                      useCabal = ["cabal","repl"] ++ target ++ map ("--repl-options=" ++) (rtsopts ++ opts)
                       useGhci = "cabal exec -- ghci":opts
                   in  f (if null arguments then useCabal else useGhci) cabal
               | ".ghci" `elem` files -> f ("ghci":opts) [curdir </> ".ghci"]
