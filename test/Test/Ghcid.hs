@@ -62,12 +62,15 @@ whenExecutable exe act = do
 
 withGhcid :: [String] -> (([String] -> IO ()) -> IO a) -> IO a
 withGhcid args script = do
+    putStrLn $ "[test] withGhcid start args=" ++ show args
     chan <- newChan
     let require want = do
+            putStrLn $ "[test] withGhcid require waiting for " ++ show want
             t <- timeout 30 $ readChan chan
             case t of
                 Nothing -> fail $ "Require failed to produce results in time, expected: " ++ show want
                 Just got -> assertApproxInfix want got
+            putStrLn $ "[test] withGhcid require matched " ++ show want
             sleep =<< getModTimeResolution
 
     let output msg = do
@@ -75,12 +78,24 @@ withGhcid args script = do
             putStr $ unlines $ map ("%PRINT: "++) msg2
             writeChan chan msg2
     done <- newBarrier
+    putStrLn "[test] withGhcid about to bracket mainWithTerminal"
     res <- bracket
-        (flip forkFinally (const $ signalBarrier done ()) $
+        (flip forkFinally (\r -> do
+            putStrLn $ "[test] withGhcid forkFinally completed " ++ either (const "with exception") (const "success") r
+            signalBarrier done ()) $
             withArgs (["--no-title","--no-status"]++args) $
                 mainWithTerminal (pure $ TermSize 100 (Just 50) WrapHard) output)
-        killThread $ \_ -> script require
+        (\tid -> do
+            putStrLn "[test] withGhcid cleanup killThread"
+            killThread tid) $ \_ -> do
+            putStrLn "[test] withGhcid running script"
+            x <- script require
+            putStrLn "[test] withGhcid script finished"
+            pure x
+    putStrLn "[test] withGhcid waiting for done barrier"
     waitBarrier done
+    putStrLn "[test] withGhcid done barrier released"
+    putStrLn "[test] withGhcid finish"
     pure res
 
 
