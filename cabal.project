@@ -1,7 +1,8 @@
 packages:
   .
 
-source-repository-package
-  type: git
-  location: https://github.com/chrismwendt/hashable.git
-  tag: codex/ghc-9.15-compat
+if impl(ghc >= 9.15)
+  source-repository-package
+    type: git
+    location: https://github.com/chrismwendt/hashable.git
+    tag: codex/ghc-9.15-compat
