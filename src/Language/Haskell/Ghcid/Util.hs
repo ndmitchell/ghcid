@@ -185,8 +185,9 @@ killProcessGroup ph = do
         Nothing -> terminateProcess ph
         -- /T kills the full child process tree, which matters for commands
         -- like `cabal repl` that spawn a separate ghci process.
-        Just pid -> void $ createProcess $ proc "taskkill"
-            ["/PID", show pid, "/T", "/F"]
+        Just pid -> do
+            (_, _, _, h) <- createProcess $ proc "taskkill" ["/PID", show pid, "/T", "/F"]
+            void $ waitForProcess h
 #else
     pidMaybe <- getPid ph
     case pidMaybe of
