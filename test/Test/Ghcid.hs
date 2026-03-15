@@ -30,7 +30,7 @@ import Prelude
 
 
 ghcidTest :: TestTree
-ghcidTest = testGroup "Ghcid test"
+ghcidTest = localOption (mkTimeout 30000000) $ testGroup "Ghcid test"
     [basicTest
     ,cdTest
     ,dotGhciTest

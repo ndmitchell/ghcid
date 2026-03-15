@@ -13,7 +13,7 @@ import Test.Util
 
 
 apiTests :: TestTree
-apiTests = testGroup "API test"
+apiTests = localOption (mkTimeout 30000000) $ testGroup "API test"
     [testCase "No files" $ withTempDir $ \dir -> do
         echo <- testEcho
         (ghci,load) <- startGhci "ghci -ignore-dot-ghci" (Just dir) echo
