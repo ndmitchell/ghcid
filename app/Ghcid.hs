@@ -68,6 +68,7 @@ data Options = Options
     ,setup :: [String]
     ,no_cabal_repl_rtsopts :: Bool
     ,allow_eval :: Bool
+    ,server :: Bool
     ,target :: [String]
     }
     deriving (Data,Typeable,Show)
@@ -108,6 +109,7 @@ options = cmdArgsMode $ Options
     ,setup = [] &= name "setup" &= typ "COMMAND" &= help "Setup commands to pass to ghci on stdin, usually :set <something>"
     ,no_cabal_repl_rtsopts = False &= explicit &= name "no-cabal-repl-rtsopts" &= help "Disable default +RTS -N -RTS when using the auto-selected cabal repl command"
     ,allow_eval = False &= name "allow-eval" &= help "Execute REPL commands in comments"
+    ,server = False &= explicit &= name "server" &= help "Enable the local ghcid socket server"
     ,target = [] &= typ "TARGET" &= help "Target Component to build (e.g. lib:foo for Cabal, foo:lib for Stack)"
     } &= verbosity &=
     program "ghcid" &= summary ("Auto reloading GHCi daemon v" ++ showVersion version)
@@ -230,8 +232,9 @@ mainWithTerminal termSize termOutput = do
     args <- getArgs
     logDebug $ "ARGUMENTS: " ++ show args
 
-    -- Create and start the server before the main loop so it persists across session restarts
-    flip finally (printStopped opts) $ withServer (\serverEnv -> handleErrors $
+    let withServerMaybe = if server opts then withServer else \_ -> return ()
+
+    flip finally (printStopped opts) $ withServerMaybe (\serverEnv -> handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
             -- Update the server's session reference on each (re)start
             updateSession serverEnv session
