@@ -232,12 +232,14 @@ mainWithTerminal termSize termOutput = do
     args <- getArgs
     logDebug $ "ARGUMENTS: " ++ show args
 
-    let withServerMaybe = if server opts then withServer else \_ -> return ()
+    let withServerMaybe act
+          | server opts = withServer (act . Just)
+          | otherwise = act Nothing
 
     flip finally (printStopped opts) $ withServerMaybe (\serverEnv -> handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
             -- Update the server's session reference on each (re)start
-            updateSession serverEnv session
+            mapM_ (\env -> updateSession env session) serverEnv
 
             -- Collect type info for the :type-at, :loc-at, :uses, etc.
             let withDotGhci act = withSystemTempDirectory "ghcid" $ \dir -> do
@@ -307,7 +309,7 @@ data ReloadMode = Reload | Restart deriving (Show, Ord, Eq)
 
 -- If we return successfully, we restart the whole process
 -- Use Continue not () so that inadvertent exits don't restart
-runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> ServerEnv -> IO Continue
+runGhcid :: Session -> Waiter -> IO TermSize -> ([String] -> IO ()) -> Options -> Maybe ServerEnv -> IO Continue
 runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
     let limitMessages = maybe id (take . max 1) max_messages
 
@@ -356,7 +358,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
         exitFailure
 
     -- Update server with initial messages
-    updateMessages serverEnv messages
+    mapM_ (\env -> updateMessages env messages) serverEnv
 
     restart <- pure $ nubOrd $ restart ++ [x | LoadConfig x <- messages, shouldWatchLoadConfig x]
     -- Note that we capture restarting items at this point, not before invoking the command
@@ -453,12 +455,12 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
             case reason1 of
               (Reload, reason2) -> do
                 unless no_status $ outputFill currTime Nothing evals $ "Reloading..." : map ("  " ++) reason2
-                setReloading serverEnv
+                mapM_ setReloading serverEnv
                 nextWait <- waitFiles waiter
                 reloadResult <- sessionReload session
-                clearReloading serverEnv
+                mapM_ clearReloading serverEnv
                 let (msgs, _, _) = reloadResult
-                updateMessages serverEnv msgs
+                mapM_ (\env -> updateMessages env msgs) serverEnv
                 fire nextWait reloadResult
               (Restart, reason2) -> do
                 -- exit cleanly, since the whole thing is wrapped in a forever
