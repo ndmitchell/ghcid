@@ -239,7 +239,7 @@ mainWithTerminal termSize termOutput = do
     flip finally (printStopped opts) $ withServerMaybe (\serverEnv -> handleErrors $
         forever $ withWindowIcon $ withSession $ \session -> do
             -- Update the server's session reference on each (re)start
-            mapM_ (\env -> updateSession env session) serverEnv
+            mapM_ (`updateSession` session) serverEnv
 
             -- Collect type info for the :type-at, :loc-at, :uses, etc.
             let withDotGhci act = withSystemTempDirectory "ghcid" $ \dir -> do
@@ -358,7 +358,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
         exitFailure
 
     -- Update server with initial messages
-    mapM_ (\env -> updateMessages env messages) serverEnv
+    mapM_ (`updateMessages` messages) serverEnv
 
     restart <- pure $ nubOrd $ restart ++ [x | LoadConfig x <- messages, shouldWatchLoadConfig x]
     -- Note that we capture restarting items at this point, not before invoking the command
@@ -460,7 +460,7 @@ runGhcid session waiter termSize termOutput opts@Options{..} serverEnv = do
                 reloadResult <- sessionReload session
                 mapM_ clearReloading serverEnv
                 let (msgs, _, _) = reloadResult
-                mapM_ (\env -> updateMessages env msgs) serverEnv
+                mapM_ (`updateMessages` msgs) serverEnv
                 fire nextWait reloadResult
               (Restart, reason2) -> do
                 -- exit cleanly, since the whole thing is wrapped in a forever
