@@ -1,7 +1,7 @@
 name: ci
 on:
   push:
-    branches: [master]
+    branches: [master, ci-dev]
   pull_request:
   schedule:
   - cron:  '0 3 * * 6' # 3am Saturday

@@ -2,6 +2,7 @@
 module Test(main) where
 
 import Test.Tasty
+import Test.Tasty.Runners (NumThreads(..))
 import System.IO
 
 import Test.Util
@@ -15,7 +16,9 @@ main = do
     defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests"
+-- Several integration tests temporarily change the process-wide current
+-- directory, so they must not overlap with each other.
+tests = localOption (NumThreads 1) $ testGroup "Tests"
     [utilsTests
     ,parserTests
     ,apiTests

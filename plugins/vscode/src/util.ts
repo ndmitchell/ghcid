@@ -30,7 +30,7 @@ export const startGhcid =
     log?.('Starting ghcid...')
     return await startProcess({
       cmd: bin.stdout.trim(),
-      args: [],
+      args: ['--server'],
       opts: {
         cwd: workspaceRoot,
         killSignal: 'SIGINT', // Simulates ctrl-c in the terminal
@@ -94,6 +94,7 @@ export const startGhcidClient = ({
   }
 
   const connectAndListen = async (signal: AbortSignal): Promise<never> => {
+    signal.throwIfAborted()
     log?.(`${gray(serverSocketPath)} connection...`)
     socket = net.createConnection({ path: serverSocketPath, signal })
     socket.once('connect', () => log?.(`${gray(serverSocketPath)} connection...connected`))
@@ -264,6 +265,7 @@ export const startProcess = ({
   opts: SpawnOptions
 }): CreateResource<unknown> =>
   constructCreateResource(async signal => {
+    signal.throwIfAborted()
     const process = spawn(cmd, args, { ...opts, signal })
     await started(process, signal)
     return [{ process }, closed(process)]
@@ -300,7 +302,7 @@ export const promiseToSignal = (reason: any, p: Promise<unknown>): AbortSignal =
   return controller.signal
 }
 
-export const signalToPromise = (signal: AbortSignal): Promise<void> =>
+export const signalToPromise = (signal: AbortSignal): Promise<never> =>
   new Promise((_, reject) => {
     if (signal.aborted) reject(signal.reason)
     signal.addEventListener('abort', () => reject(signal.reason), { once: true })

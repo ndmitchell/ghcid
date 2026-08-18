@@ -22,7 +22,7 @@ case "$cmd" in
     yarn eslint .
     yarn prettier --check . || echo "Prettier check failed, run 'yarn prettier --write .' to fix"
     yarn tsdown && cp out/src/extension.cjs out/src/extension.js
-    yarn tsx --enable-source-maps test/ghcid-client.test.ts -v
+    timeout --signal=INT --kill-after=10s 90s yarn tsx --enable-source-maps test/ghcid-client.test.ts -v
     # Same as build, but skip the test where we spawn vs code since there's no display in CI
     # node out/src/timeout.cjs 15 node --enable-source-maps out/test/runTest.cjs
     yarn vsce package

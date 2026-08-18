@@ -20,11 +20,15 @@ const test = async ({ log, signal }: { log: ((...args: any[]) => void) | undefin
   log('Starting ghcid...')
   await using ghcid = await startGhcid({ workspaceRoot, log })(signal)
 
+  const interactionTimeout = signalToPromise(AbortSignal.timeout(30_000))
   log('Waiting for diagnostics to confirm client is connected...')
-  await Promise.race([ready.promise, signalToPromise(client.signal)])
+  await Promise.race([ready.promise, signalToPromise(client.signal), interactionTimeout])
 
   log('Sending :type-at command')
-  const { output } = await client.request(path.join(workspaceRoot, 'Lib.hs'), ':type-at Lib.hs 5 34 5 38')
+  const { output } = await Promise.race([
+    client.request(path.join(workspaceRoot, 'Lib.hs'), ':type-at Lib.hs 5 34 5 38'),
+    interactionTimeout,
+  ])
 
   expect(output).toMatch(/:: Char/)
 }
