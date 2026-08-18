@@ -71,7 +71,11 @@ withGhcid args script = do
             case t of
                 Nothing -> fail $ "Require failed to produce results in time, expected: " ++ show want
                 Just got -> assertApproxInfix want got
-            sleep =<< getModTimeResolution
+            -- Ensure the next write gets a distinguishable modification time. Sleeping
+            -- for exactly the measured resolution can still leave both writes in the
+            -- same timestamp bucket when the sleep straddles its boundary imprecisely.
+            resolution <- getModTimeResolution
+            sleep $ max 0.05 $ resolution * 2
 
     let output msg = do
             let msg2 = filter (/= "") msg
