@@ -1,10 +1,12 @@
 # VSCode haskell-ghcid
 
-Shows errors and warnings from [`ghcid`](https://github.com/ndmitchell/ghcid) in the Problems pane and inline as red squiggles in the editor. Updates when files are saved.
+Shows errors and warnings from [`ghcid`](https://github.com/ndmitchell/ghcid) in the Problems pane and inline as red squiggles in the editor. Can also provide hovers, jump to definition, and find references. Updates when files are saved.
 
 ## Usage
 
 Simply run `ghcid -o ghcid.txt`! `-o` instructs `ghcid` to write its output to a file every time it recompiles your code. This extension will automatically find and watch that file for updates.
+
+Or run `ghcid --server` to get diagnostics, hovers, file-local jump to definition, and file-local find references. This extension will automatically find and connect to the server via a local socket.
 
 ## Spawning `ghcid` in VS Code
 

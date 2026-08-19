@@ -95,6 +95,7 @@ export const startGhcidClient = ({
 
   const connectAndListen = async (signal: AbortSignal): Promise<never> => {
     signal.throwIfAborted()
+    await fs.access(serverSocketPath)
     log?.(`${gray(serverSocketPath)} connection...`)
     socket = net.createConnection({ path: serverSocketPath, signal })
     socket.once('connect', () => log?.(`${gray(serverSocketPath)} connection...connected`))
