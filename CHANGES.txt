@@ -1,5 +1,13 @@
 Changelog for ghcid (* = breaking change)
 
+1.0.0, released 2026-08-18
+    #397, #399, #400, promptly clean up entire process groups and force
+        termination when GHCi is unresponsive
+    #402, add a socket server for VS Code navigation and diagnostics
+    #406, fix module-cycle crashes and Windows hangs
+    Support GHC 9.8, 9.10, 9.12 and 9.15
+    Fix Cabal script mode, diagnostics, and module-cycle handling
+
 0.8.9, released 2023-07-02
     #375, fix crash when modules are renamed or deleted in GHC 9.6
     #378, write output of the linter into output files

@@ -35,7 +35,7 @@ Please [report any bugs](https://github.com/ndmitchell/ghcid/issues) you find.
 
 There are a few plugins that integrate Ghcid into editors, notably:
 
-* [VS Code](plugins/vscode/)
+* [VS Code](https://marketplace.visualstudio.com/items?itemName=ndmitchell.haskell-ghcid)
 * [nvim](plugins/nvim/)
 * [vim](https://github.com/aiya000/vim-ghcid-quickfix)
 * [Emacs](plugins/emacs/)
