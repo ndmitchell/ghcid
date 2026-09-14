@@ -125,7 +125,11 @@ sessionStart Session{..} cmd setup = do
     writeIORef pathMode $ determinePathMode moduleFiles
     messages <- pure $ map (qualify dir) messages
 
-    let loaded = loadedModules dir messages
+    loaded <- do
+        Just ghci <- readIORef ghci
+        shownModules <- showModules ghci
+        pure $ nubOrd $ loadedModules dir messages <> map ((dir </>) . snd) shownModules
+
     evals <- performEvals v allowEval loaded
 
     -- install a handler
